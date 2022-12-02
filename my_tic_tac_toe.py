@@ -24,7 +24,6 @@ class ttt:
 
     def user_input(self):
         self.row, self.col = list(map(int, input("enter row and col").split()))
-        
         print()
 
    
