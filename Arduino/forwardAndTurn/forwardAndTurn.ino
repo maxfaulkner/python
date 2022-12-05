@@ -17,6 +17,7 @@ bool wait = true;
 bool turnControl = false;
 bool fwdControl = false; 
 
+
 double error_fwd;
 double u_fwdControl;
 
@@ -39,14 +40,14 @@ float kd_rotPos = .9;
 
 //Translational Controller variables
 double calculateCounts;
-int travelDistanceM[] = {1 , 0.1 , 0.2};
+int travelDistanceM[] = {100 , 0.1 , 0.2};
 double currnetCounts;
 double errorOldTrans;
 double errorCurrentTrans;
 double derivErrorTrans;
 
 float kpTrans = 1;
-float kdTrans = .5; 
+float kdTrans = .005; 
 
 
 
@@ -98,6 +99,7 @@ void loop() {
 
   // Update counter so we know which number to go after
   turnNumber.update(turnControl,0,wait);
+  startTimer.update(true);
 
 
   //Rotational Controller 
@@ -129,7 +131,7 @@ void loop() {
   //Block 2 - Init transitions if needed
 
   //Transitions
-  bool wait_fwd = wait && buttonC.isPressed();
+  bool wait_fwd = wait && buttonC.isPressed() && startTimer.TMR;
   bool fwd_turn = fwdControl && errorCurrentTrans < .05 && errorCurrentTrans > -0.05;
   bool turn_fwd = turnControl && error_rotPos <.05 && error_rotPos > -0.05;
   bool turn_wait = turnControl && error_rotPos <.05 && error_rotPos > -0.05 && turnNumber.count > 4;
@@ -140,7 +142,7 @@ void loop() {
   bool turn_turn = turnControl && error_rotPos >.05 || error_rotPos < -0.05;
 
   //Block 3 - Link states with the transitions they correspond to
-  
+
   wait = wait_wait || turn_wait;
   turnControl = fwd_turn || turn_turn;
   fwdControl = turn_fwd || fwd_fwd || wait_fwd;
