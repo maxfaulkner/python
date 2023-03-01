@@ -17,6 +17,7 @@ def updateToNew():
     debtLabel.grid(row=4, column=3, padx=50, columnspan=2)
     
 def showLastVerified():
+    functionsSetup
     return True
 
 # Balance Labels
