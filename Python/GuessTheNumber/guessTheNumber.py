@@ -1,7 +1,5 @@
 import random
 
-
-
 def guess(x):
     random_number = random.randint(1, x)
     userNum = 0
@@ -13,5 +11,4 @@ def guess(x):
             print("Too Low, Try Again")
     print ("YAY, You Win")
 
-    
 guess(10)
