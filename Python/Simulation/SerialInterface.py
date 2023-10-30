@@ -8,6 +8,8 @@ import serial
 key_commands = {
     'a': 'A',
     'd': 'D',
+    's': 'S',
+    'w': 'W',
     # Add more key-command mappings as needed
 }
 
