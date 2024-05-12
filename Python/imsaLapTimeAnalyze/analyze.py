@@ -2,7 +2,7 @@ import json
 import matplotlib.pyplot as plt
 
 # Load JSON data from file
-with open('data.json', 'r') as file:
+with open('/Users/maxfaulkner/Documents/GitHub Repositories/python/Python/imsaLapTimeAnalyze/data.json', 'r') as file:
     data = json.load(file)
 
 # Extract the driver's name for filtering
