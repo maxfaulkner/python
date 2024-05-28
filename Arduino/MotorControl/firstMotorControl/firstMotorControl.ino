@@ -7,7 +7,7 @@ int currentSpeed = 0;
 void setup() {
   Serial.begin(115200);
   motor1.setSpeed(0); // Set motor speed (0 to 255)
-  motor1.run(FORWARD); // Turn the motor on in the FORWARD direction
+  motor1.run(BACKWARD); // Turn the motor on in the FORWARD direction
 }
 
 void loop() {
