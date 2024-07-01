@@ -25,16 +25,18 @@ def pid_transfer_function(Kp, Ki, Kd):
 
 # Define a range of gains for root locus plot
 Kp_values = np.linspace(1, 10, 100)
+Ki_values = np.linspace(1, 10, 100)  # Fixing Ki for simplicity in initial plot
+Kd_values = np.linspace(1, 10, 100) # Fixing Kd for simplicity in initial plot
 
 # Initialize the plot
 plt.figure()
 
 # Plot root locus for various PID combinations
 for Kp in Kp_values:
-    Ki = 1.0  # Fixing Ki for simplicity in initial plot
-    Kd = 1.0  # Fixing Kd for simplicity in initial plot
-    C = pid_transfer_function(Kp, Ki, Kd)
-    L = C * G
+    for Ki in Ki_values:
+        for Kd in Kd_values:
+            C = pid_transfer_function(Kp, Ki, Kd)
+            L = C * G
     
     # Calculate the root locus data and plot it
     roots = ctl.root_locus(L)
