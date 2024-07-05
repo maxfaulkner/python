@@ -2,7 +2,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 # Load data from CSV into a DataFrame
-file_path = 'accel_sensor_data.csv'
+file_path = 'accel_sensor_data_main.csv'
 df = pd.read_csv(file_path)
 
 # Extract data
@@ -12,7 +12,7 @@ y_out = df['yOut']
 z_out = df['zOut']
 
 # Create three subplots
-fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 10))
+fig, (ax1, ax2, ax3) = plt.subplots(3, 1, figsize=(10, 8))
 
 # Plot 1: Time vs xOut
 ax1.plot(time, x_out, color='r', label='xOut')
