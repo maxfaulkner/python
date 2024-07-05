@@ -8,7 +8,7 @@ from PyQt5.QtWidgets import QApplication
 from PyQt5.QtCore import QTimer
 
 # Define the serial port and baud rate.
-serial_port = '/dev/cu.usbmodem144401'  # Replace with your serial port
+serial_port = '/dev/cu.usbmodem14301'  # Replace with your serial port
 baud_rate = 115200  # Make sure this matches the baud rate of your Arduino.
 
 # Set up the serial connection.
@@ -16,9 +16,9 @@ ser = serial.Serial(serial_port, baud_rate)
 
 # Initialize data storage
 times = deque(maxlen=1000)
-x_vals = deque(maxlen=1000)
-y_vals = deque(maxlen=1000)
-z_vals = deque(maxlen=1000)
+xGyroVals = deque(maxlen=1000)
+yGyroVals = deque(maxlen=1000)
+zGyroVals = deque(maxlen=1000)
 
 # Create a figure and axes for the plots
 app = QApplication([])
@@ -49,26 +49,30 @@ def update_plot():
             data = line.split(',')
             
             # Ensure we have the correct amount of data.
-            if len(data) == 4:
+            if len(data) == 7:
                 current_time = float(data[0])
-                x = float(data[1])
-                y = float(data[2])
-                z = float(data[3])
+                xGyroRaw = float(data[1])
+                yGyroRaw = float(data[2])
+                zGyroRaw = float(data[3])
+                xAccelRaw = float(data[4])
+                yAccelRaw = float(data[5])
+                zAccelRaw = float(data[6])
                 
                 # Print the values to console.
-                print(f"Time: {current_time}, x: {x}, y: {y}, z: {z}")
+                print(f"Time: {current_time}, xGyro: {xGyroRaw}, yGyro: {yGyroRaw}, zGyro: {zGyroRaw}, xAccel: {xAccelRaw}, yAccel: {yAccelRaw}, zAccel: {zAccelRaw}")
                 
                 # Append data to deques
                 times.append(current_time)
-                x_vals.append(x)
-                y_vals.append(y)
-                z_vals.append(z)
+                xGyroVals.append(xGyroRaw)
+                yGyroVals.append(yGyroRaw)
+                zGyroVals.append(zGyroRaw)
                 
                 # Update the data of the plots
-                curve1.setData(times, x_vals)
-                curve2.setData(times, y_vals)
-                curve3.setData(times, z_vals)
-                
+                curve1.setData(times, xGyroVals)
+                curve2.setData(times, yGyroVals)
+                curve3.setData(times, zGyroVals)
+            else:
+                print("odd")
         except UnicodeDecodeError:
             print("UnicodeDecodeError: Cannot decode data.")
         except ValueError:
@@ -77,7 +81,7 @@ def update_plot():
 # Set up a timer to update the plot regularly
 timer = QTimer()
 timer.timeout.connect(update_plot)
-timer.start(50)
+timer.start(50) #rate at which plot and sensors are updated
 
 # Start the PyQt event loop
 if __name__ == '__main__':
