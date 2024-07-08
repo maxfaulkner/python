@@ -10,7 +10,12 @@ const int yPin = A1;
 const int zPin = A2;
 
 unsigned long previousTime = 0;
-const long timerInterval = 50; //interval in sensor updates in milliseconds 
+const long timerInterval = 10; //interval in sensor updates in milliseconds 
+
+int flPMW = 0;
+int frPMW = 0;
+int rlPMW = 0;
+int rrPMW = 0;
 
 void setup() {
   // Start the serial communication
@@ -66,6 +71,14 @@ void loop() {
     Serial.print(yAccelVal);
     Serial.print(" ,");
     Serial.print(zAccelVal);
+    Serial.print(" ,");
+    Serial.print(flPMW);
+    Serial.print(" ,");
+    Serial.print(frPMW);
+    Serial.print(" ,");
+    Serial.print(rlPMW);
+    Serial.print(" ,");
+    Serial.print(rrPMW);
     Serial.println();
   }
 }

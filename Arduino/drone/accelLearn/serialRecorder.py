@@ -3,7 +3,7 @@ import csv
 import time
 
 # Define the serial port and baud rate.
-serial_port = '/dev/cu.usbmodem142401'  # Replace with your serial port
+serial_port = '/dev/cu.usbmodem144401'  # Replace with your serial port
 baud_rate = 115200  # Make sure this matches the baud rate of your Arduino.
 
 # Set up the serial connection.
@@ -32,7 +32,7 @@ try:
                 data = line.split(',')
                 
                 # Ensure we have the correct amount of data.
-                if len(data) == 4:
+                if len(data) == 7:
                     current_time = float(data[0])
                     x = float(data[1])
                     y = float(data[2])
