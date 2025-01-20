@@ -1,6 +1,4 @@
 #include <AFMotor.h>
-
-
 AF_DCMotor motor1(1); // Create a motor object for motor 1
 int currentSpeed = 0;
 
@@ -12,11 +10,8 @@ void setup() {
 
 void loop() {
   // Your code here
-  motor1.setSpeed(currentSpeed);
+  motor1.setSpeed(255);
   currentSpeed = currentSpeed + 20;
   Serial.println(currentSpeed);
-
-
-
   delay(2000); // Delay for 2 seconds
 }
