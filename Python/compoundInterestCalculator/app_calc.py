@@ -21,18 +21,34 @@ def performCalc ():
         r_var = float(entry_r.get())/100
         n_var = float(entry_n.get())
         t_var = float(entry_t.get())
+        c_var = float(entry_c.get())
 
+        #calculations for no contributions
         total = calculate_compound_interest(p_var, r_var, n_var, t_var) #this calculates end total for user provided inputs
         total_over_time = calculate_compound_interest_over_time(p_var, r_var, n_var, t_var) #Calculates the lists that are used to plot from user input
         total_with_varying_interest = calculate_varying_interest_over_time(p_var, r_var, n_var, t_var) #Calculates lists used for plotting varying interest
-        update_plot(total_over_time, total_with_varying_interest, r_var) #Updaets the plots with the current total and total over time
+        
+        #calculations with contributions
+        total_with_contributions = calculate_compound_interest_with_contributions(p_var,r_var, n_var, t_var, c_var)
+        total_over_time_with_contributions = calculate_compound_interest_over_time_with_contributions(p_var,r_var, n_var, t_var, c_var)
+        total_with_varying_interest_with_contributions = calculate_varying_interest_with_contributions(p_var,r_var, n_var, t_var, c_var)
 
-        final_values = {rate: values[-1][1] for rate, values in total_with_varying_interest.items()}
+        if checkbox_var.get():
+            final_total = total_with_varying_interest_with_contributions
+            update_plot(total_over_time_with_contributions, total_with_varying_interest_with_contributions, r_var) #Updaets the plots with the current total and total over time
+            result_label.config(text=f"After {t_var} Years at {r_var*100}%: ${total_with_contributions:,.2f}")
+        else:
+            final_total = total_with_varying_interest
+            update_plot(total_over_time, total_with_varying_interest, r_var) #Updaets the plots with the current total and total over time
+            result_label.config(text=f"After {t_var} Years at {r_var*100}%: ${total:,.2f}")
+
+        final_values = {rate: values[-1][1] for rate, values in final_total.items()}
+        print(final_values)
         row_start = 1
         for i, (rate, final_value) in enumerate(final_values.items()):
             tk.Label(root, text=f"Rate: {rate:.2%} → Final Value: ${final_value:,.2f}").grid(row=row_start + i, column=1, columnspan=2)
 
-        result_label.config(text=f"After {t_var} Years at {r_var*100}%: ${total:,.2f}")
+        
 
 
     except ValueError:
@@ -92,9 +108,19 @@ entry_t = tk.Entry(root)
 entry_t.insert(0, "10")
 entry_t.grid(row=3, column=1, padx=1, pady=5, sticky="W")
 
+# Create input fields and labels
+tk.Label(root, text="Contributions:").grid(row=4, column=0, padx=1, pady=5, sticky="E")
+entry_c = tk.Entry(root)
+entry_c.insert(0, "")
+entry_c.grid(row=4, column=1, padx=1, pady=5, sticky="W")
+
+checkbox_var = tk.BooleanVar()
+checkbox = tk.Checkbutton(root, text="Contributions?", variable=checkbox_var)
+checkbox.grid(row=5, column=1,padx=1,pady=5,sticky="W")
+
 # Create the calculate button
 calculate_button = tk.Button(root, text="Calculate", command=performCalc)
-calculate_button.grid(row=4, column=0, columnspan=2, pady=10)
+calculate_button.grid(row=6, column=0, columnspan=2, pady=10)
 
 # Create the result label
 result_label = tk.Label(root, text="")
