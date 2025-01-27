@@ -1,3 +1,0 @@
-([('app_calc',
-   '/Users/maxfaulkner/Documents/Github/python/Python/compoundInterestCalculator/dist/app_calc',
-   'EXECUTABLE')],)

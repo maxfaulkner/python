@@ -1,1 +1,11 @@
 .DS_Store
+
+Python/compoundInterestCalculator/dist
+
+Python/compoundInterestCalculator/build
+
+Python/compoundInterestCalculator/.DS_Store
+
+Python/.DS_Store
+
+Python/compoundInterestCalculator/__pycache__
