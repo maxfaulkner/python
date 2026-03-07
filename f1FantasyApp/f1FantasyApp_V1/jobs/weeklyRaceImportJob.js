@@ -1,171 +1,164 @@
 // jobs/weeklyRaceImportJob.js
 const schedule = require('node-schedule');
+const fetch = require('node-fetch');
 const prisma = require('../prisma');
 const f1DataService = require('../services/f1DataService');
 const pricingEngine = require('../services/pricingEngine');
 const mailer = require('../services/mailer');
 
+const JOLPICA_API = 'https://api.jolpi.ca/ergast/f1';
+
+async function fetchRaceSchedule(season) {
+  const res = await fetch(`${JOLPICA_API}/${season}.json`);
+  if (!res.ok) throw new Error(`Failed to fetch schedule: ${res.status}`);
+  const data = await res.json();
+  return data.MRData.RaceTable.Races;
+}
+
 /**
- * Main job: Run every Monday morning at 9:00 AM
- * Attempts to import race results with retries, then processes pricing
+ * Schedule team locks and result imports for every race this season.
+ * Called once at server startup.
  */
 async function startWeeklyRaceImportJob() {
-  // Run every Monday at 9:00 AM
-  schedule.scheduleJob('0 9 * * 1', async () => {
-    console.log('\n=== Weekly Race Import Job Started ===');
-    
-    try {
-      // Get all active leagues
-      const leagues = await prisma.league.findMany();
+  const season = new Date().getFullYear();
+  const now = new Date();
 
-      for (const league of leagues) {
-        await processLeagueRaceImport(league);
-      }
-    } catch (error) {
-      console.error('Fatal error in race import job:', error);
-    }
-  });
-
-  console.log('✓ Weekly race import job scheduled for Mondays at 9:00 AM');
-}
-
-/**
- * Process race import and pricing for a single league
- */
-async function processLeagueRaceImport(league) {
-  console.log(`\nProcessing league: ${league.name} (Season ${league.season})`);
-
-  // Determine which race we're processing
-  // This would be last week's race (today is Monday, race was Sunday)
-  const currentDate = new Date();
-  const daysSinceRace = (currentDate.getDay() + 6) % 7; // days since Sunday
-  
-  // For now, we'll need to know the race week from somewhere
-  // You might store this in a config or pass it in
-  const raceWeek = await getCurrentRaceWeek(league);
-
-  if (!raceWeek) {
-    console.log('No pending race to import');
+  let races;
+  try {
+    races = await fetchRaceSchedule(season);
+    console.log(`Fetched ${races.length}-race schedule for ${season}`);
+  } catch (err) {
+    console.error('Could not fetch F1 schedule:', err.message);
     return;
   }
 
-  // Try to fetch race results with retries
-  const results = await f1DataService.fetchRaceResultsWithRetries(
-    league.season,
-    raceWeek,
-    league.adminEmail
-  );
+  for (const race of races) {
+    const round = parseInt(race.round);
+
+    // Team lock: 1 hour before qualifying
+    if (race.Qualifying) {
+      const qualiStart = new Date(`${race.Qualifying.date}T${race.Qualifying.time}`);
+      const lockTime = new Date(qualiStart.getTime() - 60 * 60 * 1000); // -1 hour
+
+      if (lockTime > now) {
+        schedule.scheduleJob(`lock-r${round}`, lockTime, async () => {
+          console.log(`Locking teams for round ${round}...`);
+          await lockTeamsForRound(round);
+        });
+        console.log(`  Round ${round}: lock at ${lockTime.toUTCString()}`);
+      }
+    }
+
+    // Result import: 2 hours after race start, with retries
+    const raceStart = new Date(`${race.date}T${race.time || '14:00:00Z'}`);
+    const importTime = new Date(raceStart.getTime() + 2 * 60 * 60 * 1000); // +2 hours
+
+    if (importTime > now) {
+      schedule.scheduleJob(`import-r${round}`, importTime, async () => {
+        console.log(`\n=== Auto-importing results for round ${round} ===`);
+        await importRaceResults(season, round);
+      });
+      console.log(`  Round ${round}: import at ${importTime.toUTCString()}`);
+    } else {
+      // Race already happened — check if results are missing and import now
+      const existingResults = await prisma.raceResult.count({ where: { week: round } });
+      if (existingResults === 0) {
+        console.log(`  Round ${round}: past race with no results — attempting import now`);
+        importRaceResults(season, round).catch(err =>
+          console.error(`  Round ${round} catch-up import failed:`, err.message)
+        );
+      }
+    }
+  }
+}
+
+/**
+ * Lock all teams across all leagues for a given round
+ */
+async function lockTeamsForRound(round) {
+  const result = await prisma.userWeeklyTeam.updateMany({
+    where: { week: round },
+    data: { locked: true },
+  });
+  console.log(`Locked ${result.count} teams for round ${round}`);
+}
+
+/**
+ * Fetch race results from API and process for all leagues
+ */
+async function importRaceResults(season, round) {
+  const leagues = await prisma.league.findMany();
+  if (leagues.length === 0) {
+    console.log('No leagues to update');
+    return;
+  }
+
+  // Fetch results once (same for all leagues)
+  const adminEmail = leagues[0].adminEmail;
+  const results = await f1DataService.fetchRaceResultsWithRetries(season, round, adminEmail);
 
   if (!results) {
-    console.log('Race import failed after all retries. Admin notified. Waiting for manual entry.');
+    console.log(`Round ${round}: all retries exhausted, admin notified`);
     return;
   }
 
-  // Process and save results
-  const { savedResults, failedResults } = await f1DataService.processRaceResults(
-    league.id,
-    raceWeek,
-    league.season,
-    results
-  );
+  for (const league of leagues) {
+    // Skip if this round is before the league's starting round
+    if (round < league.startingRound) continue;
 
-  if (failedResults.length > 0) {
-    console.warn(`⚠ ${failedResults.length} drivers failed to process:`, failedResults);
-  }
-
-  // Update pricing for next week
-  console.log('Calculating new driver/constructor prices...');
-  await pricingEngine.processPricingAfterRace(league.id, raceWeek);
-
-  // Unlock teams for next week
-  console.log('Unlocking teams for next week...');
-  const nextWeek = raceWeek + 1;
-  await prisma.userWeeklyTeam.updateMany({
-    where: {
-      leagueId: league.id,
-      week: nextWeek,
-    },
-    data: {
-      locked: false,
-    },
-  });
-
-  // Send emails to all participants
-  console.log('Sending team selection reminder emails...');
-  const leagueUsers = await prisma.leagueUser.findMany({
-    where: { leagueId: league.id },
-    include: { user: true },
-  });
-
-  for (const leagueUser of leagueUsers) {
-    await mailer.sendTeamPickReminder(leagueUser.user.email, {
-      leagueName: league.name,
-      week: nextWeek,
-      budget: 100, // in millions
+    // Skip if already imported
+    const existing = await prisma.raceResult.count({
+      where: { leagueId: league.id, week: round },
     });
+    if (existing > 0) {
+      console.log(`Round ${round} already imported for league ${league.name}`);
+      continue;
+    }
+
+    console.log(`Processing round ${round} for league: ${league.name}`);
+    const { savedResults, failedResults } = await f1DataService.processRaceResults(
+      league.id, round, season, results
+    );
+
+    if (failedResults.length > 0) {
+      console.warn(`  ${failedResults.length} drivers not matched:`, failedResults.map(f => f.driverName));
+    }
+
+    // Update prices for next week
+    await pricingEngine.processPricingAfterRace(league.id, round);
+
+    // Unlock teams for next round
+    await prisma.userWeeklyTeam.updateMany({
+      where: { leagueId: league.id, week: round + 1 },
+      data: { locked: false },
+    });
+
+    // Notify members to pick next week's team
+    const members = await prisma.leagueUser.findMany({
+      where: { leagueId: league.id },
+      include: { user: true },
+    });
+    for (const m of members) {
+      await mailer.sendTeamPickReminder(m.user.email, {
+        leagueName: league.name,
+        week: round + 1,
+        budget: 100,
+      }).catch(() => {}); // don't fail the import if email fails
+    }
+
+    console.log(`  Round ${round} done: ${savedResults.length} results saved`);
   }
-
-  console.log(`✓ League ${league.name} processing complete`);
 }
 
 /**
- * Determine current race week (would need context on F1 schedule)
- * For now, returns null or a hardcoded value
- * In production, you'd fetch from F1 API or have a schedule in your DB
+ * Manual trigger: import a specific round right now (for testing or recovery)
  */
-async function getCurrentRaceWeek(league) {
-  // TODO: Implement proper race week detection
-  // This could be:
-  // 1. Stored in league with "nextRaceWeek" field
-  // 2. Calculated from F1 API race schedule
-  // 3. Provided via environment variable for manual control
-  
-  // For now, assume we're processing week 2 (since league starts at race 2)
-  const pendingResults = await prisma.raceResult.count({
-    where: { leagueId: league.id },
-  });
-
-  // If we have 0 results, we need to process race 2 (first race)
-  // If we have results, calculate next unprocessed race
-  const nextWeek = league.startingRound + pendingResults;
-  
-  // Check if we've already imported this week
-  const existingResults = await prisma.raceResult.count({
-    where: {
-      leagueId: league.id,
-      week: nextWeek,
-    },
-  });
-
-  return existingResults === 0 ? nextWeek : null;
-}
-
-/**
- * Team lock job: Runs 1 hour before each race
- * Locks all team selections
- */
-async function startTeamLockJob() {
-  // This would require knowing exact race times
-  // For now, a placeholder - you'd integrate with F1 race schedule
-  
-  console.log('✓ Team lock job placeholder registered (needs F1 race schedule integration)');
-}
-
-/**
- * Manual trigger for testing/emergency: Process race results immediately
- */
-async function triggerRaceImportNow(leagueId) {
-  const league = await prisma.league.findUnique({
-    where: { id: leagueId },
-  });
-
-  if (!league) throw new Error('League not found');
-
-  await processLeagueRaceImport(league);
+async function triggerRaceImportNow(season, round) {
+  console.log(`Manual trigger: round ${round}, season ${season}`);
+  await importRaceResults(season, round);
 }
 
 module.exports = {
   startWeeklyRaceImportJob,
-  startTeamLockJob,
   triggerRaceImportNow,
 };

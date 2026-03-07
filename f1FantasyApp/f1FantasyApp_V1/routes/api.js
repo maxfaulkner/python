@@ -311,6 +311,31 @@ router.post(
   }
 );
 
+/**
+ * GET /api/leagues/:leagueId/team/:week/:userId
+ * View any player's team for a given week
+ */
+router.get('/leagues/:leagueId/team/:week/:userId', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId, week, userId } = req.params;
+
+    const team = await prisma.userWeeklyTeam.findUnique({
+      where: { userId_leagueId_week: { userId, leagueId, week: parseInt(week) } },
+      include: {
+        user: { select: { name: true } },
+        drivers: { include: { driver: { include: { constructor: true } } } },
+        constructors: { include: { constructor: true } },
+      },
+    });
+
+    if (!team) return res.status(404).json({ error: 'No team found for this player' });
+
+    res.json(team);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // ============ PRICING ============
 
 /**
@@ -370,15 +395,13 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
     const leagueUsers = await prisma.leagueUser.findMany({
       where: { leagueId },
       include: {
-        user: true,
         user: {
           include: {
             weeklyTeams: {
               where: { leagueId },
               include: {
-                drivers: {
-                  include: { driver: true },
-                },
+                drivers: true,
+                constructors: true,
               },
             },
           },
@@ -486,11 +509,11 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     });
 
     // Process results
-    const { savedResults, failedResults } = 
+    const { savedResults, failedResults } =
       await f1DataService.processRaceResults(
         leagueId,
         weekNum,
-        2025, // season
+        new Date().getFullYear(),
         results
       );
 

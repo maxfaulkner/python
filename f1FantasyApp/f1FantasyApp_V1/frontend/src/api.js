@@ -48,6 +48,8 @@ export const api = {
   // Leaderboard
   getLeaderboard: (leagueId) =>
     request('GET', `/api/leagues/${leagueId}/leaderboard`),
+  getPlayerTeam: (leagueId, week, userId) =>
+    request('GET', `/api/leagues/${leagueId}/team/${week}/${userId}`),
 
   // Admin
   getAdminRaceForm: (leagueId, week) =>

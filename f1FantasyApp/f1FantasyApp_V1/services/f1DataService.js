@@ -3,7 +3,7 @@ const fetch = require('node-fetch');
 const prisma = require('../prisma');
 const mailer = require('./mailer');
 
-const ERGAST_API = 'https://ergast.com/api/f1';
+const ERGAST_API = 'https://api.jolpi.ca/ergast/f1'; // Jolpica (Ergast replacement, same URL structure)
 
 /**
  * Fetch race results from Ergast API

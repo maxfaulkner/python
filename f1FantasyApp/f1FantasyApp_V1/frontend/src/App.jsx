@@ -7,6 +7,7 @@ import Leagues from './pages/Leagues';
 import TeamPicker from './pages/TeamPicker';
 import Leaderboard from './pages/Leaderboard';
 import AdminRace from './pages/AdminRace';
+import ViewTeam from './pages/ViewTeam';
 
 function Protected({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -24,6 +25,7 @@ export default function App() {
           <Route path="/leagues/:leagueId/team/:week" element={<Protected><TeamPicker /></Protected>} />
           <Route path="/leagues/:leagueId/leaderboard" element={<Protected><Leaderboard /></Protected>} />
           <Route path="/leagues/:leagueId/admin/:week" element={<Protected><AdminRace /></Protected>} />
+          <Route path="/leagues/:leagueId/view/:week" element={<Protected><ViewTeam /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </div>

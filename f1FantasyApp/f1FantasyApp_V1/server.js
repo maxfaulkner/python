@@ -170,10 +170,9 @@ async function main() {
       console.log(`🏁 API: http://localhost:${PORT}/api`);
     });
 
-    // Initialize scheduled jobs
+    // Initialize scheduled jobs (fetches F1 calendar, schedules lock + import for every race)
     console.log('\n⏰ Initializing scheduled jobs...');
-    raceImportJob.startWeeklyRaceImportJob();
-    raceImportJob.startTeamLockJob();
+    await raceImportJob.startWeeklyRaceImportJob();
 
   } catch (error) {
     console.error('Failed to start server:', error);

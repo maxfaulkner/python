@@ -1,193 +1,143 @@
 // scripts/seedDatabase.js
 const prisma = require('../prisma');
-const fetch = require('node-fetch');
 
-// 2024 F1 Drivers and Constructors (you can fetch from Ergast or hardcode)
-const DRIVERS_2024 = [
-  // Mercedes
-  { f1Id: 'hamilton', name: 'Lewis Hamilton', constructorName: 'Mercedes', skillTier: 1.15, isRookie: false, champsPoints: 245 },
-  { f1Id: 'russell', name: 'George Russell', constructorName: 'Mercedes', skillTier: 1.05, isRookie: false, champsPoints: 192 },
-
-  // Ferrari
-  { f1Id: 'leclerc', name: 'Charles Leclerc', constructorName: 'Ferrari', skillTier: 1.12, isRookie: false, champsPoints: 222 },
-  { f1Id: 'sainz', name: 'Carlos Sainz', constructorName: 'Ferrari', skillTier: 1.08, isRookie: false, champsPoints: 180 },
+// 2026 F1 Season — Mercedes dominant with new regulations
+// Cadillac joins as 11th team, Audi replaces Sauber
+// Budget check: Mercedes ($40M) + Russell ($24M) + Norris ($22M) + Verstappen ($21M) = $107M > $100M
+const DRIVERS_2026 = [
+  // McLaren
+  { f1Id: 'norris',         name: 'Lando Norris',         constructorName: 'McLaren',      skillTier: 1.15, isRookie: false, price: 22.0 },
+  { f1Id: 'piastri',        name: 'Oscar Piastri',        constructorName: 'McLaren',      skillTier: 1.10, isRookie: false, price: 20.0 },
 
   // Red Bull
-  { f1Id: 'max_verstappen', name: 'Max Verstappen', constructorName: 'Red Bull Racing', skillTier: 1.20, isRookie: false, champsPoints: 404 },
-  { f1Id: 'perez', name: 'Sergio Pérez', constructorName: 'Red Bull Racing', skillTier: 0.90, isRookie: false, champsPoints: 152 },
+  { f1Id: 'max_verstappen', name: 'Max Verstappen',       constructorName: 'Red Bull',     skillTier: 1.20, isRookie: false, price: 21.0 },
+  { f1Id: 'hadjar',         name: 'Isack Hadjar',         constructorName: 'Red Bull',     skillTier: 1.02, isRookie: false, price: 15.0 },
 
-  // McLaren
-  { f1Id: 'norris', name: 'Lando Norris', constructorName: 'McLaren', skillTier: 1.10, isRookie: false, champsPoints: 287 },
-  { f1Id: 'piastri', name: 'Oscar Piastri', constructorName: 'McLaren', skillTier: 1.08, isRookie: false, champsPoints: 197 },
+  // Ferrari
+  { f1Id: 'leclerc',        name: 'Charles Leclerc',      constructorName: 'Ferrari',      skillTier: 1.12, isRookie: false, price: 18.0 },
+  { f1Id: 'hamilton',       name: 'Lewis Hamilton',       constructorName: 'Ferrari',      skillTier: 1.10, isRookie: false, price: 17.0 },
+
+  // Mercedes
+  { f1Id: 'russell',        name: 'George Russell',       constructorName: 'Mercedes',     skillTier: 1.18, isRookie: false, price: 24.0 },
+  { f1Id: 'antonelli',      name: 'Andrea Kimi Antonelli',constructorName: 'Mercedes',     skillTier: 1.00, isRookie: false, price: 19.0 },
 
   // Aston Martin
-  { f1Id: 'alonso', name: 'Fernando Alonso', constructorName: 'Aston Martin', skillTier: 1.05, isRookie: false, champsPoints: 62 },
-  { f1Id: 'stroll', name: 'Lance Stroll', constructorName: 'Aston Martin', skillTier: 0.85, isRookie: false, champsPoints: 24 },
-
-  // Alpine
-  { f1Id: 'gasly', name: 'Pierre Gasly', constructorName: 'Alpine', skillTier: 1.00, isRookie: false, champsPoints: 40 },
-  { f1Id: 'ocon', name: 'Esteban Ocon', constructorName: 'Alpine', skillTier: 0.95, isRookie: false, champsPoints: 26 },
-
-  // Haas
-  { f1Id: 'magnussen', name: 'Kevin Magnussen', constructorName: 'Haas', skillTier: 0.95, isRookie: false, champsPoints: 16 },
-  { f1Id: 'hulkenberg', name: 'Nico Hulkenberg', constructorName: 'Haas', skillTier: 0.98, isRookie: false, champsPoints: 27 },
-
-  // RB
-  { f1Id: 'tsunoda', name: 'Yuki Tsunoda', constructorName: 'RB', skillTier: 0.92, isRookie: false, champsPoints: 22 },
-  { f1Id: 'lawson', name: 'Liam Lawson', constructorName: 'RB', skillTier: 0.85, isRookie: true, champsPoints: 8 },
+  { f1Id: 'alonso',         name: 'Fernando Alonso',      constructorName: 'Aston Martin', skillTier: 1.05, isRookie: false, price:  9.0 },
+  { f1Id: 'stroll',         name: 'Lance Stroll',         constructorName: 'Aston Martin', skillTier: 0.85, isRookie: false, price:  6.0 },
 
   // Williams
-  { f1Id: 'albon', name: 'Alexander Albon', constructorName: 'Williams', skillTier: 1.00, isRookie: false, champsPoints: 34 },
-  { f1Id: 'sargeant', name: 'Logan Sargeant', constructorName: 'Williams', skillTier: 0.80, isRookie: true, champsPoints: 0 },
+  { f1Id: 'sainz',          name: 'Carlos Sainz',         constructorName: 'Williams',     skillTier: 1.08, isRookie: false, price: 11.0 },
+  { f1Id: 'albon',          name: 'Alexander Albon',      constructorName: 'Williams',     skillTier: 1.05, isRookie: false, price: 10.0 },
 
-  // Sauber
-  { f1Id: 'bottas', name: 'Valtteri Bottas', constructorName: 'Sauber', skillTier: 0.90, isRookie: false, champsPoints: 4 },
-  { f1Id: 'zhou', name: 'Guanyu Zhou', constructorName: 'Sauber', skillTier: 0.85, isRookie: false, champsPoints: 0 },
+  // Alpine
+  { f1Id: 'gasly',          name: 'Pierre Gasly',         constructorName: 'Alpine',       skillTier: 1.05, isRookie: false, price:  7.0 },
+  { f1Id: 'colapinto',      name: 'Franco Colapinto',     constructorName: 'Alpine',       skillTier: 0.92, isRookie: false, price:  6.0 },
+
+  // Haas
+  { f1Id: 'bearman',        name: 'Oliver Bearman',       constructorName: 'Haas',         skillTier: 1.00, isRookie: false, price:  7.0 },
+  { f1Id: 'ocon',           name: 'Esteban Ocon',         constructorName: 'Haas',         skillTier: 0.95, isRookie: false, price:  6.0 },
+
+  // RB (Racing Bulls)
+  { f1Id: 'lawson',         name: 'Liam Lawson',          constructorName: 'RB',           skillTier: 0.95, isRookie: false, price: 10.0 },
+  { f1Id: 'arvid_lindblad', name: 'Arvid Lindblad',       constructorName: 'RB',           skillTier: 0.88, isRookie: true,  price:  8.0 },
+
+  // Audi (formerly Sauber)
+  { f1Id: 'bortoleto',      name: 'Gabriel Bortoleto',    constructorName: 'Audi',         skillTier: 0.95, isRookie: false, price: 11.0 },
+  { f1Id: 'hulkenberg',     name: 'Nico Hulkenberg',      constructorName: 'Audi',         skillTier: 1.05, isRookie: false, price:  9.0 },
+
+  // Cadillac (new team)
+  { f1Id: 'perez',          name: 'Sergio Perez',         constructorName: 'Cadillac',     skillTier: 0.95, isRookie: false, price:  6.0 },
+  { f1Id: 'bottas',         name: 'Valtteri Bottas',      constructorName: 'Cadillac',     skillTier: 0.90, isRookie: false, price:  5.0 },
 ];
 
-const CONSTRUCTORS_2024 = [
-  'Mercedes',
-  'Ferrari',
-  'Red Bull Racing',
-  'McLaren',
-  'Aston Martin',
-  'Alpine',
-  'Haas',
-  'RB',
-  'Williams',
-  'Sauber',
+const CONSTRUCTORS_2026 = [
+  { name: 'Mercedes',      price: 40.0 },
+  { name: 'McLaren',       price: 35.0 },
+  { name: 'Red Bull',      price: 30.0 },
+  { name: 'Ferrari',       price: 28.0 },
+  { name: 'Williams',      price: 18.0 },
+  { name: 'RB',            price: 15.0 },
+  { name: 'Audi',          price: 14.0 },
+  { name: 'Aston Martin',  price: 13.0 },
+  { name: 'Alpine',        price: 10.0 },
+  { name: 'Haas',          price: 10.0 },
+  { name: 'Cadillac',      price:  8.0 },
 ];
-
-/**
- * Calculate initial driver price based on championship points
- * Higher points = higher price
- * Max points (Verstappen): 404
- * Formula: Base price scaled by points
- */
-function calculateInitialDriverPrice(champsPoints, isRookie) {
-  const maxPoints = 404;
-  const minPrice = 2;
-  const maxPrice = 15;
-  
-  const normalized = champsPoints / maxPoints;
-  const basePrice = minPrice + (normalized * (maxPrice - minPrice));
-  
-  // Rookies are 10% cheaper
-  return isRookie ? basePrice * 0.9 : basePrice;
-}
 
 async function seedDatabase() {
-  console.log('🌱 Starting database seed...\n');
+  console.log('Seeding 2026 season...\n');
 
   try {
-    // Create constructors
-    console.log('Creating constructors...');
+    // Clear all old data first
+    console.log('Clearing old data...');
+    await prisma.constructorRaceResult.deleteMany();
+    await prisma.raceResult.deleteMany();
+    await prisma.userWeeklyTeamDriver.deleteMany();
+    await prisma.userWeeklyTeamConstructor.deleteMany();
+    await prisma.userWeeklyTeam.deleteMany();
+    await prisma.driverPrice.deleteMany();
+    await prisma.constructorPrice.deleteMany();
+    await prisma.driver.deleteMany();
+    await prisma.constructor.deleteMany();
+    console.log('Done.\n');
+
+    const startingWeek = 1;
     const constructorMap = {};
 
-    for (const constructorName of CONSTRUCTORS_2024) {
+    console.log('Creating constructors...');
+    for (const c of CONSTRUCTORS_2026) {
+      const f1Id = c.name.toLowerCase().replace(/\s+/g, '_');
       const constructor = await prisma.constructor.upsert({
-        where: { f1Id: constructorName.toLowerCase().replace(/\s+/g, '_') },
-        update: {},
-        create: {
-          f1Id: constructorName.toLowerCase().replace(/\s+/g, '_'),
-          name: constructorName,
-        },
+        where: { f1Id },
+        update: { name: c.name },
+        create: { f1Id, name: c.name },
       });
-      constructorMap[constructorName] = constructor;
-      console.log(`  ✓ ${constructorName}`);
+      constructorMap[c.name] = { constructor, price: c.price };
+      console.log(`  + ${c.name}`);
     }
 
-    // Create drivers
     console.log('\nCreating drivers...');
     const driverMap = {};
-    const driversByConstructor = {};
 
-    for (const driverData of DRIVERS_2024) {
-      const constructor = constructorMap[driverData.constructorName];
-      
+    for (const d of DRIVERS_2026) {
+      const { constructor } = constructorMap[d.constructorName];
       const driver = await prisma.driver.upsert({
-        where: { f1Id: driverData.f1Id },
-        update: {},
-        create: {
-          f1Id: driverData.f1Id,
-          name: driverData.name,
-          constructorId: constructor.id,
-          isRookie: driverData.isRookie,
-          skillTier: driverData.skillTier,
-        },
+        where: { f1Id: d.f1Id },
+        update: { name: d.name, constructorId: constructor.id, isRookie: d.isRookie, skillTier: d.skillTier },
+        create: { f1Id: d.f1Id, name: d.name, constructorId: constructor.id, isRookie: d.isRookie, skillTier: d.skillTier },
       });
-
-      driverMap[driverData.f1Id] = driver;
-      
-      if (!driversByConstructor[constructor.id]) {
-        driversByConstructor[constructor.id] = [];
-      }
-      driversByConstructor[constructor.id].push({
-        driver,
-        champsPoints: driverData.champsPoints,
-        isRookie: driverData.isRookie,
-      });
-
-      console.log(`  ✓ ${driverData.name} (${driverData.constructorName})`);
+      driverMap[d.f1Id] = driver;
+      console.log(`  + ${d.name} (${d.constructorName})`);
     }
 
-    // Create initial prices for week 1 (or starting race)
-    console.log('\nCreating initial driver prices...');
-    const startingWeek = 2; // Starting from race 2
-
-    for (const driverData of DRIVERS_2024) {
-      const driver = driverMap[driverData.f1Id];
-      const price = calculateInitialDriverPrice(driverData.champsPoints, driverData.isRookie);
-
-      await prisma.driverPrice.create({
-        data: {
-          driverId: driver.id,
-          week: startingWeek,
-          price: parseFloat(price.toFixed(2)),
-        },
+    console.log('\nCreating prices...');
+    for (const d of DRIVERS_2026) {
+      await prisma.driverPrice.upsert({
+        where: { driverId_week: { driverId: driverMap[d.f1Id].id, week: startingWeek } },
+        update: { price: d.price },
+        create: { driverId: driverMap[d.f1Id].id, week: startingWeek, price: d.price },
       });
-
-      console.log(`  ✓ ${driverData.name}: $${price.toFixed(2)}M`);
+    }
+    for (const c of CONSTRUCTORS_2026) {
+      const { constructor } = constructorMap[c.name];
+      await prisma.constructorPrice.upsert({
+        where: { constructorId_week: { constructorId: constructor.id, week: startingWeek } },
+        update: { price: c.price },
+        create: { constructorId: constructor.id, week: startingWeek, price: c.price },
+      });
     }
 
-    // Create initial constructor prices (avg of drivers × 2.5)
-    console.log('\nCreating initial constructor prices...');
-
-    for (const [constructorId, drivers] of Object.entries(driversByConstructor)) {
-      const avgPrice = drivers.reduce((sum, d) => {
-        return sum + calculateInitialDriverPrice(d.champsPoints, d.isRookie);
-      }, 0) / drivers.length;
-
-      const constructorPrice = avgPrice * 2.5;
-
-      const constructor = await prisma.constructor.findUnique({
-        where: { id: constructorId },
-      });
-
-      await prisma.constructorPrice.create({
-        data: {
-          constructorId,
-          week: startingWeek,
-          price: parseFloat(constructorPrice.toFixed(2)),
-        },
-      });
-
-      console.log(`  ✓ ${constructor.name}: $${constructorPrice.toFixed(2)}M`);
-    }
-
-    console.log('\n✅ Database seeded successfully!');
-    console.log(`\n📊 Summary:`);
-    console.log(`   - ${CONSTRUCTORS_2024.length} constructors`);
-    console.log(`   - ${DRIVERS_2024.length} drivers`);
+    console.log('\nDatabase seeded successfully!');
+    console.log(`   - ${CONSTRUCTORS_2026.length} constructors`);
+    console.log(`   - ${DRIVERS_2026.length} drivers`);
     console.log(`   - Starting week: ${startingWeek}`);
 
   } catch (error) {
-    console.error('❌ Seed failed:', error);
+    console.error('Seed failed:', error);
     throw error;
   }
 }
 
-// Run seed
 seedDatabase()
   .catch(error => {
     console.error(error);

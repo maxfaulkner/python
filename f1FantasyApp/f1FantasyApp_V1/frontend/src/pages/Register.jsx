@@ -6,12 +6,16 @@ export default function Register() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
     e.preventDefault();
+    if (password !== confirmPassword) {
+      return setError('Passwords do not match');
+    }
     setError('');
     setLoading(true);
     try {
@@ -35,6 +39,18 @@ export default function Register() {
         <input style={inputStyle} type="email" value={email} onChange={e => setEmail(e.target.value)} required />
         <label style={labelStyle}>Password</label>
         <input style={inputStyle} type="password" value={password} onChange={e => setPassword(e.target.value)} required minLength={6} />
+        <label style={labelStyle}>Re-enter Password</label>
+        <input
+          style={{ ...inputStyle, borderColor: confirmPassword && confirmPassword !== password ? '#e10600' : '#ddd' }}
+          type="password"
+          value={confirmPassword}
+          onChange={e => setConfirmPassword(e.target.value)}
+          required
+          minLength={6}
+        />
+        {confirmPassword && confirmPassword !== password && (
+          <p style={{ color: '#e10600', fontSize: 12, marginTop: -12, marginBottom: 12 }}>Passwords do not match</p>
+        )}
         <button style={submitBtn} type="submit" disabled={loading}>
           {loading ? 'Creating account...' : 'Register'}
         </button>

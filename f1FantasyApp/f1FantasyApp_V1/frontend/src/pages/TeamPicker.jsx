@@ -29,7 +29,7 @@ export default function TeamPicker() {
     );
   }
 
-  const budget = 100;
+  const budget = prices?.totalBudget ?? 80;
   const driverCost = prices
     ? prices.drivers
         .filter(d => selectedDrivers.includes(d.driverId))

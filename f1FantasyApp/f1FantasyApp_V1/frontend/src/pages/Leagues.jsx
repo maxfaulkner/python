@@ -103,8 +103,11 @@ export default function Leagues() {
                 </p>
                 <p style={{ margin: '4px 0 0', fontSize: 11, color: '#999' }}>ID: {league.id}</p>
               </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/team/${league.startingRound}`)}>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/view/${league.startingRound}`)}>
+                  View Team
+                </button>
+                <button style={primaryBtn} onClick={() => navigate(`/leagues/${league.id}/team/${league.startingRound}`)}>
                   Pick Team
                 </button>
                 <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/leaderboard`)}>
