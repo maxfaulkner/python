@@ -1,0 +1,199 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ============ USER & LEAGUE ============
+model User {
+  id                String   @id @default(cuid())
+  email             String   @unique
+  name              String
+  password          String   // bcrypt hash
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  leagues           LeagueUser[]
+  weeklyTeams       UserWeeklyTeam[]
+}
+
+model League {
+  id                String   @id @default(cuid())
+  name              String
+  season            Int      // e.g., 2025
+  startingRound     Int      // which race to start from (e.g., 2 for race 2)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  adminEmail        String   // where to send failure notifications
+
+  users             LeagueUser[]
+  weeklyTeams       UserWeeklyTeam[]
+  raceResults       RaceResult[]
+  constructorRaceResults ConstructorRaceResult[]
+}
+
+model LeagueUser {
+  id                String   @id @default(cuid())
+  userId            String
+  leagueId          String
+  joinedAt          DateTime @default(now())
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  league            League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leagueId])
+}
+
+// ============ DRIVERS & CONSTRUCTORS ============
+model Driver {
+  id                String   @id @default(cuid())
+  f1Id              String   @unique // external F1 ID from Ergast
+  name              String
+  constructorId     String
+  isRookie          Boolean  @default(false)
+  skillTier         Float    @default(0) // relative skill vs teammate (1.0 = equal)
+  createdAt         DateTime @default(now())
+
+  constructor       Constructor @relation(fields: [constructorId], references: [id])
+  priceHistory      DriverPrice[]
+  teamSelections    UserWeeklyTeamDriver[]
+  raceResults       RaceResult[]
+
+  @@index([constructorId])
+}
+
+model Constructor {
+  id                String   @id @default(cuid())
+  f1Id              String   @unique
+  name              String
+  createdAt         DateTime @default(now())
+
+  drivers           Driver[]
+  priceHistory      ConstructorPrice[]
+  teamSelections    UserWeeklyTeamConstructor[]
+  raceResults       ConstructorRaceResult[]
+
+  @@index([name])
+}
+
+// ============ PRICING ============
+model DriverPrice {
+  id                String   @id @default(cuid())
+  driverId          String
+  week              Int      // race week (1-24 typically)
+  price             Float    // in millions (e.g., 5.5 for $5.5M)
+  createdAt         DateTime @default(now())
+
+  driver            Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
+
+  @@unique([driverId, week])
+  @@index([driverId, week])
+}
+
+model ConstructorPrice {
+  id                String   @id @default(cuid())
+  constructorId     String
+  week              Int
+  price             Float
+  createdAt         DateTime @default(now())
+
+  constructor       Constructor @relation(fields: [constructorId], references: [id], onDelete: Cascade)
+
+  @@unique([constructorId, week])
+  @@index([constructorId, week])
+}
+
+// ============ WEEKLY TEAMS ============
+model UserWeeklyTeam {
+  id                String   @id @default(cuid())
+  userId            String
+  leagueId          String
+  week              Int
+  budgetUsed        Float    // total spent this week
+  locked            Boolean  @default(false) // locked when FP1 starts
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  league            League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  drivers           UserWeeklyTeamDriver[]
+  constructors      UserWeeklyTeamConstructor[]
+
+  @@unique([userId, leagueId, week])
+  @@index([leagueId, week])
+}
+
+// Many-to-many: User's selected drivers for a week
+model UserWeeklyTeamDriver {
+  id                String   @id @default(cuid())
+  teamId            String
+  driverId          String
+  pricePaidPerPoint Float   // price at time of selection
+
+  team              UserWeeklyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  driver            Driver   @relation(fields: [driverId], references: [id])
+
+  @@unique([teamId, driverId])
+}
+
+// Constructor selection (only 1 per week)
+model UserWeeklyTeamConstructor {
+  id                String   @id @default(cuid())
+  teamId            String   @unique
+  constructorId     String
+  pricePaidPerPoint Float
+
+  team              UserWeeklyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  constructor       Constructor @relation(fields: [constructorId], references: [id])
+}
+
+// ============ RACE RESULTS ============
+model RaceResult {
+  id                String   @id @default(cuid())
+  leagueId          String
+  week              Int
+  driverId          String
+  finishingPosition Int
+  points            Int      // F1 points earned (25 for 1st, 18 for 2nd, etc.)
+  createdAt         DateTime @default(now())
+
+  league            League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  driver            Driver   @relation(fields: [driverId], references: [id])
+
+  @@unique([leagueId, week, driverId])
+  @@index([leagueId, week])
+}
+
+model ConstructorRaceResult {
+  id                String   @id @default(cuid())
+  leagueId          String
+  week              Int
+  constructorId     String
+  totalPoints       Int      // sum of both drivers' points
+  createdAt         DateTime @default(now())
+
+  league            League   @relation(fields: [leagueId], references: [id])
+  constructor       Constructor @relation(fields: [constructorId], references: [id])
+
+  @@unique([leagueId, week, constructorId])
+}
+
+// ============ PRICING HISTORY FOR AUDITING ============
+model PricingAuditLog {
+  id                String   @id @default(cuid())
+  leagueId          String
+  week              Int
+  driverId          String?
+  constructorId     String?
+  oldPrice          Float
+  newPrice          Float
+  performanceDelta  Float    // how much they beat/missed expectation
+  marketPressure    Float    // how much they were picked
+  createdAt         DateTime @default(now())
+}
