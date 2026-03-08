@@ -15,15 +15,36 @@ export default function Leaderboard() {
   const [viewingTeam, setViewingTeam] = useState(null); // { userName, team }
   const [teamLoading, setTeamLoading] = useState(false);
   const [week, setWeek] = useState(1);
+  const [checking, setChecking] = useState(false);
+  const [checkMsg, setCheckMsg] = useState('');
 
   const hasResults = standings.some(s => s.totalPoints > 0);
 
+  function loadStandings() {
+    return api.getLeaderboard(leagueId).then(setStandings);
+  }
+
   useEffect(() => {
-    api.getLeaderboard(leagueId)
-      .then(setStandings)
+    loadStandings()
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
   }, [leagueId]);
+
+  async function checkForResults() {
+    setChecking(true);
+    setCheckMsg('');
+    try {
+      const res = await api.checkResults();
+      setCheckMsg(res.message);
+      if (res.status === 'imported') {
+        await loadStandings();
+      }
+    } catch (err) {
+      setCheckMsg(err.message);
+    } finally {
+      setChecking(false);
+    }
+  }
 
   async function viewTeam(userId, userName) {
     if (viewingTeam?.userId === userId) {
@@ -47,8 +68,23 @@ export default function Leaderboard() {
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
         <h2 style={{ margin: 0 }}>Leaderboard</h2>
-        <button style={secBtn} onClick={() => navigate('/')}>← Back</button>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button
+            style={{ ...secBtn, opacity: checking ? 0.6 : 1 }}
+            onClick={checkForResults}
+            disabled={checking}
+          >
+            {checking ? 'Checking...' : 'Check for Results'}
+          </button>
+          <button style={secBtn} onClick={() => navigate('/')}>← Back</button>
+        </div>
       </div>
+
+      {checkMsg && (
+        <div style={{ background: '#f0fdf4', border: '1px solid #bbf7d0', color: '#166534', padding: '8px 14px', borderRadius: 6, marginBottom: 16, fontSize: 13 }}>
+          {checkMsg}
+        </div>
+      )}
 
       {error && <p style={errStyle}>{error}</p>}
 

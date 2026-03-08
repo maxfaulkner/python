@@ -1,6 +1,7 @@
 // routes/api.js
 const express = require('express');
 const router = express.Router();
+const fetch = require('node-fetch');
 const prisma = require('../prisma');
 const f1DataService = require('../services/f1DataService');
 const pricingEngine = require('../services/pricingEngine');
@@ -539,6 +540,67 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     });
   } catch (error) {
     console.error('Error processing race results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ MANUAL RESULT CHECK ============
+
+/**
+ * POST /api/admin/check-results
+ * Check Jolpica for the most recent completed race and import if not already in DB
+ */
+router.post('/admin/check-results', authMiddleware, async (_req, res) => {
+  try {
+    const season = new Date().getFullYear();
+    const now = new Date();
+
+    // Fetch the F1 schedule to find the latest completed race
+    const scheduleRes = await fetch(`https://api.jolpi.ca/ergast/f1/${season}.json`);
+    const scheduleData = await scheduleRes.json();
+    const races = scheduleData.MRData.RaceTable.Races;
+
+    // Find the most recent race that has already started (race time in the past)
+    const completedRaces = races.filter(r => new Date(`${r.date}T${r.time || '14:00:00Z'}`) < now);
+    if (completedRaces.length === 0) {
+      return res.json({ status: 'no_race', message: 'No completed races yet this season.' });
+    }
+
+    const latest = completedRaces[completedRaces.length - 1];
+    const round = parseInt(latest.round);
+
+    // Try to fetch results from Jolpica first (before checking leagues)
+    let results;
+    try {
+      results = await f1DataService.fetchRaceResults(season, round);
+    } catch {
+      return res.json({ status: 'not_available', message: `Results for round ${round} (${latest.raceName}) not available yet. Try again later.`, round });
+    }
+
+    // Process per-league — skip leagues that already have this round imported
+    const leagues = await prisma.league.findMany();
+    let totalSaved = 0;
+    let skipped = 0;
+    for (const league of leagues) {
+      if (round < league.startingRound) continue;
+      const existing = await prisma.raceResult.count({ where: { leagueId: league.id, week: round } });
+      if (existing > 0) { skipped++; continue; }
+      const { savedResults } = await f1DataService.processRaceResults(league.id, round, season, results);
+      await pricingEngine.processPricingAfterRace(league.id, round);
+      await prisma.userWeeklyTeam.updateMany({
+        where: { leagueId: league.id, week: round + 1 },
+        data: { locked: false },
+      });
+      totalSaved += savedResults.length;
+    }
+
+    if (totalSaved === 0 && skipped > 0) {
+      return res.json({ status: 'already_imported', message: `Round ${round} (${latest.raceName}) already imported for all leagues.`, round });
+    }
+
+    res.json({ status: 'imported', message: `Round ${round} (${latest.raceName}) imported — ${totalSaved} results saved across ${leagues.length - skipped} league(s).`, round });
+  } catch (error) {
+    console.error('Error checking results:', error);
     res.status(500).json({ error: error.message });
   }
 });

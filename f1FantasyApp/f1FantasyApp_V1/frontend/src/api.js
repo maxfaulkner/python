@@ -56,4 +56,6 @@ export const api = {
     request('GET', `/admin/races/${leagueId}/${week}`),
   submitRaceResults: (leagueId, week, results) =>
     request('POST', `/api/admin/races/${leagueId}/${week}`, { results }),
+  checkResults: () =>
+    request('POST', '/api/admin/check-results'),
 };

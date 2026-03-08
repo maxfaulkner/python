@@ -84,10 +84,9 @@ async function calculateMarketPressure(driverId, leagueId, currentWeek) {
   // Count total teams in the league
   const totalTeams = await prisma.userWeeklyTeam.count({
     where: {
-      league: { id: leagueId },
+      leagueId,
       week: currentWeek,
     },
-    distinct: ['userId'],
   });
 
   if (totalTeams === 0) return 0;

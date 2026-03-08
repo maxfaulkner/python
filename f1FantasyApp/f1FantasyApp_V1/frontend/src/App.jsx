@@ -17,7 +17,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
-      <div style={{ maxWidth: 900, margin: '0 auto', padding: '24px 16px' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 32px' }}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
