@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { getUser, clearSession, isLoggedIn } from '../auth';
+import NotificationBell from './NotificationBell';
 
 export default function Navbar() {
   const navigate = useNavigate();
@@ -53,6 +54,19 @@ export default function Navbar() {
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         {isLoggedIn() ? (
           <>
+            {/* Nav links */}
+            <Link to="/leagues/discover" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+            >Discover</Link>
+            <Link to="/profile" style={{ fontSize: 13, color: 'rgba(255,255,255,0.5)', textDecoration: 'none', padding: '4px 8px', borderRadius: 6, transition: 'color 0.15s' }}
+              onMouseEnter={e => e.currentTarget.style.color = '#fff'}
+              onMouseLeave={e => e.currentTarget.style.color = 'rgba(255,255,255,0.5)'}
+            >Profile</Link>
+
+            {/* Notification bell */}
+            <NotificationBell />
+
             {/* User pill */}
             <div style={{
               display: 'flex', alignItems: 'center', gap: 9,

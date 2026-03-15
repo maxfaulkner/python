@@ -26,12 +26,15 @@ const checkResultsLimiter = rateLimit({
  */
 router.post('/leagues', authMiddleware, async (req, res) => {
   try {
-    const { name, season, startingRound, adminEmail } = req.body;
+    const { name, season, startingRound, adminEmail, description, leagueType, isPublic, maxPlayers } = req.body;
     const userId = req.user.id;
 
     if (!name || !season || !startingRound) {
       return res.status(400).json({ error: 'name, season, and startingRound are required' });
     }
+
+    // Generate unique invite code
+    const inviteCode = Math.random().toString(36).substring(2, 8).toUpperCase();
 
     const league = await prisma.league.create({
       data: {
@@ -39,11 +42,26 @@ router.post('/leagues', authMiddleware, async (req, res) => {
         season: parseInt(season),
         startingRound: parseInt(startingRound),
         adminEmail: adminEmail || req.user.email,
+        description: description || null,
+        leagueType: leagueType || 'classic',
+        isPublic: isPublic || false,
+        maxPlayers: maxPlayers || 20,
+        inviteCode,
         users: {
-          create: { userId },
+          create: { userId, role: 'commissioner' },
         },
       },
       include: { users: true },
+    });
+
+    // Give creator their 4 chips
+    await prisma.chip.createMany({
+      data: [
+        { userId, leagueId: league.id, type: 'wildcard' },
+        { userId, leagueId: league.id, type: 'triple_captain' },
+        { userId, leagueId: league.id, type: 'no_negative' },
+        { userId, leagueId: league.id, type: 'bench_boost' },
+      ],
     });
 
     res.status(201).json(league);
@@ -133,9 +151,83 @@ router.post('/leagues/:leagueId/join', authMiddleware, async (req, res) => {
 
     await prisma.leagueUser.create({ data: { userId, leagueId } });
 
+    // Give new member their 4 chips
+    await prisma.chip.createMany({
+      data: [
+        { userId, leagueId, type: 'wildcard' },
+        { userId, leagueId, type: 'triple_captain' },
+        { userId, leagueId, type: 'no_negative' },
+        { userId, leagueId, type: 'bench_boost' },
+      ],
+      skipDuplicates: true,
+    });
+
     res.json({ message: 'Joined league successfully', leagueId, leagueName: league.name });
   } catch (error) {
     console.error('Error joining league:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * POST /api/leagues/join-code/:code
+ * Join a league via invite code
+ */
+router.post('/leagues/join-code/:code', authMiddleware, async (req, res) => {
+  try {
+    const { code } = req.params;
+    const userId = req.user.id;
+
+    const league = await prisma.league.findUnique({ where: { inviteCode: code.toUpperCase() } });
+    if (!league) return res.status(404).json({ error: 'Invalid invite code' });
+
+    const memberCount = await prisma.leagueUser.count({ where: { leagueId: league.id } });
+    if (memberCount >= league.maxPlayers) {
+      return res.status(400).json({ error: 'League is full' });
+    }
+
+    const existing = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId: league.id } },
+    });
+    if (existing) return res.status(400).json({ error: 'Already a member' });
+
+    await prisma.leagueUser.create({ data: { userId, leagueId: league.id } });
+    await prisma.chip.createMany({
+      data: [
+        { userId, leagueId: league.id, type: 'wildcard' },
+        { userId, leagueId: league.id, type: 'triple_captain' },
+        { userId, leagueId: league.id, type: 'no_negative' },
+        { userId, leagueId: league.id, type: 'bench_boost' },
+      ],
+      skipDuplicates: true,
+    });
+
+    res.json({ message: 'Joined league successfully', leagueId: league.id, leagueName: league.name });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/leagues/public
+ * Browse public leagues
+ */
+router.get('/leagues/public', authMiddleware, async (req, res) => {
+  try {
+    const leagues = await prisma.league.findMany({
+      where: { isPublic: true },
+      include: {
+        _count: { select: { users: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    res.json(leagues.map(l => ({
+      ...l,
+      memberCount: l._count.users,
+    })));
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
@@ -199,7 +291,7 @@ router.post(
   async (req, res) => {
     try {
       const { leagueId, week } = req.params;
-      const { drivers, constructorId } = req.body;
+      const { drivers, constructorId, captainId, chipUsed } = req.body;
       const userId = req.user.id;
       const weekNum = parseInt(week);
 
@@ -209,6 +301,10 @@ router.post(
       }
       if (!constructorId) {
         return res.status(400).json({ error: 'Must select 1 constructor' });
+      }
+      // Captain must be one of the selected drivers
+      if (captainId && !drivers.includes(captainId)) {
+        return res.status(400).json({ error: 'Captain must be one of your selected drivers' });
       }
 
       // Check if team is locked
@@ -255,6 +351,21 @@ router.post(
         });
       }
 
+      // Handle chip validation
+      if (chipUsed) {
+        const chip = await prisma.chip.findUnique({
+          where: { userId_leagueId_type: { userId, leagueId, type: chipUsed } },
+        });
+        if (!chip || chip.usedWeek !== null) {
+          return res.status(400).json({ error: `Chip '${chipUsed}' already used or not available` });
+        }
+        // Mark chip as used
+        await prisma.chip.update({
+          where: { id: chip.id },
+          data: { usedWeek: weekNum },
+        });
+      }
+
       // Upsert team
       const team = await prisma.userWeeklyTeam.upsert({
         where: {
@@ -269,9 +380,13 @@ router.post(
           leagueId,
           week: weekNum,
           budgetUsed: totalCost,
+          captainId: captainId || null,
+          chipUsed: chipUsed || null,
         },
         update: {
           budgetUsed: totalCost,
+          captainId: captainId || null,
+          chipUsed: chipUsed || null,
         },
       });
 
@@ -471,22 +586,28 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
     for (const leagueUser of leagueUsers) {
       let totalPoints = 0;
       let totalWins = 0;
+      const roundPoints = {};
 
       for (const team of leagueUser.user.weeklyTeams) {
+        let weekPoints = 0;
+
         // Get points for drivers in team
         for (const teamDriver of team.drivers) {
           const results = await prisma.raceResult.findMany({
-            where: {
-              driverId: teamDriver.driverId,
-              leagueId,
-            },
+            where: { driverId: teamDriver.driverId, leagueId, week: team.week },
           });
 
           for (const result of results) {
-            totalPoints += result.points;
-            if (result.finishingPosition === 1) {
-              totalWins++;
+            let pts = result.points;
+            // Apply chip: no_negative zeroes out negative points
+            if (team.chipUsed === 'no_negative' && pts < 0) pts = 0;
+            // Apply captain 2x multiplier
+            if (team.captainId === teamDriver.driverId) {
+              const multiplier = team.chipUsed === 'triple_captain' ? 3 : 2;
+              pts = pts * multiplier;
             }
+            weekPoints += pts;
+            if (result.finishingPosition === 1) totalWins++;
           }
         }
 
@@ -494,24 +615,24 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
         const constructor = team.constructors[0];
         if (constructor) {
           const constructorResults = await prisma.constructorRaceResult.findMany({
-            where: {
-              constructorId: constructor.constructorId,
-              leagueId,
-            },
+            where: { constructorId: constructor.constructorId, leagueId, week: team.week },
           });
-
-          for (const result of constructorResults) {
-            totalPoints += result.totalPoints;
-          }
+          for (const result of constructorResults) weekPoints += result.totalPoints;
         }
+
+        totalPoints += weekPoints;
+        roundPoints[team.week] = weekPoints;
       }
 
       standings.push({
         userId: leagueUser.userId,
         userName: leagueUser.user.name,
         email: leagueUser.user.email,
+        teamName: leagueUser.teamName,
+        avatarColor: leagueUser.user.avatarColor,
         totalPoints,
-        totalWins, // tie-breaker
+        totalWins,
+        roundPoints,
       });
     }
 
@@ -571,6 +692,155 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
     res.json({ standings, latestRound: latestWeek?.week || null });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ CHIPS ============
+
+/**
+ * GET /api/leagues/:leagueId/chips
+ * Get available chips for current user in a league
+ */
+router.get('/leagues/:leagueId/chips', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+
+    const chips = await prisma.chip.findMany({
+      where: { userId, leagueId },
+    });
+
+    res.json(chips);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/leagues/:leagueId/transfers
+ * Get transfer history for current user
+ */
+router.get('/leagues/:leagueId/transfers', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+
+    const transfers = await prisma.transfer.findMany({
+      where: { userId, leagueId },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    res.json(transfers);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/leagues/:leagueId/leaderboard/weekly/:week
+ * Get per-round leaderboard rankings
+ */
+router.get('/leagues/:leagueId/leaderboard/weekly/:week', async (req, res) => {
+  try {
+    const { leagueId, week } = req.params;
+    const weekNum = parseInt(week);
+
+    const teams = await prisma.userWeeklyTeam.findMany({
+      where: { leagueId, week: weekNum },
+      include: {
+        user: { select: { id: true, name: true, avatarColor: true } },
+        drivers: true,
+        constructors: true,
+      },
+    });
+
+    const weekStandings = [];
+    for (const team of teams) {
+      let pts = 0;
+      for (const td of team.drivers) {
+        const results = await prisma.raceResult.findMany({
+          where: { driverId: td.driverId, leagueId, week: weekNum },
+        });
+        for (const r of results) {
+          let p = r.points;
+          if (team.captainId === td.driverId) {
+            p *= team.chipUsed === 'triple_captain' ? 3 : 2;
+          }
+          pts += p;
+        }
+      }
+      const ctor = team.constructors[0];
+      if (ctor) {
+        const cr = await prisma.constructorRaceResult.findFirst({
+          where: { constructorId: ctor.constructorId, leagueId, week: weekNum },
+        });
+        if (cr) pts += cr.totalPoints;
+      }
+      weekStandings.push({
+        userId: team.userId,
+        userName: team.user.name,
+        avatarColor: team.user.avatarColor,
+        points: pts,
+        captainId: team.captainId,
+        chipUsed: team.chipUsed,
+      });
+    }
+
+    weekStandings.sort((a, b) => b.points - a.points);
+    weekStandings.forEach((s, i) => { s.rank = i + 1; });
+
+    res.json({ week: weekNum, standings: weekStandings });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/leagues/:leagueId/members
+ * Get all members with their team names
+ */
+router.get('/leagues/:leagueId/members', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const members = await prisma.leagueUser.findMany({
+      where: { leagueId },
+      include: {
+        user: { select: { id: true, name: true, avatarColor: true, bio: true } },
+      },
+    });
+    res.json(members.map(m => ({
+      userId: m.userId,
+      name: m.user.name,
+      teamName: m.teamName,
+      role: m.role,
+      avatarColor: m.user.avatarColor,
+      bio: m.user.bio,
+      joinedAt: m.joinedAt,
+      totalPoints: m.totalPoints,
+    })));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/leagues/:leagueId/team-name
+ * Update user's team name in a league
+ */
+router.put('/leagues/:leagueId/team-name', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const { teamName } = req.body;
+    const userId = req.user.id;
+
+    await prisma.leagueUser.update({
+      where: { userId_leagueId: { userId, leagueId } },
+      data: { teamName },
+    });
+
+    res.json({ message: 'Team name updated', teamName });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

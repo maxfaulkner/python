@@ -30,6 +30,9 @@ export default function TeamPicker() {
   const [leagueName, setLeagueName] = useState('');
   const [selectedDrivers, setSelectedDrivers] = useState([]);
   const [selectedConstructor, setSelectedConstructor] = useState(null);
+  const [captainId, setCaptainId] = useState(null);
+  const [chipUsed, setChipUsed] = useState(null);
+  const [availableChips, setAvailableChips] = useState([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('team');
   const [error, setError] = useState('');
@@ -49,17 +52,22 @@ export default function TeamPicker() {
       api.getTeam(leagueId, weekNum).catch(() => null),
       api.getDriverForm(leagueId, week).catch(() => ({ form: {}, prices: {} })),
       api.getLeagues().catch(() => []),
-    ]).then(([pricesData, prevTeam, currentTeam, form, leagues]) => {
+      api.getChips(leagueId).catch(() => []),
+    ]).then(([pricesData, prevTeam, currentTeam, form, leagues, chips]) => {
       setPrices(pricesData);
       setFormData(form);
       const lg = leagues.find(l => l.id === leagueId);
       if (lg) setLeagueName(lg.name);
+      setAvailableChips(chips.filter(c => c.usedWeek === null));
       if (currentTeam) {
         setSelectedDrivers(currentTeam.drivers.map(d => d.driverId));
         setSelectedConstructor(currentTeam.constructors[0]?.constructorId ?? null);
+        if (currentTeam.captainId) setCaptainId(currentTeam.captainId);
+        if (currentTeam.chipUsed) setChipUsed(currentTeam.chipUsed);
       } else if (prevTeam) {
         setSelectedDrivers(prevTeam.drivers.map(d => d.driverId));
         setSelectedConstructor(prevTeam.constructors[0]?.constructorId ?? null);
+        if (prevTeam.captainId) setCaptainId(prevTeam.captainId);
       }
     }).catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -67,11 +75,20 @@ export default function TeamPicker() {
 
   function toggleDriver(driverId) {
     if (locked) return;
-    setSelectedDrivers(prev =>
-      prev.includes(driverId)
-        ? prev.filter(id => id !== driverId)
-        : prev.length < 5 ? [...prev, driverId] : prev
-    );
+    setSelectedDrivers(prev => {
+      if (prev.includes(driverId)) {
+        // If deselecting captain, clear captain
+        if (captainId === driverId) setCaptainId(null);
+        return prev.filter(id => id !== driverId);
+      }
+      return prev.length < 5 ? [...prev, driverId] : prev;
+    });
+  }
+
+  function toggleCaptain(driverId, e) {
+    e.stopPropagation();
+    if (!selectedDrivers.includes(driverId)) return;
+    setCaptainId(prev => prev === driverId ? null : driverId);
   }
 
   const locked = prices?.locked ?? false;
@@ -97,7 +114,7 @@ export default function TeamPicker() {
     setError('');
     setSubmitting(true);
     try {
-      await api.submitTeam(leagueId, week, selectedDrivers, selectedConstructor);
+      await api.submitTeam(leagueId, week, selectedDrivers, selectedConstructor, captainId, chipUsed);
       setSuccess(true);
       if (successTimer.current) clearTimeout(successTimer.current);
       successTimer.current = setTimeout(() => setSuccess(false), 5000);
@@ -345,9 +362,11 @@ export default function TeamPicker() {
                     driver={d}
                     selected={selectedDrivers.includes(d.driverId)}
                     disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
+                    isCaptain={captainId === d.driverId}
                     form={formData.form[d.driverId]}
                     priceHistory={formData.prices[d.driverId]}
                     onClick={() => toggleDriver(d.driverId)}
+                    onCaptain={(e) => toggleCaptain(d.driverId, e)}
                   />
                 ))}
               </div>
@@ -361,9 +380,11 @@ export default function TeamPicker() {
                 driver={d}
                 selected={selectedDrivers.includes(d.driverId)}
                 disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
+                isCaptain={captainId === d.driverId}
                 form={formData.form[d.driverId]}
                 priceHistory={formData.prices[d.driverId]}
                 onClick={() => toggleDriver(d.driverId)}
+                onCaptain={(e) => toggleCaptain(d.driverId, e)}
               />
             ))}
           </div>
@@ -392,6 +413,30 @@ export default function TeamPicker() {
         </div>
       </div>
 
+      {/* Chips section */}
+      {availableChips.length > 0 && (
+        <div style={{ marginBottom: 16 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 8 }}>
+            Available Chips
+          </div>
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+            {availableChips.map(chip => (
+              <ChipButton
+                key={chip.type}
+                chip={chip}
+                active={chipUsed === chip.type}
+                onClick={() => setChipUsed(prev => prev === chip.type ? null : chip.type)}
+              />
+            ))}
+          </div>
+          {chipUsed && (
+            <div style={{ fontSize: 12, color: '#fbbf24', marginTop: 6 }}>
+              ⚡ {CHIP_LABELS[chipUsed]?.desc} will be used this round
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Readiness checklist */}
       <div style={{
         background: '#18181b', border: '1px solid rgba(255,255,255,0.06)',
@@ -401,6 +446,7 @@ export default function TeamPicker() {
         <CheckItem done={selectedDrivers.length === 5} label="5 drivers selected" />
         <CheckItem done={!!selectedConstructor} label="Constructor selected" />
         <CheckItem done={!overBudget} label="Within budget" />
+        <CheckItem done={!!captainId} label="Captain selected (2×)" />
       </div>
 
       {/* Submit */}
@@ -429,6 +475,35 @@ export default function TeamPicker() {
   );
 }
 
+/* ── Chip labels ────────────────────────────────────────────── */
+const CHIP_LABELS = {
+  wildcard:       { name: 'Wildcard',       icon: '🃏', desc: 'Unlimited free transfers' },
+  triple_captain: { name: 'Triple Captain', icon: '👑', desc: 'Captain scores 3× points' },
+  no_negative:    { name: 'No Negative',    icon: '🛡️', desc: 'Negative scores count as 0' },
+  bench_boost:    { name: 'Bench Boost',    icon: '🚀', desc: '6th driver scores this round' },
+};
+
+function ChipButton({ chip, active, onClick }) {
+  const info = CHIP_LABELS[chip.type] || { name: chip.type, icon: '⚡', desc: '' };
+  return (
+    <button
+      onClick={onClick}
+      title={info.desc}
+      style={{
+        background: active ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.04)',
+        border: `1px solid ${active ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.1)'}`,
+        borderRadius: 8, padding: '6px 12px', cursor: 'pointer',
+        display: 'flex', alignItems: 'center', gap: 6,
+        transition: 'all 0.15s',
+      }}
+    >
+      <span>{info.icon}</span>
+      <span style={{ fontSize: 12, fontWeight: 600, color: active ? '#fbbf24' : '#a1a1aa' }}>{info.name}</span>
+      {active && <span style={{ fontSize: 10, color: '#fbbf24' }}>✓ Active</span>}
+    </button>
+  );
+}
+
 /* ── Check item ─────────────────────────────────────────────── */
 function CheckItem({ done, label }) {
   return (
@@ -449,7 +524,7 @@ function CheckItem({ done, label }) {
 }
 
 /* ── Driver Card ────────────────────────────────────────────── */
-function DriverCard({ driver: d, selected, disabled, form, priceHistory, onClick }) {
+function DriverCard({ driver: d, selected, disabled, isCaptain, form, priceHistory, onClick, onCaptain }) {
   const [hover, setHover] = useState(false);
   const color = teamColor(d.driver.constructor.name);
   const priceTrend = priceHistory && priceHistory.length >= 2
@@ -490,22 +565,46 @@ function DriverCard({ driver: d, selected, disabled, form, priceHistory, onClick
           </div>
         </div>
 
-        {/* Selected indicator / remove hint */}
-        {selected && (
-          <div style={{
-            flexShrink: 0,
-            width: 22, height: 22,
-            background: hover ? 'rgba(225,6,0,0.15)' : '#e10600',
-            border: hover ? '1px solid rgba(225,6,0,0.3)' : 'none',
-            borderRadius: '50%',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            fontSize: 10, color: hover ? '#f87171' : '#fff', fontWeight: 800,
-            transition: 'all 0.15s',
-          }}>
-            {hover ? '−' : '✓'}
-          </div>
-        )}
+        {/* Right: captain crown + selected indicator */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+          {/* Captain button — only visible when selected */}
+          {selected && (
+            <button
+              onClick={onCaptain}
+              title={isCaptain ? 'Remove as captain' : 'Make captain (2× points)'}
+              style={{
+                background: isCaptain ? 'rgba(251,191,36,0.2)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${isCaptain ? 'rgba(251,191,36,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                borderRadius: 6, width: 24, height: 24, cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 12, transition: 'all 0.15s',
+              }}
+            >
+              {isCaptain ? '👑' : '♛'}
+            </button>
+          )}
+          {selected && (
+            <div style={{
+              flexShrink: 0,
+              width: 22, height: 22,
+              background: hover ? 'rgba(225,6,0,0.15)' : '#e10600',
+              border: hover ? '1px solid rgba(225,6,0,0.3)' : 'none',
+              borderRadius: '50%',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, color: hover ? '#f87171' : '#fff', fontWeight: 800,
+              transition: 'all 0.15s',
+            }}>
+              {hover ? '−' : '✓'}
+            </div>
+          )}
+        </div>
       </div>
+
+      {isCaptain && (
+        <div style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, marginBottom: 4, letterSpacing: '0.05em' }}>
+          👑 CAPTAIN · 2× POINTS
+        </div>
+      )}
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 }}>
         <div>

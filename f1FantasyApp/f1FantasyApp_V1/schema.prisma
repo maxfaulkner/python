@@ -16,26 +16,47 @@ model User {
   email             String   @unique
   name              String
   password          String   // bcrypt hash
+  bio               String?
+  avatarColor       String   @default("#e10600")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
   leagues           LeagueUser[]
   weeklyTeams       UserWeeklyTeam[]
+  messages          LeagueMessage[]
+  notifications     Notification[]
+  achievements      Achievement[]
+  transfers         Transfer[]
+  chips             Chip[]
+  reactions         MessageReaction[]
 }
 
 model League {
   id                String   @id @default(cuid())
   name              String
+  description       String?
   season            Int      // e.g., 2025
-  startingRound     Int      // which race to start from (e.g., 2 for race 2)
+  startingRound     Int      // which race to start from
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  adminEmail        String   // where to send failure notifications
+  adminEmail        String
+  leagueType        String   @default("classic") // classic, season_long, h2h, draft
+  isPublic          Boolean  @default(false)
+  inviteCode        String?  @unique
+  maxPlayers        Int      @default(20)
+  scoringConfig     Json?    // custom scoring weights
+  budget            Float    @default(100) // budget in millions
+  transfersPerRound Int      @default(1)   // free transfers per round
+  allowWildcard     Boolean  @default(true)
+  allowTripleCap    Boolean  @default(true)
 
   users             LeagueUser[]
   weeklyTeams       UserWeeklyTeam[]
   raceResults       RaceResult[]
   constructorRaceResults ConstructorRaceResult[]
+  messages          LeagueMessage[]
+  transfers         Transfer[]
+  h2hMatchups       H2HMatchup[]
 }
 
 model LeagueUser {
@@ -43,6 +64,10 @@ model LeagueUser {
   userId            String
   leagueId          String
   joinedAt          DateTime @default(now())
+  role              String   @default("member") // member, commissioner
+  teamName          String?  // custom team name
+  totalPoints       Int      @default(0)  // cached
+  totalWins         Int      @default(0)  // cached
 
   user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   league            League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
@@ -55,15 +80,19 @@ model Driver {
   id                String   @id @default(cuid())
   f1Id              String   @unique // external F1 ID from Ergast
   name              String
+  abbr              String?  // e.g. "VER", "HAM"
+  number            Int?     // race number
+  nationality       String?
   constructorId     String
   isRookie          Boolean  @default(false)
-  skillTier         Float    @default(0) // relative skill vs teammate (1.0 = equal)
+  skillTier         Float    @default(0)
   createdAt         DateTime @default(now())
 
   constructor       Constructor @relation(fields: [constructorId], references: [id])
   priceHistory      DriverPrice[]
   teamSelections    UserWeeklyTeamDriver[]
   raceResults       RaceResult[]
+  bonusPoints       BonusPoint[]
 
   @@index([constructorId])
 }
@@ -72,6 +101,7 @@ model Constructor {
   id                String   @id @default(cuid())
   f1Id              String   @unique
   name              String
+  nationality       String?
   createdAt         DateTime @default(now())
 
   drivers           Driver[]
@@ -86,8 +116,8 @@ model Constructor {
 model DriverPrice {
   id                String   @id @default(cuid())
   driverId          String
-  week              Int      // race week (1-24 typically)
-  price             Float    // in millions (e.g., 5.5 for $5.5M)
+  week              Int
+  price             Float
   createdAt         DateTime @default(now())
 
   driver            Driver   @relation(fields: [driverId], references: [id], onDelete: Cascade)
@@ -115,8 +145,10 @@ model UserWeeklyTeam {
   userId            String
   leagueId          String
   week              Int
-  budgetUsed        Float    // total spent this week
-  locked            Boolean  @default(false) // locked when FP1 starts
+  budgetUsed        Float
+  locked            Boolean  @default(false)
+  captainId         String?  // driverId of captain (2x points)
+  chipUsed          String?  // wildcard | triple_captain | no_limit | free_hit
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
@@ -129,12 +161,11 @@ model UserWeeklyTeam {
   @@index([leagueId, week])
 }
 
-// Many-to-many: User's selected drivers for a week
 model UserWeeklyTeamDriver {
   id                String   @id @default(cuid())
   teamId            String
   driverId          String
-  pricePaidPerPoint Float   // price at time of selection
+  pricePaidPerPoint Float
 
   team              UserWeeklyTeam @relation(fields: [teamId], references: [id], onDelete: Cascade)
   driver            Driver   @relation(fields: [driverId], references: [id])
@@ -142,7 +173,6 @@ model UserWeeklyTeamDriver {
   @@unique([teamId, driverId])
 }
 
-// Constructor selection (only 1 per week)
 model UserWeeklyTeamConstructor {
   id                String   @id @default(cuid())
   teamId            String   @unique
@@ -153,6 +183,40 @@ model UserWeeklyTeamConstructor {
   constructor       Constructor @relation(fields: [constructorId], references: [id])
 }
 
+// ============ CHIPS ============
+model Chip {
+  id        String   @id @default(cuid())
+  userId    String
+  leagueId  String
+  type      String   // wildcard | triple_captain | no_limit | free_hit
+  usedWeek  Int?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, leagueId, type])
+}
+
+// ============ TRANSFERS ============
+model Transfer {
+  id               String   @id @default(cuid())
+  userId           String
+  leagueId         String
+  week             Int
+  outDriverId      String?
+  inDriverId       String?
+  outConstructorId String?
+  inConstructorId  String?
+  pricePaid        Float?
+  type             String   @default("regular") // regular | wildcard | free_hit
+  createdAt        DateTime @default(now())
+
+  user             User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  league           League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@index([userId, leagueId])
+}
+
 // ============ RACE RESULTS ============
 model RaceResult {
   id                String   @id @default(cuid())
@@ -160,11 +224,14 @@ model RaceResult {
   week              Int
   driverId          String
   finishingPosition Int
-  points            Int      // F1 points earned (25 for 1st, 18 for 2nd, etc.)
+  gridPosition      Int?     // qualifying position
+  points            Int
+  isSprint          Boolean  @default(false)
   createdAt         DateTime @default(now())
 
   league            League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
   driver            Driver   @relation(fields: [driverId], references: [id])
+  bonusPoints       BonusPoint[]
 
   @@unique([leagueId, week, driverId])
   @@index([leagueId, week])
@@ -175,13 +242,116 @@ model ConstructorRaceResult {
   leagueId          String
   week              Int
   constructorId     String
-  totalPoints       Int      // sum of both drivers' points
+  totalPoints       Int
   createdAt         DateTime @default(now())
 
   league            League   @relation(fields: [leagueId], references: [id])
   constructor       Constructor @relation(fields: [constructorId], references: [id])
 
   @@unique([leagueId, week, constructorId])
+}
+
+// ============ BONUS POINTS ============
+model BonusPoint {
+  id          String   @id @default(cuid())
+  leagueId    String
+  week        Int
+  driverId    String
+  raceResultId String?
+  type        String   // pole | fastest_lap | driver_of_day | most_overtakes | beat_teammate
+  points      Int
+  createdAt   DateTime @default(now())
+
+  driver      Driver       @relation(fields: [driverId], references: [id])
+  raceResult  RaceResult?  @relation(fields: [raceResultId], references: [id])
+
+  @@unique([leagueId, week, driverId, type])
+  @@index([leagueId, week])
+}
+
+// ============ LEAGUE CHAT ============
+model LeagueMessage {
+  id          String   @id @default(cuid())
+  leagueId    String
+  userId      String
+  content     String
+  type        String   @default("message") // message | system | trade_offer
+  pinned      Boolean  @default(false)
+  replyToId   String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  replyTo     LeagueMessage? @relation("Replies", fields: [replyToId], references: [id])
+  replies     LeagueMessage[] @relation("Replies")
+  reactions   MessageReaction[]
+
+  @@index([leagueId, createdAt])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   LeagueMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+}
+
+// ============ NOTIFICATIONS ============
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  type      String   // rank_change | result_imported | message | achievement | deadline | trade
+  title     String
+  body      String
+  read      Boolean  @default(false)
+  data      Json?
+  createdAt DateTime @default(now())
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, read])
+}
+
+// ============ ACHIEVEMENTS ============
+model Achievement {
+  id          String   @id @default(cuid())
+  userId      String
+  leagueId    String?
+  type        String   // first_win | podium_finish | perfect_round | on_fire | top_pick | veteran | big_spender
+  title       String
+  description String
+  icon        String   // emoji
+  data        Json?
+  unlockedAt  DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, type, leagueId])
+}
+
+// ============ HEAD-TO-HEAD MATCHUPS ============
+model H2HMatchup {
+  id          String   @id @default(cuid())
+  leagueId    String
+  week        Int
+  user1Id     String
+  user2Id     String
+  user1Points Int      @default(0)
+  user2Points Int      @default(0)
+  winnerId    String?
+  createdAt   DateTime @default(now())
+
+  league      League   @relation(fields: [leagueId], references: [id], onDelete: Cascade)
+
+  @@unique([leagueId, week, user1Id, user2Id])
+  @@index([leagueId, week])
 }
 
 // ============ PRICING HISTORY FOR AUDITING ============
@@ -193,7 +363,7 @@ model PricingAuditLog {
   constructorId     String?
   oldPrice          Float
   newPrice          Float
-  performanceDelta  Float    // how much they beat/missed expectation
-  marketPressure    Float    // how much they were picked
+  performanceDelta  Float
+  marketPressure    Float
   createdAt         DateTime @default(now())
 }

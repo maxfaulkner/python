@@ -4,6 +4,8 @@ const express = require('express');
 const cors = require('cors');
 const prisma = require('./prisma');
 const apiRoutes = require('./routes/api');
+const chatRoutes = require('./routes/chat');
+const socialRoutes = require('./routes/social');
 const raceImportJob = require('./jobs/weeklyRaceImportJob');
 const authMiddleware = require('./middleware/auth');
 
@@ -28,6 +30,8 @@ app.get('/health', (req, res) => {
 
 // API routes
 app.use('/api', apiRoutes);
+app.use('/api', socialRoutes);
+app.use('/api/leagues/:leagueId/chat', chatRoutes);
 
 // ============ AUTH ROUTES ============
 

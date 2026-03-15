@@ -284,3 +284,74 @@ input, select, textarea { font-family: inherit; }
 .podium-1 { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: rgba(245,158,11,0.25); }
 .podium-2 { background: linear-gradient(135deg, rgba(156,163,175,0.12), rgba(156,163,175,0.04)); border-color: rgba(156,163,175,0.2); }
 .podium-3 { background: linear-gradient(135deg, rgba(180,120,60,0.12), rgba(180,120,60,0.04)); border-color: rgba(180,120,60,0.2); }
+
+/* ─── Chat ─────────────────────────────────────────────────── */
+.chat-message:hover {
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* ─── Notification bell dropdown ────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Toggle switch ─────────────────────────────────────────── */
+.toggle-track {
+  width: 40px; height: 22px; border-radius: 11px;
+  position: relative; cursor: pointer; transition: background 0.2s;
+}
+.toggle-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  position: absolute; top: 3px; transition: left 0.2s;
+}
+
+/* ─── Chip button ───────────────────────────────────────────── */
+.chip-btn:hover {
+  border-color: rgba(251,191,36,0.4) !important;
+  background: rgba(251,191,36,0.08) !important;
+}
+
+/* ─── Stats chart tooltip ───────────────────────────────────── */
+.chart-point:hover circle {
+  r: 5;
+}
+
+/* ─── Profile avatar ring ───────────────────────────────────── */
+.avatar-ring {
+  box-shadow: 0 0 0 3px rgba(225,6,0,0.3), 0 0 20px rgba(225,6,0,0.2);
+}
+
+/* ─── Public leagues filter tab active ──────────────────────── */
+.filter-tab-active {
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+}
+
+/* ─── Input focus ring ──────────────────────────────────────── */
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(225,6,0,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(225,6,0,0.1);
+  outline: none;
+}
+
+/* ─── Scrollbar for chat ────────────────────────────────────── */
+.chat-messages-area::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-messages-area::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+/* ─── Achievement badge hover ───────────────────────────────── */
+.achievement-badge {
+  transition: transform 0.15s, border-color 0.15s;
+}
+.achievement-badge:hover {
+  transform: translateY(-2px);
+  border-color: rgba(225,6,0,0.4) !important;
+}

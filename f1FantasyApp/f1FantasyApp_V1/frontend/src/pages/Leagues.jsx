@@ -14,24 +14,34 @@ const RACE_SESSIONS = [
   { value: 'fp2Results', label: 'FP2',        key: 'PracticeResults' },
 ];
 
-/* ── Copy-ID button ─────────────────────────────────────────── */
-function CopyIdButton({ id }) {
+/* ── Copy invite code button ────────────────────────────────── */
+function CopyInviteButton({ code, id }) {
   const [copied, setCopied] = useState(false);
+  const textToCopy = code || id;
+  const label = code ? `Code: ${code}` : '⎘ Copy ID';
   return (
     <button
-      onClick={() => { navigator.clipboard.writeText(id).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
+      onClick={() => { navigator.clipboard.writeText(textToCopy).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
       style={{
         background: 'none', border: '1px dashed rgba(255,255,255,0.15)',
         borderRadius: 5, padding: '2px 10px',
         fontSize: 11, color: copied ? '#22c55e' : '#52525b',
         cursor: 'pointer', fontFamily: 'inherit', marginTop: 6,
-        transition: 'color 0.15s',
+        transition: 'color 0.15s', letterSpacing: code ? '0.08em' : 0,
       }}
     >
-      {copied ? '✓ Copied!' : '⎘ Copy invite ID'}
+      {copied ? '✓ Copied!' : `⎘ ${label}`}
     </button>
   );
 }
+
+const LEAGUE_TYPE_META = {
+  classic: { icon: '🏎️', label: 'Classic' },
+  season_long: { icon: '📅', label: 'Season Long' },
+  h2h: { icon: '⚔️', label: 'H2H' },
+  all_or_nothing: { icon: '💀', label: 'All-or-Nothing' },
+  survivor: { icon: '🎯', label: 'Survivor' },
+};
 
 /* ── Countdown banner ───────────────────────────────────────── */
 function CountdownBanner({ onBannerResolved }) {
@@ -339,7 +349,10 @@ export default function Leagues() {
   const [error, setError]           = useState('');
   const [showCreate, setShowCreate] = useState(false);
   const [joinId, setJoinId]         = useState('');
-  const [createForm, setCreateForm] = useState({ name: '', season: CURRENT_YEAR, startingRound: 1 });
+  const [createForm, setCreateForm] = useState({
+    name: '', season: CURRENT_YEAR, startingRound: 1,
+    description: '', leagueType: 'classic', isPublic: false, maxPlayers: 20,
+  });
   const [actionMsg, setActionMsg]   = useState('');
   const [currentRound, setCurrentRound] = useState(null);
   const navigate = useNavigate();
@@ -370,8 +383,12 @@ export default function Leagues() {
 
   async function handleJoin(e) {
     e.preventDefault();
+    if (!joinId.trim()) return;
     try {
-      const res = await api.joinLeague(joinId.trim());
+      // Try invite code first (6 chars), fallback to ID
+      const res = joinId.trim().length <= 8
+        ? await api.joinByCode(joinId.trim())
+        : await api.joinLeague(joinId.trim());
       setActionMsg(`Joined "${res.leagueName}"!`);
       setJoinId('');
       load();
@@ -421,7 +438,36 @@ export default function Leagues() {
             <label style={lblStyle}>League Name</label>
             <input className="inp" style={{ marginBottom: 12 }} value={createForm.name}
               onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required placeholder="e.g. Office Fantasy" />
-            <div style={{ display: 'flex', gap: 10 }}>
+
+            <label style={lblStyle}>Description (optional)</label>
+            <input className="inp" style={{ marginBottom: 12 }} value={createForm.description}
+              onChange={e => setCreateForm({ ...createForm, description: e.target.value })} placeholder="e.g. Company league — all welcome!" />
+
+            <label style={lblStyle}>League Type</label>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, marginBottom: 12 }}>
+              {[
+                { value: 'classic', label: '🏎️ Classic', desc: 'Pick fresh each round' },
+                { value: 'season_long', label: '📅 Season Long', desc: 'Limited transfers' },
+                { value: 'h2h', label: '⚔️ Head to Head', desc: '1v1 matchups per round' },
+                { value: 'all_or_nothing', label: '💀 All or Nothing', desc: 'Winner takes all per round' },
+              ].map(lt => (
+                <button
+                  key={lt.value} type="button"
+                  onClick={() => setCreateForm({ ...createForm, leagueType: lt.value })}
+                  style={{
+                    background: createForm.leagueType === lt.value ? 'rgba(225,6,0,0.12)' : 'rgba(255,255,255,0.04)',
+                    border: `1px solid ${createForm.leagueType === lt.value ? 'rgba(225,6,0,0.4)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 8, padding: '8px 10px', cursor: 'pointer', textAlign: 'left',
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  <div style={{ fontSize: 12, fontWeight: 700, color: createForm.leagueType === lt.value ? '#fff' : '#a1a1aa' }}>{lt.label}</div>
+                  <div style={{ fontSize: 10, color: '#52525b', marginTop: 2 }}>{lt.desc}</div>
+                </button>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', gap: 10, marginBottom: 12 }}>
               <div style={{ flex: 1 }}>
                 <label style={lblStyle}>Season</label>
                 <input className="inp" type="number" value={createForm.season}
@@ -432,22 +478,60 @@ export default function Leagues() {
                 <input className="inp" type="number" min={1} max={24} value={createForm.startingRound}
                   onChange={e => setCreateForm({ ...createForm, startingRound: parseInt(e.target.value) })} required />
               </div>
+              <div style={{ flex: 1 }}>
+                <label style={lblStyle}>Max Players</label>
+                <input className="inp" type="number" min={2} max={100} value={createForm.maxPlayers}
+                  onChange={e => setCreateForm({ ...createForm, maxPlayers: parseInt(e.target.value) })} />
+              </div>
             </div>
+
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', marginBottom: 14 }}>
+              <div
+                onClick={() => setCreateForm({ ...createForm, isPublic: !createForm.isPublic })}
+                style={{
+                  width: 40, height: 22, borderRadius: 11,
+                  background: createForm.isPublic ? '#e10600' : 'rgba(255,255,255,0.1)',
+                  position: 'relative', transition: 'background 0.2s', cursor: 'pointer',
+                }}
+              >
+                <div style={{
+                  width: 16, height: 16, borderRadius: '50%', background: '#fff',
+                  position: 'absolute', top: 3, left: createForm.isPublic ? 21 : 3,
+                  transition: 'left 0.2s',
+                }} />
+              </div>
+              <span style={{ fontSize: 13, color: '#a1a1aa' }}>
+                {createForm.isPublic ? '🌍 Public — visible in Discover' : '🔒 Private — invite only'}
+              </span>
+            </label>
+
             <button type="submit" style={redBtn}>Create League →</button>
           </form>
         )}
 
         {/* Join form */}
-        <form onSubmit={handleJoin} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
-          <input
-            className="inp"
-            style={{ flex: 1, marginBottom: 0 }}
-            placeholder="Paste League ID to join..."
-            value={joinId}
-            onChange={e => setJoinId(e.target.value)}
-          />
-          <button type="submit" style={{ ...ghostBtn, flexShrink: 0 }}>Join</button>
-        </form>
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          <form onSubmit={handleJoin} style={{ display: 'flex', gap: 8, flex: 1 }}>
+            <input
+              className="inp"
+              style={{ flex: 1, marginBottom: 0, textTransform: 'uppercase', letterSpacing: '0.1em', fontWeight: 700 }}
+              placeholder="Enter invite code (e.g. ABC123)"
+              value={joinId}
+              maxLength={6}
+              onChange={e => setJoinId(e.target.value.toUpperCase())}
+            />
+            <button type="submit" style={{ ...ghostBtn, flexShrink: 0 }}>Join</button>
+          </form>
+          <button
+            onClick={() => navigate('/leagues/discover')}
+            style={{
+              background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.1)',
+              borderRadius: 9, padding: '0 14px', cursor: 'pointer', color: '#a1a1aa',
+              fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0,
+            }}
+            title="Browse public leagues"
+          >🔍 Discover</button>
+        </div>
 
         {/* League cards */}
         {leagues.length === 0 ? (
@@ -522,8 +606,14 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
             <span>From Round {league.startingRound}</span>
             <span style={{ color: '#52525b' }}>·</span>
             <span style={{ color: '#a1a1aa' }}>{league.memberCount} member{league.memberCount !== 1 ? 's' : ''}</span>
+            {league.leagueType && league.leagueType !== 'classic' && (
+              <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.07)', padding: '1px 6px', borderRadius: 4, color: '#a1a1aa' }}>
+                {LEAGUE_TYPE_META[league.leagueType]?.icon} {LEAGUE_TYPE_META[league.leagueType]?.label}
+              </span>
+            )}
           </div>
-          <CopyIdButton id={league.id} />
+          {league.inviteCode && <CopyInviteButton code={league.inviteCode} id={league.id} />}
+          {!league.inviteCode && <CopyInviteButton id={league.id} />}
         </div>
 
         {/* Action buttons */}
@@ -531,6 +621,8 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/view/${week}`)} icon="👁">View</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/team/${week}`)} icon="✏️" primary>Pick</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Board</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/chat`)} icon="💬">Chat</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/stats`)} icon="📊">Stats</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
         </div>
       </div>
