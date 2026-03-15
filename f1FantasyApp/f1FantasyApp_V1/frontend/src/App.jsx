@@ -19,6 +19,7 @@ import Calendar from './pages/Calendar';
 import LeagueSettings from './pages/LeagueSettings';
 import PriceWatch from './pages/PriceWatch';
 import Compare from './pages/Compare';
+import DraftBoard from './pages/DraftBoard';
 
 function Protected({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -48,6 +49,7 @@ export default function App() {
             <Route path="/calendar" element={<Protected><Calendar /></Protected>} />
             <Route path="/leagues/:leagueId/prices" element={<Protected><PriceWatch /></Protected>} />
             <Route path="/leagues/:leagueId/compare" element={<Protected><Compare /></Protected>} />
+            <Route path="/leagues/:leagueId/draft" element={<Protected><DraftBoard /></Protected>} />
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

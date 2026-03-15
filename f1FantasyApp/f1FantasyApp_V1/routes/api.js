@@ -1047,6 +1047,124 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
   }
 });
 
+// ============ DRAFT BOARD ============
+
+// In-memory draft state (persists during server lifetime; use DB for production scale)
+const draftStates = {};
+
+/**
+ * GET /api/leagues/:leagueId/draft
+ */
+router.get('/leagues/:leagueId/draft', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+    const member = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId } },
+    });
+    if (!member) return res.status(403).json({ error: 'Not a member' });
+
+    const state = draftStates[leagueId];
+    if (!state) return res.json({ started: false, picks: [] });
+
+    res.json(state);
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/leagues/:leagueId/draft/start
+ * Commissioner starts the draft
+ */
+router.post('/leagues/:leagueId/draft/start', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+    const member = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId } },
+    });
+    if (!member || member.role !== 'commissioner') return res.status(403).json({ error: 'Commissioner only' });
+
+    const members = await prisma.leagueUser.findMany({
+      where: { leagueId },
+      include: { user: { select: { id: true, name: true } } },
+      orderBy: { joinedAt: 'asc' },
+    });
+
+    // Shuffle members for random draft order
+    const shuffled = [...members].sort(() => Math.random() - 0.5);
+
+    draftStates[leagueId] = {
+      started: true,
+      picks: [],
+      order: shuffled.map(m => ({ userId: m.userId, name: m.user.name })),
+      startedAt: new Date().toISOString(),
+    };
+
+    res.json({ message: 'Draft started', state: draftStates[leagueId] });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
+/**
+ * POST /api/leagues/:leagueId/draft/pick
+ * Submit a draft pick
+ */
+router.post('/leagues/:leagueId/draft/pick', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+    const { type, itemId, itemName } = req.body;
+
+    const state = draftStates[leagueId];
+    if (!state?.started) return res.status(400).json({ error: 'Draft not started' });
+
+    const n = state.order.length;
+    const PICKS_PER_PLAYER = 6;
+    const totalPicks = n * PICKS_PER_PLAYER;
+
+    // Calculate snake order
+    function getSnakeOrder(numPlayers, total) {
+      const order = [];
+      let round = 0;
+      while (order.length < total) {
+        const fwd = round % 2 === 0;
+        for (let i = 0; i < numPlayers && order.length < total; i++) {
+          order.push(fwd ? i : numPlayers - 1 - i);
+        }
+        round++;
+      }
+      return order;
+    }
+    const snakeOrder = getSnakeOrder(n, totalPicks);
+    const currentPickIdx = state.picks.length;
+
+    if (currentPickIdx >= totalPicks) return res.status(400).json({ error: 'Draft complete' });
+
+    const expectedPlayerIdx = snakeOrder[currentPickIdx];
+    const expectedUserId = state.order[expectedPlayerIdx]?.userId;
+
+    if (userId !== expectedUserId) return res.status(403).json({ error: 'Not your turn' });
+
+    // Validate not already picked
+    const alreadyPicked = state.picks.some(p => p.itemId === itemId && p.type === type);
+    if (alreadyPicked) return res.status(400).json({ error: 'Already picked' });
+
+    const round = Math.floor(currentPickIdx / n) + 1;
+    state.picks.push({
+      userId, type, itemId, itemName,
+      round, pick: currentPickIdx + 1,
+      pickedAt: new Date().toISOString(),
+    });
+
+    res.json({ message: 'Pick recorded', state });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ============ H2H MATCHUPS ============
 
 /**

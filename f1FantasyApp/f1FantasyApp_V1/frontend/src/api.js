@@ -105,6 +105,12 @@ export const api = {
   // H2H
   getH2HMatchups: (leagueId) => request('GET', `/api/leagues/${leagueId}/h2h`),
 
+  // Draft
+  getDraft: (leagueId) => request('GET', `/api/leagues/${leagueId}/draft`),
+  startDraft: (leagueId) => request('POST', `/api/leagues/${leagueId}/draft/start`),
+  submitDraftPick: (leagueId, type, itemId, itemName) =>
+    request('POST', `/api/leagues/${leagueId}/draft/pick`, { type, itemId, itemName }),
+
   // League Settings (commissioner)
   updateLeagueSettings: (leagueId, data) =>
     request('PUT', `/api/leagues/${leagueId}/settings`, data),

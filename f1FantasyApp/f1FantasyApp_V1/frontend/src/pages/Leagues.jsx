@@ -640,6 +640,9 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
           {league.leagueType === 'h2h' && (
             <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/h2h`)} icon="⚔️">H2H</ActionBtn>
           )}
+          {league.leagueType === 'season_long' && (
+            <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/draft`)} icon="🎲">Draft</ActionBtn>
+          )}
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/prices`)} icon="💰">Prices</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/compare`)} icon="⚡">Compare</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
