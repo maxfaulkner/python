@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { usePageTitle } from '../hooks/usePageTitle';
+import Navbar from '../components/Navbar';
 
 /* ── F1 team colors (2026) ──────────────────────────────────── */
 const TEAM_COLORS = {
@@ -125,7 +126,12 @@ export default function TeamPicker() {
     }
   }
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
+    </div>
+  );
 
   /* ── LOCKED STATE ─────────────────────────────────────────── */
   if (locked) {
@@ -185,8 +191,13 @@ export default function TeamPicker() {
   }
 
   if (!prices) return (
-    <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
-      {error || 'Failed to load prices'}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ padding: 24 }}>
+        <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
+          {error || 'Failed to load prices'}
+        </div>
+      </div>
     </div>
   );
 
@@ -204,7 +215,9 @@ export default function TeamPicker() {
     });
 
   return (
-    <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
@@ -471,6 +484,7 @@ export default function TeamPicker() {
           : canSubmit ? 'SAVE TEAM →' : 'COMPLETE YOUR TEAM TO SAVE'
         }
       </button>
+      </div>
     </div>
   );
 }

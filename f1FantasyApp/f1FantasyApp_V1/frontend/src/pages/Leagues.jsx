@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { usePageTitle } from '../hooks/usePageTitle';
+import Navbar from '../components/Navbar';
 
 const JOLPICA = 'https://api.jolpi.ca/ergast/f1';
 const CURRENT_YEAR = new Date().getFullYear();
@@ -397,9 +398,17 @@ export default function Leagues() {
     }
   }
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
+    </div>
+  );
 
   return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ padding: '24px 32px' }}>
     <div className="home-layout fade-up">
       <div className="home-spacer" />
 
@@ -560,6 +569,8 @@ export default function Leagues() {
       {/* ── Results column ─────────────────────────────────── */}
       <div className="home-results">
         <ResultsPanel />
+      </div>
+    </div>
       </div>
     </div>
   );

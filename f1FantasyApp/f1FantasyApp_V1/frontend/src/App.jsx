@@ -29,9 +29,8 @@ function Protected({ children }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '0 32px 32px' }}>
-        <ErrorBoundary>
-          <Routes>
+      <ErrorBoundary>
+        <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<Protected><Leagues /></Protected>} />
@@ -54,9 +53,8 @@ export default function App() {
             <Route path="/leagues/:leagueId/quickpick" element={<Protected><QuickPick /></Protected>} />
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </ErrorBoundary>
-      </div>
+        </Routes>
+      </ErrorBoundary>
     </BrowserRouter>
   );
 }

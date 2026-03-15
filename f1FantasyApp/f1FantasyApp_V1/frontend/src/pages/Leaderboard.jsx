@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import { usePageTitle } from '../hooks/usePageTitle';
+import Navbar from '../components/Navbar';
 
 export default function Leaderboard() {
   const { leagueId } = useParams();
@@ -102,10 +103,17 @@ export default function Leaderboard() {
     setViewingTeam(null);
   }
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
+    </div>
+  );
 
   return (
-    <div className="fade-up" style={{ maxWidth: 860, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div className="fade-up" style={{ maxWidth: 860, margin: '0 auto', padding: '24px 24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
@@ -473,6 +481,7 @@ export default function Leaderboard() {
           Tie-breaker: total race wins · Points based on finishing position
         </p>
       )}
+      </div>
     </div>
   );
 }
