@@ -18,18 +18,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <Navbar />
-      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 32px' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '28px 32px' }}>
         <ErrorBoundary>
-        <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/" element={<Protected><Leagues /></Protected>} />
-          <Route path="/leagues/:leagueId/team/:week" element={<Protected><TeamPicker /></Protected>} />
-          <Route path="/leagues/:leagueId/leaderboard" element={<Protected><Leaderboard /></Protected>} />
-          <Route path="/leagues/:leagueId/admin/:week" element={<Protected><AdminRace /></Protected>} />
-          <Route path="/leagues/:leagueId/view/:week" element={<Protected><ViewTeam /></Protected>} />
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+          <Routes>
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/" element={<Protected><Leagues /></Protected>} />
+            <Route path="/leagues/:leagueId/team/:week" element={<Protected><TeamPicker /></Protected>} />
+            <Route path="/leagues/:leagueId/leaderboard" element={<Protected><Leaderboard /></Protected>} />
+            <Route path="/leagues/:leagueId/admin/:week" element={<Protected><AdminRace /></Protected>} />
+            <Route path="/leagues/:leagueId/view/:week" element={<Protected><ViewTeam /></Protected>} />
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
         </ErrorBoundary>
       </div>
     </BrowserRouter>

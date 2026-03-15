@@ -1,73 +1,286 @@
-* { box-sizing: border-box; }
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+
+/* ─── Design tokens ──────────────────────────────────────────── */
+:root {
+  --red:          #e10600;
+  --red-dark:     #b30500;
+  --red-dim:      rgba(225, 6, 0, 0.12);
+  --red-glow:     rgba(225, 6, 0, 0.28);
+  --gold:         #f59e0b;
+  --gold-dim:     rgba(245, 158, 11, 0.15);
+  --silver:       #9ca3af;
+  --green:        #22c55e;
+  --green-dim:    rgba(34, 197, 94, 0.12);
+  --blue:         #3b82f6;
+
+  --bg-root:      #09090b;
+  --bg-base:      #111113;
+  --bg-card:      #18181b;
+  --bg-card-2:    #1e1e22;
+  --bg-elevated:  #27272a;
+
+  --border:       rgba(255, 255, 255, 0.06);
+  --border-2:     rgba(255, 255, 255, 0.10);
+  --border-3:     rgba(255, 255, 255, 0.16);
+
+  --text:         #fafafa;
+  --text-2:       #a1a1aa;
+  --text-3:       #71717a;
+  --text-4:       #52525b;
+
+  --r-sm:   6px;
+  --r:      10px;
+  --r-lg:   14px;
+  --r-xl:   20px;
+
+  --ease:   0.18s ease;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
 body {
-  margin: 0;
-  font-family: system-ui, -apple-system, sans-serif;
-  background: #f3f4f6;
-  color: #111;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg-root);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* subtle grid lines behind everything */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
   min-height: 100vh;
 }
 
-a { color: #e10600; }
-
+a { color: var(--red); text-decoration: none; transition: color var(--ease); }
+a:hover { color: var(--red-dark); }
 button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
 
-/* ── Spinner ── */
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+/* ─── Spinner ────────────────────────────────────────────────── */
 .spinner {
-  width: 28px;
-  height: 28px;
-  border: 3px solid #e5e7eb;
-  border-top-color: #e10600;
+  width: 32px; height: 32px;
+  border: 3px solid var(--bg-elevated);
+  border-top-color: var(--red);
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-  margin: 32px auto;
+  animation: spin 0.65s linear infinite;
+  margin: 48px auto;
 }
 .spinner-sm {
-  width: 16px;
-  height: 16px;
-  border: 2px solid #e5e7eb;
-  border-top-color: #e10600;
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: currentColor;
   border-radius: 50%;
-  animation: spin 0.7s linear infinite;
+  animation: spin 0.65s linear infinite;
   display: inline-block;
+  vertical-align: middle;
 }
-@keyframes spin {
-  to { transform: rotate(360deg); }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--red-glow); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+}
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
 }
 
-/* ── Home page layout ── */
+.fade-up { animation: fadeUp 0.35s ease forwards; }
+.fade-in { animation: fadeIn 0.25s ease forwards; }
+
+/* ─── Live dot ───────────────────────────────────────────────── */
+.live-dot {
+  width: 7px; height: 7px;
+  background: var(--red);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+/* ─── Home layout ────────────────────────────────────────────── */
 .home-layout {
   display: flex;
-  gap: 48px;
+  gap: 28px;
   align-items: flex-start;
 }
-.home-spacer {
-  flex: 1;
-}
-.home-leagues {
-  flex: 0 0 600px;
-}
-.home-results {
-  flex: 0 0 520px;
-}
+.home-spacer { flex: 1; }
+.home-leagues { flex: 0 0 580px; }
+.home-results { flex: 0 0 460px; }
 
-/* Tablet: drop spacer, results goes fluid */
-@media (max-width: 1200px) {
+@media (max-width: 1280px) {
   .home-spacer { display: none; }
-  .home-leagues { flex: 0 0 480px; }
+  .home-leagues { flex: 0 0 520px; }
   .home-results { flex: 1; min-width: 0; }
 }
-
-/* Mobile: stack vertically */
-@media (max-width: 800px) {
-  .home-layout { flex-direction: column; gap: 24px; }
-  .home-leagues { flex: none; width: 100%; }
-  .home-results { flex: none; width: 100%; }
+@media (max-width: 960px) {
+  .home-layout { flex-direction: column; gap: 20px; }
+  .home-leagues, .home-results { flex: none; width: 100%; }
 }
 
-/* ── Driver/constructor grid on mobile ── */
+/* ─── Driver grid ────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .driver-grid {
-    grid-template-columns: 1fr !important;
-  }
+  .driver-grid { grid-template-columns: 1fr !important; }
 }
+
+/* ─── Card base ──────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+.card-sm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+}
+
+/* ─── Button base ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--ease);
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--red-dark); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-2);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border-3); background: var(--bg-card-2); }
+
+/* ─── Input base ─────────────────────────────────────────────── */
+.inp {
+  display: block;
+  width: 100%;
+  padding: 9px 13px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color var(--ease), box-shadow var(--ease);
+  outline: none;
+}
+.inp:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-dim);
+}
+.inp::placeholder { color: var(--text-4); }
+
+/* ─── Table styles ───────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table thead tr {
+  background: transparent;
+}
+.data-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ─── Badge ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+/* ─── Section header ─────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+/* ─── Red top-accent card (used on league cards) ─────────────── */
+.card-accent {
+  position: relative;
+  overflow: hidden;
+}
+.card-accent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--red), transparent);
+}
+
+/* ─── Countdown number ───────────────────────────────────────── */
+.countdown-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Podium ─────────────────────────────────────────────────── */
+.podium-1 { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: rgba(245,158,11,0.25); }
+.podium-2 { background: linear-gradient(135deg, rgba(156,163,175,0.12), rgba(156,163,175,0.04)); border-color: rgba(156,163,175,0.2); }
+.podium-3 { background: linear-gradient(135deg, rgba(180,120,60,0.12), rgba(180,120,60,0.04)); border-color: rgba(180,120,60,0.2); }

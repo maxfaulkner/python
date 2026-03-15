@@ -7,36 +7,34 @@ const JOLPICA = 'https://api.jolpi.ca/ergast/f1';
 const CURRENT_YEAR = new Date().getFullYear();
 const YEARS = [CURRENT_YEAR, CURRENT_YEAR - 1, CURRENT_YEAR - 2];
 const RACE_SESSIONS = [
-  { value: 'results',    label: 'Race',           key: 'Results' },
-  { value: 'qualifying', label: 'Qualifying',     key: 'QualifyingResults' },
-  { value: 'sprint',     label: 'Sprint',         key: 'SprintResults' },
-  { value: 'fp1Results', label: 'Practice 1',     key: 'PracticeResults' },
-  { value: 'fp2Results', label: 'Practice 2',     key: 'PracticeResults' },
-  { value: 'fp3Results', label: 'Practice 3',     key: 'PracticeResults' },
+  { value: 'results',    label: 'Race',       key: 'Results' },
+  { value: 'qualifying', label: 'Qualifying', key: 'QualifyingResults' },
+  { value: 'sprint',     label: 'Sprint',     key: 'SprintResults' },
+  { value: 'fp1Results', label: 'FP1',        key: 'PracticeResults' },
+  { value: 'fp2Results', label: 'FP2',        key: 'PracticeResults' },
 ];
 
+/* ── Copy-ID button ─────────────────────────────────────────── */
 function CopyIdButton({ id }) {
   const [copied, setCopied] = useState(false);
-  function copy() {
-    navigator.clipboard.writeText(id).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
   return (
-    <button onClick={copy} style={{
-      marginTop: 6, background: 'none', border: '1px dashed #d1d5db',
-      borderRadius: 4, padding: '2px 8px', cursor: 'pointer',
-      fontSize: 11, color: copied ? '#16a34a' : '#6b7280',
-      display: 'flex', alignItems: 'center', gap: 4,
-    }}>
-      {copied ? '✓ Copied!' : `📋 Copy invite ID`}
+    <button
+      onClick={() => { navigator.clipboard.writeText(id).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); }); }}
+      style={{
+        background: 'none', border: '1px dashed rgba(255,255,255,0.15)',
+        borderRadius: 5, padding: '2px 10px',
+        fontSize: 11, color: copied ? '#22c55e' : '#52525b',
+        cursor: 'pointer', fontFamily: 'inherit', marginTop: 6,
+        transition: 'color 0.15s',
+      }}
+    >
+      {copied ? '✓ Copied!' : '⎘ Copy invite ID'}
     </button>
   );
 }
 
+/* ── Countdown banner ───────────────────────────────────────── */
 function CountdownBanner({ onBannerResolved }) {
-  // banner: null | { type: 'locked', raceName, round } | { type: 'countdown', raceName, round, lockTime }
   const [banner, setBanner] = useState(null);
   const [timeLeft, setTimeLeft] = useState('');
 
@@ -47,8 +45,6 @@ function CountdownBanner({ onBannerResolved }) {
         const now = new Date();
         const races = d.MRData.RaceTable.Races;
 
-        // Check if we're currently inside a locked race weekend:
-        // qualifying has started but race hasn't finished yet (race time + 2h buffer)
         const currentlyLocked = races.find(r => {
           if (!r.Qualifying) return false;
           const qualiTime = new Date(`${r.Qualifying.date}T${r.Qualifying.time}`);
@@ -68,7 +64,6 @@ function CountdownBanner({ onBannerResolved }) {
           return;
         }
 
-        // Otherwise find the next upcoming qualifying
         const upcoming = races.find(r => {
           if (!r.Qualifying) return false;
           return new Date(`${r.Qualifying.date}T${r.Qualifying.time}`) > now;
@@ -91,19 +86,16 @@ function CountdownBanner({ onBannerResolved }) {
     if (!banner || banner.type !== 'countdown') return;
     function tick() {
       const diff = banner.lockTime - new Date();
-      if (diff <= 0) {
-        setTimeLeft('Teams locked');
-        return;
-      }
+      if (diff <= 0) { setTimeLeft('LOCKED'); return; }
       const d = Math.floor(diff / 86400000);
       const h = Math.floor((diff % 86400000) / 3600000);
       const m = Math.floor((diff % 3600000) / 60000);
       const s = Math.floor((diff % 60000) / 1000);
       const parts = [];
-      if (d > 0) parts.push(`${d}d`);
-      parts.push(`${String(h).padStart(2,'0')}h`);
-      parts.push(`${String(m).padStart(2,'0')}m`);
-      parts.push(`${String(s).padStart(2,'0')}s`);
+      if (d > 0) parts.push(`${d}D`);
+      parts.push(`${String(h).padStart(2,'0')}H`);
+      parts.push(`${String(m).padStart(2,'0')}M`);
+      parts.push(`${String(s).padStart(2,'0')}S`);
       setTimeLeft(parts.join(' '));
     }
     tick();
@@ -113,52 +105,73 @@ function CountdownBanner({ onBannerResolved }) {
 
   if (!banner) return null;
 
-  const locked = banner.type === 'locked' || timeLeft === 'Teams locked';
-  const urgent = !locked && banner.lockTime - new Date() < 3600000;
+  const isLocked = banner.type === 'locked' || timeLeft === 'LOCKED';
 
   return (
     <div style={{
-      background: locked ? '#fef2f2' : urgent ? '#fffbeb' : '#f0fdf4',
-      border: `1px solid ${locked ? '#fca5a5' : urgent ? '#fbbf24' : '#86efac'}`,
-      color: locked ? '#991b1b' : urgent ? '#92400e' : '#166534',
-      borderRadius: 8, padding: '10px 16px', marginBottom: 20,
-      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-      fontSize: 14,
+      background: isLocked
+        ? 'linear-gradient(90deg, rgba(225,6,0,0.12), rgba(225,6,0,0.05))'
+        : 'linear-gradient(90deg, rgba(245,158,11,0.1), rgba(245,158,11,0.03))',
+      border: `1px solid ${isLocked ? 'rgba(225,6,0,0.25)' : 'rgba(245,158,11,0.2)'}`,
+      borderRadius: 12,
+      padding: '12px 20px',
+      marginBottom: 20,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: 12,
     }}>
-      <span>
-        {locked ? '🔒' : '⏱'}&nbsp;
-        <strong>Round {banner.round} — {banner.raceName}</strong>
-        {!locked && <span style={{ fontWeight: 400, marginLeft: 6 }}>team lock</span>}
-      </span>
-      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: 1 }}>
-        {locked ? 'Teams locked' : timeLeft}
-      </span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+        {isLocked ? (
+          <span style={{ fontSize: 18 }}>🔒</span>
+        ) : (
+          <span className="live-dot" />
+        )}
+        <div>
+          <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase', color: isLocked ? '#f87171' : '#fbbf24', marginBottom: 2 }}>
+            {isLocked ? 'Teams Locked' : 'Team Lock In'}
+          </div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: '#fafafa' }}>
+            Round {banner.round} — {banner.raceName}
+          </div>
+        </div>
+      </div>
+      <div style={{
+        fontFamily: "'Barlow Condensed', sans-serif",
+        fontWeight: 800,
+        fontSize: 22,
+        letterSpacing: '0.04em',
+        color: isLocked ? '#f87171' : '#fbbf24',
+        fontVariantNumeric: 'tabular-nums',
+        flexShrink: 0,
+      }}>
+        {isLocked ? 'RACE WEEKEND' : timeLeft}
+      </div>
     </div>
   );
 }
 
+/* ── F1 Results Panel ───────────────────────────────────────── */
 function ResultsPanel() {
-  const [mode, setMode]       = useState('race');        // 'race' | 'championship'
+  const [mode, setMode]       = useState('race');
   const [year, setYear]       = useState(CURRENT_YEAR);
   const [races, setRaces]     = useState([]);
   const [round, setRound]     = useState('');
   const [session, setSession] = useState('results');
-  const [champType, setChampType] = useState('drivers'); // 'drivers' | 'constructors'
+  const [champType, setChampType] = useState('drivers');
   const [results, setResults] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState('');
 
-  // Load race calendar when year changes (only needed in race mode)
   useEffect(() => {
     setRaces([]); setRound(''); setResults([]); setError('');
     if (mode !== 'race') return;
     fetch(`${JOLPICA}/${year}.json`)
       .then(r => r.json())
       .then(d => setRaces(d.MRData.RaceTable.Races))
-      .catch(() => setError('Failed to load race calendar'));
+      .catch(() => setError('Failed to load calendar'));
   }, [year, mode]);
 
-  // Load race session results
   useEffect(() => {
     if (mode !== 'race' || !round) return;
     setResults([]); setError(''); setLoading(true);
@@ -174,7 +187,6 @@ function ResultsPanel() {
       .finally(() => setLoading(false));
   }, [year, round, session, mode]);
 
-  // Load championship standings
   useEffect(() => {
     if (mode !== 'championship') return;
     setResults([]); setError(''); setLoading(true);
@@ -183,157 +195,158 @@ function ResultsPanel() {
       .then(r => r.json())
       .then(d => {
         const list = d.MRData.StandingsTable.StandingsLists[0];
-        if (!list) { setError('No standings data available.'); return; }
+        if (!list) { setError('No standings available.'); return; }
         setResults(champType === 'drivers' ? list.DriverStandings : list.ConstructorStandings);
       })
       .catch(() => setError('Failed to load standings'))
       .finally(() => setLoading(false));
   }, [year, champType, mode]);
 
-  const isRace = mode === 'race';
-
   return (
-    <div style={panelStyle}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h3 style={{ margin: 0, fontSize: 16 }}>F1 Results</h3>
+    <div style={{
+      background: '#18181b',
+      border: '1px solid rgba(255,255,255,0.06)',
+      borderRadius: 14,
+      overflow: 'hidden',
+    }}>
+      {/* Panel header */}
+      <div style={{
+        padding: '14px 18px',
+        borderBottom: '1px solid rgba(255,255,255,0.06)',
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 15 }}>📊</span>
+          <span style={{ fontWeight: 700, fontSize: 14, color: '#fafafa' }}>F1 Results</span>
+        </div>
         {/* Mode toggle */}
-        <div style={{ display: 'flex', border: '1px solid #e5e7eb', borderRadius: 6, overflow: 'hidden' }}>
+        <div style={{
+          display: 'flex',
+          background: '#27272a',
+          border: '1px solid rgba(255,255,255,0.07)',
+          borderRadius: 7, overflow: 'hidden',
+        }}>
           {['race', 'championship'].map(m => (
             <button key={m} onClick={() => { setMode(m); setResults([]); setError(''); }}
-              style={{ padding: '4px 12px', fontSize: 12, fontWeight: 600, border: 'none', cursor: 'pointer',
-                background: mode === m ? '#e10600' : '#f3f4f6', color: mode === m ? '#fff' : '#444' }}>
-              {m === 'race' ? 'Race' : 'Championship'}
+              style={{
+                padding: '4px 12px', fontSize: 11, fontWeight: 700,
+                textTransform: 'uppercase', letterSpacing: '0.04em',
+                border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                background: mode === m ? '#e10600' : 'transparent',
+                color: mode === m ? '#fff' : '#71717a',
+                transition: 'all 0.15s',
+              }}>
+              {m === 'race' ? 'Race' : 'Champ'}
             </button>
           ))}
         </div>
       </div>
 
-      {/* Dropdowns — all on one row */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <select style={{ ...sel, flex: '0 0 auto' }} value={year} onChange={e => { setYear(parseInt(e.target.value)); setResults([]); }}>
-          {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-        </select>
-
-        {isRace && (
-          <select style={{ ...sel, flex: 1, minWidth: 0 }} value={round} onChange={e => setRound(e.target.value)}>
-            <option value="">— Race —</option>
-            {races.map(r => (
-              <option key={r.round} value={r.round}>{r.round}. {r.raceName.replace(' Grand Prix', ' GP')}</option>
-            ))}
+      <div style={{ padding: '14px 18px' }}>
+        {/* Controls */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+          <select style={selStyle} value={year} onChange={e => { setYear(parseInt(e.target.value)); setResults([]); }}>
+            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
           </select>
+          {mode === 'race' && (
+            <>
+              <select style={{ ...selStyle, flex: 1, minWidth: 0 }} value={round} onChange={e => setRound(e.target.value)}>
+                <option value="">— Race —</option>
+                {races.map(r => (
+                  <option key={r.round} value={r.round}>
+                    {r.round}. {r.raceName.replace(' Grand Prix', ' GP')}
+                  </option>
+                ))}
+              </select>
+              <select style={selStyle} value={session} onChange={e => setSession(e.target.value)}>
+                {RACE_SESSIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
+              </select>
+            </>
+          )}
+          {mode === 'championship' && (
+            <select style={{ ...selStyle, flex: 1 }} value={champType} onChange={e => { setChampType(e.target.value); setResults([]); }}>
+              <option value="drivers">Drivers</option>
+              <option value="constructors">Constructors</option>
+            </select>
+          )}
+        </div>
+
+        {mode === 'race' && !round && !error && (
+          <p style={{ color: '#52525b', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+            Select a race to view results
+          </p>
         )}
+        {error && <p style={{ color: '#f87171', fontSize: 13 }}>{error}</p>}
+        {loading && <div className="spinner" />}
 
-        {isRace && (
-          <select style={{ ...sel, flex: '0 0 auto' }} value={session} onChange={e => setSession(e.target.value)}>
-            {RACE_SESSIONS.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
-          </select>
-        )}
-
-        {!isRace && (
-          <select style={{ ...sel, flex: 1 }} value={champType} onChange={e => { setChampType(e.target.value); setResults([]); }}>
-            <option value="drivers">Drivers</option>
-            <option value="constructors">Constructors</option>
-          </select>
+        {results.length > 0 && (
+          <div style={{ overflowY: 'auto', maxHeight: 440 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
+              <thead>
+                <tr>
+                  <th style={rth}>Pos</th>
+                  <th style={rth}>{mode === 'championship' && champType === 'constructors' ? 'Constructor' : 'Driver'}</th>
+                  {mode === 'race' && <th style={rth}>Team</th>}
+                  {mode === 'championship' && champType === 'drivers' && <th style={rth}>Team</th>}
+                  <th style={{ ...rth, textAlign: 'right' }}>
+                    {session === 'qualifying' ? 'Best' : 'Pts'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {results.map((r, i) => {
+                  const pos = r.position;
+                  const posNum = parseInt(pos);
+                  const posColor = posNum === 1 ? '#f59e0b' : posNum === 2 ? '#9ca3af' : posNum === 3 ? '#cd7f32' : '#52525b';
+                  const name = mode === 'race' || (mode === 'championship' && champType === 'drivers')
+                    ? `${r.Driver?.givenName || ''} ${r.Driver?.familyName || ''}`.trim() || '—'
+                    : r.Constructor?.name || '—';
+                  const team = mode === 'race' ? r.Constructor?.name : r.Constructors?.[0]?.name || '';
+                  const stat = session === 'qualifying' ? (r.Q3 || r.Q2 || r.Q1 || '—')
+                    : mode === 'championship' ? r.points
+                    : r.points;
+                  return (
+                    <tr key={i} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
+                      <td style={{ ...rtd, width: 36 }}>
+                        <span style={{
+                          fontWeight: 800, fontSize: 13,
+                          fontFamily: "'Barlow Condensed', sans-serif",
+                          color: posColor,
+                        }}>{pos}</span>
+                      </td>
+                      <td style={{ ...rtd, fontWeight: 600, color: '#fafafa' }}>{name}</td>
+                      {(mode === 'race' || (mode === 'championship' && champType === 'drivers')) && (
+                        <td style={{ ...rtd, color: '#71717a', fontSize: 12 }}>{team}</td>
+                      )}
+                      <td style={{ ...rtd, textAlign: 'right', fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{stat}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
-
-      {/* Prompt */}
-      {isRace && !round && !error && (
-        <p style={{ color: '#999', fontSize: 13 }}>Select a race to view results.</p>
-      )}
-      {error && <p style={{ color: '#c00', fontSize: 13 }}>{error}</p>}
-      {loading && <div className="spinner" />}
-
-      {results.length > 0 && !isRace && (
-        <div style={{ overflowY: 'auto', maxHeight: 480 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#f3f4f6', position: 'sticky', top: 0 }}>
-                <th style={th}>Pos</th>
-                <th style={th}>{champType === 'drivers' ? 'Driver' : 'Constructor'}</th>
-                {champType === 'drivers' && <th style={th}>Team</th>}
-                <th style={th}>Pts</th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r, i) => {
-                const pos  = r.position;
-                const medal = pos === '1' ? '🥇' : pos === '2' ? '🥈' : pos === '3' ? '🥉' : pos;
-                return (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                    <td style={td}>{medal}</td>
-                    <td style={{ ...td, fontWeight: 600 }}>
-                      {champType === 'drivers'
-                        ? `${r.Driver?.givenName || ''} ${r.Driver?.familyName || ''}`.trim() || '—'
-                        : r.Constructor?.name || '—'}
-                    </td>
-                    {champType === 'drivers' && (
-                      <td style={{ ...td, color: '#666' }}>{r.Constructors?.[0]?.name || '—'}</td>
-                    )}
-                    <td style={{ ...td, fontWeight: 600 }}>{r.points}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-
-      {results.length > 0 && isRace && (
-        <div style={{ overflowY: 'auto', maxHeight: 480 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-            <thead>
-              <tr style={{ background: '#f3f4f6', position: 'sticky', top: 0 }}>
-                <th style={th}>Pos</th>
-                <th style={th}>Driver</th>
-                <th style={th}>Team</th>
-                <th style={th}>
-                  {session === 'qualifying' ? 'Best' : session === 'results' ? 'Pts' : 'Time'}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {results.map((r, i) => {
-                const pos  = r.position;
-                const medal = pos === '1' ? '🥇' : pos === '2' ? '🥈' : pos === '3' ? '🥉' : pos;
-                const name = r.Driver ? `${r.Driver.givenName} ${r.Driver.familyName}` : '—';
-                const team = r.Constructor?.name || '—';
-                const stat = session === 'results'    ? r.points
-                           : session === 'qualifying' ? (r.Q3 || r.Q2 || r.Q1 || '—')
-                           : (r.Time?.time || r.status || '—');
-                return (
-                  <tr key={i} style={{ background: i % 2 === 0 ? '#fff' : '#f9fafb' }}>
-                    <td style={td}>{medal}</td>
-                    <td style={{ ...td, fontWeight: 600 }}>{name}</td>
-                    <td style={{ ...td, color: '#666' }}>{team}</td>
-                    <td style={td}>{stat}</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
     </div>
   );
 }
 
+/* ── Main Leagues page ──────────────────────────────────────── */
 export default function Leagues() {
   usePageTitle('Home');
-  const [leagues, setLeagues]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [error, setError]         = useState('');
+  const [leagues, setLeagues]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [error, setError]           = useState('');
   const [showCreate, setShowCreate] = useState(false);
-  const [joinId, setJoinId]       = useState('');
+  const [joinId, setJoinId]         = useState('');
   const [createForm, setCreateForm] = useState({ name: '', season: CURRENT_YEAR, startingRound: 1 });
-  const [actionMsg, setActionMsg] = useState('');
+  const [actionMsg, setActionMsg]   = useState('');
   const [currentRound, setCurrentRound] = useState(null);
   const navigate = useNavigate();
 
   async function load() {
     try {
-      const data = await api.getLeagues();
-      setLeagues(data);
+      setLeagues(await api.getLeagues());
     } catch (err) {
       setError(err.message);
     } finally {
@@ -367,77 +380,100 @@ export default function Leagues() {
     }
   }
 
-  if (loading) return <p>Loading leagues...</p>;
+  if (loading) return <div className="spinner" />;
 
   return (
-    <div className="home-layout">
-      {/* Spacer */}
+    <div className="home-layout fade-up">
       <div className="home-spacer" />
-      {/* Center: leagues */}
+
+      {/* ── Leagues column ─────────────────────────────────── */}
       <div className="home-leagues">
         <CountdownBanner onBannerResolved={b => setCurrentRound(b.round)} />
-        <h2>My Leagues</h2>
-        {error && <p style={errStyle}>{error}</p>}
-        {actionMsg && <p style={msgStyle}>{actionMsg}</p>}
 
-        <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-          <button style={primaryBtn} onClick={() => setShowCreate(!showCreate)}>
-            {showCreate ? 'Cancel' : '+ Create League'}
+        {/* Section heading + actions */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div>
+            <h2 style={{ fontSize: 20, fontWeight: 800, color: '#fafafa', marginBottom: 2 }}>My Leagues</h2>
+            <p style={{ fontSize: 13, color: '#52525b' }}>{leagues.length} active league{leagues.length !== 1 ? 's' : ''}</p>
+          </div>
+          <button
+            onClick={() => setShowCreate(!showCreate)}
+            style={{
+              background: showCreate ? 'rgba(255,255,255,0.06)' : '#e10600',
+              color: '#fff', border: 'none', borderRadius: 9,
+              padding: '8px 18px', cursor: 'pointer', fontWeight: 700,
+              fontSize: 13, fontFamily: 'inherit', transition: 'background 0.15s',
+            }}
+          >
+            {showCreate ? '✕ Cancel' : '+ New League'}
           </button>
         </div>
 
+        {error && <Alert variant="error">{error}</Alert>}
+        {actionMsg && <Alert variant={actionMsg.startsWith('Error') ? 'error' : 'success'}>{actionMsg}</Alert>}
+
+        {/* Create form */}
         {showCreate && (
-          <form onSubmit={handleCreate} style={card}>
-            <h3 style={{ marginTop: 0 }}>New League</h3>
-            <label style={labelStyle}>League Name</label>
-            <input style={inputStyle} value={createForm.name} onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required />
-            <label style={labelStyle}>Season (year)</label>
-            <input style={inputStyle} type="number" value={createForm.season} onChange={e => setCreateForm({ ...createForm, season: parseInt(e.target.value) })} required />
-            <label style={labelStyle}>Starting Round</label>
-            <input style={inputStyle} type="number" min={1} max={24} value={createForm.startingRound} onChange={e => setCreateForm({ ...createForm, startingRound: parseInt(e.target.value) })} required />
-            <button style={primaryBtn} type="submit">Create</button>
+          <form onSubmit={handleCreate} style={formCard}>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa', marginBottom: 16 }}>
+              Create New League
+            </div>
+            <label style={lblStyle}>League Name</label>
+            <input className="inp" style={{ marginBottom: 12 }} value={createForm.name}
+              onChange={e => setCreateForm({ ...createForm, name: e.target.value })} required placeholder="e.g. Office Fantasy" />
+            <div style={{ display: 'flex', gap: 10 }}>
+              <div style={{ flex: 1 }}>
+                <label style={lblStyle}>Season</label>
+                <input className="inp" type="number" value={createForm.season}
+                  onChange={e => setCreateForm({ ...createForm, season: parseInt(e.target.value) })} required />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={lblStyle}>Starting Round</label>
+                <input className="inp" type="number" min={1} max={24} value={createForm.startingRound}
+                  onChange={e => setCreateForm({ ...createForm, startingRound: parseInt(e.target.value) })} required />
+              </div>
+            </div>
+            <button type="submit" style={redBtn}>Create League →</button>
           </form>
         )}
 
-        <form onSubmit={handleJoin} style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
+        {/* Join form */}
+        <form onSubmit={handleJoin} style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
           <input
-            style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
+            className="inp"
+            style={{ flex: 1, marginBottom: 0 }}
             placeholder="Paste League ID to join..."
             value={joinId}
             onChange={e => setJoinId(e.target.value)}
           />
-          <button style={primaryBtn} type="submit">Join</button>
+          <button type="submit" style={{ ...ghostBtn, flexShrink: 0 }}>Join</button>
         </form>
 
+        {/* League cards */}
         {leagues.length === 0 ? (
-          <p style={{ color: '#666' }}>No leagues yet. Create one or paste a league ID to join.</p>
+          <div style={{
+            textAlign: 'center', padding: '48px 24px',
+            background: '#18181b', border: '1px dashed rgba(255,255,255,0.1)',
+            borderRadius: 14, color: '#52525b',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 12 }}>🏁</div>
+            <p style={{ fontWeight: 600, marginBottom: 6 }}>No leagues yet</p>
+            <p style={{ fontSize: 13 }}>Create one or join with an invite ID</p>
+          </div>
         ) : (
-          leagues.map(league => (
-            <div key={league.id} style={card}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                  <h3 style={{ margin: '0 0 4px' }}>{league.name}</h3>
-                  <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
-                    Season {league.season} · Round {league.startingRound}+ · {league.memberCount} member{league.memberCount !== 1 ? 's' : ''}
-                  </p>
-                  <CopyIdButton id={league.id} />
-                </div>
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
-                  <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/view/${league.startingRound}`)}>View Team</button>
-                  <button style={primaryBtn} onClick={() => {
-                    const week = currentRound ? Math.max(league.startingRound, currentRound) : league.startingRound;
-                    navigate(`/leagues/${league.id}/team/${week}`);
-                  }}>Pick Team</button>
-                  <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/leaderboard`)}>Leaderboard</button>
-                  <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/admin/${league.startingRound}`)}>Admin</button>
-                </div>
-              </div>
-            </div>
+          leagues.map((league, i) => (
+            <LeagueCard
+              key={league.id}
+              league={league}
+              index={i}
+              currentRound={currentRound}
+              onNavigate={navigate}
+            />
           ))
         )}
       </div>
 
-      {/* Right: F1 results panel */}
+      {/* ── Results column ─────────────────────────────────── */}
       <div className="home-results">
         <ResultsPanel />
       </div>
@@ -445,14 +481,134 @@ export default function Leagues() {
   );
 }
 
-const panelStyle = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 24 };
-const sel = { padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, background: '#fff', cursor: 'pointer' };
-const card = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 20, marginBottom: 16 };
-const primaryBtn = { background: '#e10600', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const secBtn = { background: '#f3f4f6', color: '#111', border: '1px solid #e5e7eb', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontSize: 13 };
-const labelStyle = { display: 'block', marginBottom: 4, fontWeight: 600, fontSize: 14 };
-const inputStyle = { display: 'block', width: '100%', padding: '8px 12px', marginBottom: 12, border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
-const errStyle = { background: '#fee', color: '#c00', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
-const msgStyle = { background: '#efe', color: '#060', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
-const th = { padding: '8px 10px', fontWeight: 600, textAlign: 'left', borderBottom: '2px solid #e5e7eb' };
-const td = { padding: '7px 10px', borderBottom: '1px solid #f3f4f6' };
+/* ── League card ────────────────────────────────────────────── */
+function LeagueCard({ league, index, currentRound, onNavigate }) {
+  const [hover, setHover] = useState(false);
+  const week = currentRound ? Math.max(league.startingRound, currentRound) : league.startingRound;
+
+  return (
+    <div
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: hover ? '#1e1e22' : '#18181b',
+        border: `1px solid ${hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)'}`,
+        borderRadius: 14,
+        padding: '18px 20px',
+        marginBottom: 12,
+        transition: 'all 0.18s',
+        position: 'relative',
+        overflow: 'hidden',
+        animationDelay: `${index * 0.06}s`,
+      }}
+      className="fade-up"
+    >
+      {/* Red left accent */}
+      <div style={{
+        position: 'absolute', left: 0, top: 0, bottom: 0,
+        width: 3,
+        background: 'linear-gradient(180deg, #e10600, rgba(225,6,0,0.1))',
+        borderRadius: '14px 0 0 14px',
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: 8 }}>
+        <div style={{ minWidth: 0, flex: 1 }}>
+          <div style={{ fontWeight: 800, fontSize: 16, color: '#fafafa', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {league.name}
+          </div>
+          <div style={{ fontSize: 12, color: '#71717a', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+            <span>Season {league.season}</span>
+            <span style={{ color: '#52525b' }}>·</span>
+            <span>From Round {league.startingRound}</span>
+            <span style={{ color: '#52525b' }}>·</span>
+            <span style={{ color: '#a1a1aa' }}>{league.memberCount} member{league.memberCount !== 1 ? 's' : ''}</span>
+          </div>
+          <CopyIdButton id={league.id} />
+        </div>
+
+        {/* Action buttons */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 12, flexShrink: 0 }}>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/view/${week}`)} icon="👁">View</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/team/${week}`)} icon="✏️" primary>Pick</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Board</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActionBtn({ onClick, children, icon, primary }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <button
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: primary
+          ? hover ? '#b30500' : '#e10600'
+          : hover ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
+        color: primary ? '#fff' : hover ? '#fafafa' : '#a1a1aa',
+        border: primary ? 'none' : `1px solid ${hover ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.07)'}`,
+        borderRadius: 8, padding: '5px 11px',
+        cursor: 'pointer', fontSize: 12, fontWeight: 600,
+        fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 4,
+        transition: 'all 0.15s',
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span style={{ fontSize: 11 }}>{icon}</span>
+      {children}
+    </button>
+  );
+}
+
+function Alert({ variant, children }) {
+  const isError = variant === 'error';
+  return (
+    <div style={{
+      background: isError ? 'rgba(225,6,0,0.1)' : 'rgba(34,197,94,0.1)',
+      border: `1px solid ${isError ? 'rgba(225,6,0,0.25)' : 'rgba(34,197,94,0.25)'}`,
+      color: isError ? '#fca5a5' : '#86efac',
+      padding: '10px 14px', borderRadius: 9, marginBottom: 14, fontSize: 13,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+/* ── Styles ─────────────────────────────────────────────────── */
+const lblStyle = {
+  display: 'block', marginBottom: 5,
+  fontSize: 11, fontWeight: 600,
+  color: '#71717a', textTransform: 'uppercase', letterSpacing: '0.07em',
+};
+const formCard = {
+  background: '#1e1e22', border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 12, padding: '18px 18px 16px', marginBottom: 16,
+  display: 'flex', flexDirection: 'column', gap: 0,
+};
+const redBtn = {
+  marginTop: 14, background: '#e10600', color: '#fff', border: 'none',
+  borderRadius: 9, padding: '9px 18px', cursor: 'pointer',
+  fontWeight: 700, fontSize: 13, fontFamily: 'inherit',
+};
+const ghostBtn = {
+  background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+  border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9,
+  padding: '9px 18px', cursor: 'pointer', fontWeight: 600,
+  fontSize: 13, fontFamily: 'inherit',
+};
+const selStyle = {
+  padding: '6px 10px',
+  background: '#27272a', border: '1px solid rgba(255,255,255,0.08)',
+  borderRadius: 7, fontSize: 12, color: '#a1a1aa',
+  cursor: 'pointer', outline: 'none',
+};
+const rth = {
+  padding: '8px 10px', fontSize: 10, fontWeight: 600,
+  textTransform: 'uppercase', letterSpacing: '0.07em',
+  color: '#52525b', textAlign: 'left', borderBottom: '1px solid rgba(255,255,255,0.05)',
+};
+const rtd = { padding: '9px 10px', color: '#a1a1aa', fontSize: 13 };

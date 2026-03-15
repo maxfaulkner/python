@@ -3,6 +3,26 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { usePageTitle } from '../hooks/usePageTitle';
 
+/* ── F1 team colors (2026) ──────────────────────────────────── */
+const TEAM_COLORS = {
+  'Red Bull':      '#3671C6',
+  'Ferrari':       '#E8002D',
+  'McLaren':       '#FF8000',
+  'Mercedes':      '#27F4D2',
+  'Aston Martin':  '#229971',
+  'Alpine':        '#FF87BC',
+  'Williams':      '#64C4FF',
+  'Racing Bulls':  '#6692FF',
+  'Haas':          '#B6BABD',
+  'Kick Sauber':   '#52E252',
+  'Sauber':        '#52E252',
+};
+function teamColor(name) {
+  if (!name) return '#e10600';
+  const key = Object.keys(TEAM_COLORS).find(k => name.toLowerCase().includes(k.toLowerCase()));
+  return key ? TEAM_COLORS[key] : '#e10600';
+}
+
 export default function TeamPicker() {
   const { leagueId, week } = useParams();
   usePageTitle(`Pick Team — Week ${week}`);
@@ -24,15 +44,13 @@ export default function TeamPicker() {
       weekNum > 1 ? api.getTeam(leagueId, weekNum - 1).catch(() => null) : Promise.resolve(null),
       api.getTeam(leagueId, weekNum).catch(() => null),
       api.getDriverForm(leagueId, week).catch(() => ({ form: {}, prices: {} })),
-    ]).then(([prices, prevTeam, currentTeam, form]) => {
-      setPrices(prices);
+    ]).then(([pricesData, prevTeam, currentTeam, form]) => {
+      setPrices(pricesData);
       setFormData(form);
       if (currentTeam) {
-        // Already has a team this week — load it
         setSelectedDrivers(currentTeam.drivers.map(d => d.driverId));
         setSelectedConstructor(currentTeam.constructors[0]?.constructorId ?? null);
       } else if (prevTeam) {
-        // Pre-fill from last week
         setSelectedDrivers(prevTeam.drivers.map(d => d.driverId));
         setSelectedConstructor(prevTeam.constructors[0]?.constructorId ?? null);
       }
@@ -41,6 +59,7 @@ export default function TeamPicker() {
   }, [leagueId, week]);
 
   function toggleDriver(driverId) {
+    if (locked) return;
     setSelectedDrivers(prev =>
       prev.includes(driverId)
         ? prev.filter(id => id !== driverId)
@@ -49,26 +68,26 @@ export default function TeamPicker() {
   }
 
   const locked = prices?.locked ?? false;
-  const budget = prices?.totalBudget ?? 80;
+  const budget = prices?.totalBudget ?? 100;
   const driverCost = prices
-    ? prices.drivers
-        .filter(d => selectedDrivers.includes(d.driverId))
-        .reduce((sum, d) => sum + d.price, 0)
+    ? prices.drivers.filter(d => selectedDrivers.includes(d.driverId)).reduce((s, d) => s + d.price, 0)
     : 0;
   const constructorCost = prices && selectedConstructor
-    ? (prices.constructors.find(c => c.constructorId === selectedConstructor)?.price || 0)
-    : 0;
+    ? (prices.constructors.find(c => c.constructorId === selectedConstructor)?.price || 0) : 0;
   const totalCost = driverCost + constructorCost;
   const remaining = budget - totalCost;
+  const overBudget = remaining < 0;
+  const budgetPct = Math.min(100, (totalCost / budget) * 100);
 
   async function handleSubmit() {
     if (selectedDrivers.length !== 5) return setError('Select exactly 5 drivers');
     if (!selectedConstructor) return setError('Select 1 constructor');
+    if (overBudget) return setError('Over budget — remove a driver or constructor');
     setError('');
     setSubmitting(true);
     try {
       await api.submitTeam(leagueId, week, selectedDrivers, selectedConstructor);
-      setSuccess('Team submitted successfully!');
+      setSuccess('Team saved!');
     } catch (err) {
       setError(err.message);
     } finally {
@@ -77,32 +96,88 @@ export default function TeamPicker() {
   }
 
   if (loading) return <div className="spinner" />;
-  if (!prices) return <p style={errStyle}>{error}</p>;
 
-  if (locked) return (
-    <div style={{
-      position: 'fixed', inset: 0, zIndex: 1000,
-      background: 'rgba(180, 0, 0, 0.15)',
-      display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-      gap: 16,
-    }}>
-      {/* Giant red X */}
+  /* ── LOCKED STATE ─────────────────────────────────────────── */
+  if (locked) {
+    return (
       <div style={{
-        fontSize: 180, fontWeight: 900, color: '#c00',
-        lineHeight: 1, userSelect: 'none',
-        textShadow: '0 4px 32px rgba(200,0,0,0.4)',
-      }}>✕</div>
-      <div style={{
-        fontSize: 64, fontWeight: 900, color: '#b91c1c',
-        letterSpacing: 2, textTransform: 'uppercase',
-        textShadow: '0 2px 16px rgba(200,0,0,0.3)',
-      }}>Teams Locked</div>
-      <div style={{ fontSize: 18, color: '#7f1d1d', marginTop: 8 }}>
-        Qualifying has started — check back after the race.
+        position: 'fixed', inset: 0, zIndex: 1000,
+        background: 'rgba(9,9,11,0.97)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: 0,
+      }}>
+        {/* Diagonal cross lines */}
+        <div style={{
+          position: 'absolute', inset: 0,
+          background: `
+            repeating-linear-gradient(
+              45deg,
+              rgba(225,6,0,0.04) 0px,
+              rgba(225,6,0,0.04) 1px,
+              transparent 1px,
+              transparent 40px
+            ),
+            repeating-linear-gradient(
+              -45deg,
+              rgba(225,6,0,0.04) 0px,
+              rgba(225,6,0,0.04) 1px,
+              transparent 1px,
+              transparent 40px
+            )
+          `,
+          pointerEvents: 'none',
+        }} />
+
+        {/* Giant X */}
+        <div style={{
+          fontSize: 200, fontWeight: 900, lineHeight: 1,
+          color: 'rgba(225,6,0,0.15)',
+          position: 'absolute',
+          userSelect: 'none',
+          fontFamily: "'Barlow Condensed', sans-serif",
+        }}>✕</div>
+
+        <div style={{ position: 'relative', textAlign: 'center', zIndex: 2 }}>
+          <div style={{
+            fontSize: 14, fontWeight: 700, letterSpacing: '0.2em',
+            textTransform: 'uppercase', color: '#e10600', marginBottom: 12,
+          }}>
+            🔒 Race Weekend Active
+          </div>
+          <div style={{
+            fontFamily: "'Barlow Condensed', sans-serif",
+            fontWeight: 900, fontSize: 80,
+            letterSpacing: '-0.02em',
+            background: 'linear-gradient(135deg, #e10600, #ff6b35)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            lineHeight: 1,
+          }}>
+            TEAMS LOCKED
+          </div>
+          <p style={{ color: '#71717a', marginTop: 16, fontSize: 16 }}>
+            Qualifying has started — teams are frozen until after the race.
+          </p>
+          <button
+            onClick={() => navigate('/')}
+            style={{
+              marginTop: 28, background: 'rgba(255,255,255,0.06)',
+              color: '#fafafa', border: '1px solid rgba(255,255,255,0.12)',
+              borderRadius: 10, padding: '10px 28px',
+              cursor: 'pointer', fontSize: 14, fontWeight: 600,
+              fontFamily: 'inherit',
+            }}
+          >
+            ← Back to Home
+          </button>
+        </div>
       </div>
-      <button style={{ ...secBtn, marginTop: 24, fontSize: 15, padding: '10px 24px' }} onClick={() => navigate('/')}>
-        ← Back to Home
-      </button>
+    );
+  }
+
+  if (!prices) return (
+    <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
+      {error || 'Failed to load prices'}
     </div>
   );
 
@@ -112,142 +187,303 @@ export default function TeamPicker() {
   );
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>Pick Team — Week {week}</h2>
-        <button style={secBtn} onClick={() => navigate('/')}>← Back</button>
+    <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '-0.01em', marginBottom: 2 }}>
+            Pick Team
+          </h2>
+          <div style={{ fontSize: 13, color: '#71717a' }}>
+            Round {week} · Select 5 drivers + 1 constructor
+          </div>
+        </div>
+        <button style={ghostBtnSm} onClick={() => navigate('/')}>← Back</button>
       </div>
-
-      {error && <p style={errStyle}>{error}</p>}
-      {success && <p style={msgStyle}>{success}</p>}
 
       {/* Budget bar */}
-      <div style={budgetBar}>
-        <span>Budget: <strong>${remaining.toFixed(1)}M remaining</strong> of ${budget}M</span>
-        <span style={{ color: remaining < 0 ? '#c00' : '#060' }}>
-          {selectedDrivers.length}/5 drivers · {selectedConstructor ? 1 : 0}/1 constructor
-        </span>
-      </div>
-      <div style={{ background: '#e5e7eb', height: 6, borderRadius: 3, marginBottom: 20 }}>
-        <div style={{
-          height: 6, borderRadius: 3,
-          width: `${Math.min(100, (totalCost / budget) * 100)}%`,
-          background: remaining < 0 ? '#e10600' : '#16a34a',
-          transition: 'width 0.2s',
-        }} />
+      <div style={{
+        background: '#18181b', border: '1px solid rgba(255,255,255,0.07)',
+        borderRadius: 12, padding: '14px 18px', marginBottom: 20,
+      }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+          <div>
+            <span style={{ fontSize: 22, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: overBudget ? '#f87171' : '#fafafa' }}>
+              ${remaining.toFixed(1)}M
+            </span>
+            <span style={{ fontSize: 13, color: '#71717a', marginLeft: 6 }}>remaining of ${budget}M</span>
+          </div>
+          <div style={{ fontSize: 13, color: '#71717a' }}>
+            <span style={{ color: selectedDrivers.length === 5 ? '#22c55e' : '#fafafa', fontWeight: 700 }}>
+              {selectedDrivers.length}/5
+            </span>
+            {' drivers · '}
+            <span style={{ color: selectedConstructor ? '#22c55e' : '#fafafa', fontWeight: 700 }}>
+              {selectedConstructor ? 1 : 0}/1
+            </span>
+            {' constructor'}
+          </div>
+        </div>
+        <div style={{ background: '#27272a', height: 6, borderRadius: 3, overflow: 'hidden' }}>
+          <div style={{
+            height: 6, borderRadius: 3,
+            width: `${budgetPct}%`,
+            background: overBudget
+              ? 'linear-gradient(90deg, #e10600, #ff4444)'
+              : budgetPct > 90
+              ? 'linear-gradient(90deg, #f59e0b, #fbbf24)'
+              : 'linear-gradient(90deg, #22c55e, #4ade80)',
+            transition: 'width 0.25s ease, background 0.25s ease',
+          }} />
+        </div>
       </div>
 
-      {/* Driver selection */}
-      <h3>Drivers</h3>
-      <input
-        style={{ ...inputStyle, marginBottom: 12 }}
-        placeholder="Search drivers or teams..."
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
-      <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24 }}>
-        {filteredDrivers.map(d => {
-          const selected = selectedDrivers.includes(d.driverId);
-          return (
-            <div
+      {error && <Alert variant="error">{error}</Alert>}
+      {success && <Alert variant="success">{success}</Alert>}
+
+      {/* Drivers section */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>
+            Drivers <span style={{ color: '#71717a', fontWeight: 400 }}>({selectedDrivers.length}/5 selected)</span>
+          </div>
+          <input
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            placeholder="Search drivers or teams..."
+            style={{
+              padding: '6px 12px', background: '#1e1e22',
+              border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 8, color: '#fafafa', fontSize: 12,
+              outline: 'none', width: 200,
+            }}
+          />
+        </div>
+        <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {filteredDrivers.map(d => (
+            <DriverCard
               key={d.driverId}
-              style={{
-                ...driverCard,
-                background: selected ? '#fff7f7' : '#fff',
-                border: selected ? '2px solid #e10600' : '1px solid #e5e7eb',
-                cursor: 'default',
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{d.driver.name}</div>
-              <div style={{ fontSize: 12, color: '#666' }}>{d.driver.constructor.name}</div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 }}>
-                <div>
-                  <span style={{ fontWeight: 700, color: '#e10600' }}>${d.price.toFixed(1)}M</span>
-                  <FormBadges results={formData.form[d.driverId]} />
-                </div>
-                <Sparkline history={formData.prices[d.driverId]} />
-              </div>
-            </div>
-          );
-        })}
+              driver={d}
+              selected={selectedDrivers.includes(d.driverId)}
+              disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
+              form={formData.form[d.driverId]}
+              priceHistory={formData.prices[d.driverId]}
+              onClick={() => toggleDriver(d.driverId)}
+            />
+          ))}
+        </div>
       </div>
 
-      {/* Constructor selection */}
-      <h3>Constructor</h3>
-      <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 24 }}>
-        {prices.constructors.map(c => {
-          const selected = selectedConstructor === c.constructorId;
-          return (
-            <div
+      {/* Constructors section */}
+      <div style={{ marginBottom: 24 }}>
+        <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 12 }}>
+          Constructor <span style={{ color: '#71717a', fontWeight: 400 }}>({selectedConstructor ? 1 : 0}/1 selected)</span>
+        </div>
+        <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+          {prices.constructors.map(c => (
+            <ConstructorCard
               key={c.constructorId}
-              style={{
-                ...driverCard,
-                background: selected ? '#fff7f7' : '#fff',
-                border: selected ? '2px solid #e10600' : '1px solid #e5e7eb',
-                cursor: 'default',
-              }}
-            >
-              <div style={{ fontWeight: 600 }}>{c.constructor.name}</div>
-              <div style={{ fontSize: 12, color: '#666' }}>{c.constructor.drivers.length} drivers</div>
-              <div style={{ fontWeight: 700, color: '#e10600', marginTop: 4 }}>${c.price.toFixed(1)}M</div>
-            </div>
-          );
-        })}
+              constructor={c}
+              selected={selectedConstructor === c.constructorId}
+              onClick={() => !locked && setSelectedConstructor(
+                selectedConstructor === c.constructorId ? null : c.constructorId
+              )}
+            />
+          ))}
+        </div>
       </div>
 
+      {/* Submit */}
       <button
-        style={{ ...primaryBtn, width: '100%', padding: 12, fontSize: 16, opacity: submitting ? 0.7 : 1 }}
         onClick={handleSubmit}
         disabled={submitting || locked}
+        style={{
+          width: '100%', padding: '14px',
+          background: submitting ? '#7f1d1d' : '#e10600',
+          color: '#fff', border: 'none', borderRadius: 11,
+          fontSize: 15, fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
+          fontFamily: 'inherit',
+          letterSpacing: '0.02em',
+          boxShadow: submitting ? 'none' : '0 4px 24px rgba(225,6,0,0.3)',
+          transition: 'all 0.15s',
+          fontFamily: "'Barlow Condensed', sans-serif",
+        }}
       >
-        {submitting ? 'Submitting...' : locked ? '🔒 Team Locked' : 'Submit Team'}
+        {submitting
+          ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+              <span className="spinner-sm" />SAVING TEAM...
+            </span>
+          : 'SAVE TEAM →'
+        }
       </button>
     </div>
   );
 }
 
+/* ── Driver Card ────────────────────────────────────────────── */
+function DriverCard({ driver: d, selected, disabled, form, priceHistory, onClick }) {
+  const [hover, setHover] = useState(false);
+  const color = teamColor(d.driver.constructor.name);
+  const active = hover && !disabled;
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: selected ? 'rgba(225,6,0,0.08)' : active ? '#1e1e22' : '#18181b',
+        border: `1px solid ${selected ? 'rgba(225,6,0,0.4)' : active ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)'}`,
+        borderRadius: 10,
+        padding: '12px 14px',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        opacity: disabled ? 0.4 : 1,
+        transition: 'all 0.15s',
+        position: 'relative',
+        overflow: 'hidden',
+      }}
+    >
+      {/* Team color strip */}
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, ${color}, transparent)`,
+        opacity: selected ? 1 : 0.5,
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#fafafa', marginBottom: 2, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {d.driver.name}
+          </div>
+          <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 5 }}>
+            <span style={{ width: 7, height: 7, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+            <span style={{ color: '#71717a' }}>{d.driver.constructor.name}</span>
+          </div>
+        </div>
+
+        {selected && (
+          <div style={{
+            width: 20, height: 20, background: '#e10600', borderRadius: '50%',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: 10, color: '#fff', fontWeight: 800, flexShrink: 0,
+          }}>✓</div>
+        )}
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 10 }}>
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: selected ? '#f87171' : '#fafafa', fontFamily: "'Barlow Condensed', sans-serif" }}>
+            ${d.price.toFixed(1)}M
+          </div>
+          <FormBadges results={form} />
+        </div>
+        <Sparkline history={priceHistory} />
+      </div>
+    </div>
+  );
+}
+
+/* ── Constructor Card ───────────────────────────────────────── */
+function ConstructorCard({ constructor: c, selected, onClick }) {
+  const [hover, setHover] = useState(false);
+  const color = teamColor(c.constructor.name);
+
+  return (
+    <div
+      onClick={onClick}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      style={{
+        background: selected ? 'rgba(225,6,0,0.08)' : hover ? '#1e1e22' : '#18181b',
+        border: `1px solid ${selected ? 'rgba(225,6,0,0.4)' : hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)'}`,
+        borderRadius: 10, padding: '14px 16px',
+        cursor: 'pointer', transition: 'all 0.15s',
+        position: 'relative', overflow: 'hidden',
+      }}
+    >
+      <div style={{
+        position: 'absolute', top: 0, left: 0, right: 0, height: 2,
+        background: `linear-gradient(90deg, ${color}, transparent)`,
+        opacity: selected ? 1 : 0.5,
+      }} />
+
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <div style={{ fontWeight: 700, fontSize: 14, color: '#fafafa', marginBottom: 4 }}>
+            {c.constructor.name}
+          </div>
+          <div style={{ fontSize: 11, color: '#71717a' }}>
+            {c.constructor.drivers.length} drivers
+          </div>
+        </div>
+        <div style={{ textAlign: 'right' }}>
+          <div style={{ fontSize: 18, fontWeight: 800, color: selected ? '#f87171' : '#fafafa', fontFamily: "'Barlow Condensed', sans-serif" }}>
+            ${c.price.toFixed(1)}M
+          </div>
+          {selected && (
+            <div style={{ fontSize: 10, color: '#e10600', fontWeight: 700, letterSpacing: '0.06em' }}>SELECTED</div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Form badges ────────────────────────────────────────────── */
 function FormBadges({ results }) {
   if (!results || results.length === 0) return null;
   return (
-    <div style={{ display: 'flex', gap: 3, marginTop: 4 }}>
+    <div style={{ display: 'flex', gap: 3, marginTop: 5 }}>
       {[...results].reverse().map((r, i) => {
-        const bg = r.position === 1 ? '#16a34a' : r.position <= 3 ? '#ca8a04' : r.position <= 10 ? '#3b82f6' : '#9ca3af';
+        const bg = r.position === 1 ? '#22c55e' : r.position <= 3 ? '#f59e0b' : r.position <= 10 ? '#3b82f6' : '#3f3f46';
         return (
           <span key={i} title={`P${r.position} (Wk ${r.week})`} style={{
             background: bg, color: '#fff', borderRadius: 3,
-            fontSize: 10, fontWeight: 700, padding: '1px 4px', lineHeight: '14px',
-          }}>P{r.position}</span>
+            fontSize: 9, fontWeight: 800, padding: '1px 4px',
+            lineHeight: '14px', letterSpacing: '0.03em',
+          }}>
+            P{r.position}
+          </span>
         );
       })}
     </div>
   );
 }
 
+/* ── Sparkline ──────────────────────────────────────────────── */
 function Sparkline({ history }) {
   if (!history || history.length < 2) return null;
-  const prices = history.map(h => h.price);
-  const min = Math.min(...prices);
-  const max = Math.max(...prices);
+  const ps = history.map(h => h.price);
+  const min = Math.min(...ps), max = Math.max(...ps);
   const range = max - min || 1;
-  const W = 60, H = 20;
-  const pts = prices.map((p, i) => {
-    const x = (i / (prices.length - 1)) * W;
-    const y = H - ((p - min) / range) * H;
-    return `${x},${y}`;
-  }).join(' ');
-  const trend = prices[prices.length - 1] - prices[prices.length - 2];
-  const color = trend > 0 ? '#16a34a' : trend < 0 ? '#e10600' : '#9ca3af';
+  const W = 56, H = 20;
+  const pts = ps.map((p, i) => `${(i / (ps.length - 1)) * W},${H - ((p - min) / range) * H}`).join(' ');
+  const trend = ps[ps.length - 1] - ps[ps.length - 2];
+  const color = trend > 0 ? '#22c55e' : trend < 0 ? '#e10600' : '#52525b';
   return (
-    <svg width={W} height={H} style={{ display: 'block', marginTop: 4 }}>
+    <svg width={W} height={H} style={{ display: 'block' }}>
       <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" />
     </svg>
   );
 }
 
-const primaryBtn = { background: '#e10600', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const secBtn = { background: '#f3f4f6', color: '#111', border: '1px solid #e5e7eb', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontSize: 13 };
-const inputStyle = { display: 'block', width: '100%', padding: '8px 12px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, boxSizing: 'border-box' };
-const driverCard = { padding: 12, borderRadius: 6, userSelect: 'none' };
-const budgetBar = { display: 'flex', justifyContent: 'space-between', marginBottom: 8, fontSize: 14 };
-const errStyle = { background: '#fee', color: '#c00', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
-const msgStyle = { background: '#efe', color: '#060', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
+function Alert({ variant, children }) {
+  const isError = variant === 'error';
+  return (
+    <div style={{
+      background: isError ? 'rgba(225,6,0,0.1)' : 'rgba(34,197,94,0.1)',
+      border: `1px solid ${isError ? 'rgba(225,6,0,0.25)' : 'rgba(34,197,94,0.25)'}`,
+      color: isError ? '#fca5a5' : '#86efac',
+      padding: '10px 14px', borderRadius: 9, marginBottom: 14, fontSize: 13,
+    }}>
+      {children}
+    </div>
+  );
+}
+
+const ghostBtnSm = {
+  background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+  border: '1px solid rgba(255,255,255,0.09)', borderRadius: 8,
+  padding: '7px 14px', cursor: 'pointer', fontWeight: 600,
+  fontSize: 13, fontFamily: 'inherit',
+};

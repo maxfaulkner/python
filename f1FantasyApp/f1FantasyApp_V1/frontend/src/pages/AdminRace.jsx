@@ -32,14 +32,9 @@ export default function AdminRace() {
       const results = Object.entries(positions)
         .filter(([, pos]) => pos !== '')
         .map(([driverId, pos]) => ({ driverId, finishingPosition: parseInt(pos) }));
-
-      if (results.length === 0) {
-        setError('Enter at least one result');
-        return;
-      }
-
+      if (results.length === 0) { setError('Enter at least one finishing position'); return; }
       const res = await api.submitRaceResults(leagueId, week, results);
-      setSuccess(`Saved ${res.savedCount} results. Prices updated for next week.`);
+      setSuccess(`✓ ${res.savedCount} results saved. Prices updated for Round ${parseInt(week) + 1}.`);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -47,10 +42,13 @@ export default function AdminRace() {
     }
   }
 
-  if (loading) return <p>Loading...</p>;
-  if (!formData) return <p style={errStyle}>{error}</p>;
+  if (loading) return <div className="spinner" />;
+  if (!formData) return (
+    <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
+      {error}
+    </div>
+  );
 
-  // Group by constructor
   const byConstructor = formData.drivers.reduce((acc, d) => {
     if (!acc[d.constructor]) acc[d.constructor] = [];
     acc[d.constructor].push(d);
@@ -58,54 +56,104 @@ export default function AdminRace() {
   }, {});
 
   return (
-    <div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-        <h2 style={{ margin: 0 }}>Enter Race Results — Week {week}</h2>
-        <button style={secBtn} onClick={() => navigate('/')}>← Back</button>
+    <div className="fade-up" style={{ maxWidth: 680, margin: '0 auto' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
+        <div>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2 }}>
+            Enter Results
+          </h2>
+          <p style={{ fontSize: 13, color: '#71717a' }}>Round {week} — manual entry</p>
+        </div>
+        <button style={ghostBtn} onClick={() => navigate('/')}>← Back</button>
       </div>
 
-      <p style={{ color: '#666', fontSize: 14 }}>
-        Enter finishing positions (1–20). Leave blank for DNF/DNS.
-      </p>
+      <div style={{
+        background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)',
+        borderRadius: 9, padding: '10px 16px', marginBottom: 20,
+        fontSize: 13, color: '#fbbf24',
+      }}>
+        ⚠ Enter finishing positions (1–20). Leave blank for DNF/DNS.
+      </div>
 
-      {error && <p style={errStyle}>{error}</p>}
-      {success && <p style={msgStyle}>{success}</p>}
+      {error && (
+        <div style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', color: '#fca5a5', padding: '10px 14px', borderRadius: 9, marginBottom: 16, fontSize: 13 }}>
+          {error}
+        </div>
+      )}
+      {success && (
+        <div style={{ background: 'rgba(34,197,94,0.1)', border: '1px solid rgba(34,197,94,0.25)', color: '#86efac', padding: '10px 14px', borderRadius: 9, marginBottom: 16, fontSize: 13 }}>
+          {success}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit}>
         {Object.entries(byConstructor).map(([constructor, drivers]) => (
-          <div key={constructor} style={card}>
-            <h4 style={{ margin: '0 0 12px', color: '#e10600' }}>{constructor}</h4>
-            {drivers.map(driver => (
-              <div key={driver.id} style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                <span style={{ flex: 1, fontSize: 14 }}>{driver.name}</span>
-                <input
-                  type="number"
-                  min={1}
-                  max={20}
-                  placeholder="DNF"
-                  value={positions[driver.id]}
-                  onChange={e => setPositions({ ...positions, [driver.id]: e.target.value })}
-                  style={{ width: 70, padding: '6px 8px', border: '1px solid #ddd', borderRadius: 4, fontSize: 14, textAlign: 'center' }}
-                />
-              </div>
-            ))}
+          <div key={constructor} style={{
+            background: '#18181b', border: '1px solid rgba(255,255,255,0.07)',
+            borderRadius: 12, overflow: 'hidden', marginBottom: 12,
+          }}>
+            <div style={{
+              padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)',
+              fontSize: 12, fontWeight: 700, color: '#e10600',
+              textTransform: 'uppercase', letterSpacing: '0.06em',
+            }}>
+              {constructor}
+            </div>
+            <div style={{ padding: '8px 16px' }}>
+              {drivers.map((driver, i) => (
+                <div key={driver.id} style={{
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '8px 0',
+                  borderBottom: i < drivers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+                }}>
+                  <span style={{ flex: 1, fontSize: 14, color: '#fafafa', fontWeight: 500 }}>{driver.name}</span>
+                  <input
+                    type="number" min={1} max={20}
+                    placeholder="DNF"
+                    value={positions[driver.id]}
+                    onChange={e => setPositions({ ...positions, [driver.id]: e.target.value })}
+                    style={{
+                      width: 72, padding: '7px 8px',
+                      background: '#27272a', border: '1px solid rgba(255,255,255,0.1)',
+                      borderRadius: 7, color: '#fafafa', fontSize: 14,
+                      textAlign: 'center', fontFamily: 'inherit', outline: 'none',
+                      fontWeight: 700,
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         ))}
 
         <button
           type="submit"
-          style={{ ...primaryBtn, width: '100%', padding: 12, fontSize: 16, opacity: submitting ? 0.7 : 1 }}
           disabled={submitting}
+          style={{
+            width: '100%', padding: '13px',
+            background: submitting ? '#7f1d1d' : '#e10600',
+            color: '#fff', border: 'none', borderRadius: 11,
+            fontSize: 15, fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
+            fontFamily: "'Barlow Condensed', sans-serif",
+            letterSpacing: '0.03em',
+            boxShadow: submitting ? 'none' : '0 4px 20px rgba(225,6,0,0.25)',
+          }}
         >
-          {submitting ? 'Processing...' : 'Submit Results & Update Prices'}
+          {submitting
+            ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+                <span className="spinner-sm" />Processing…
+              </span>
+            : 'SUBMIT RESULTS & UPDATE PRICES →'
+          }
         </button>
       </form>
     </div>
   );
 }
 
-const card = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 16, marginBottom: 16 };
-const primaryBtn = { background: '#e10600', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14 };
-const secBtn = { background: '#f3f4f6', color: '#111', border: '1px solid #e5e7eb', borderRadius: 4, padding: '6px 12px', cursor: 'pointer', fontSize: 13 };
-const errStyle = { background: '#fee', color: '#c00', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
-const msgStyle = { background: '#efe', color: '#060', padding: '8px 12px', borderRadius: 4, marginBottom: 12, fontSize: 14 };
+const ghostBtn = {
+  background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+  border: '1px solid rgba(255,255,255,0.09)', borderRadius: 9,
+  padding: '8px 14px', cursor: 'pointer', fontWeight: 600,
+  fontSize: 13, fontFamily: 'inherit',
+};
