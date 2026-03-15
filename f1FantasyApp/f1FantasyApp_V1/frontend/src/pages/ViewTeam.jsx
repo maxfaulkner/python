@@ -187,7 +187,14 @@ export default function ViewTeam() {
                       <div style={{ fontSize: 11, color: '#71717a' }}>{td.driver?.constructor?.name}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize: 12, color: '#52525b' }}>${td.pricePaidPerPoint?.toFixed(1)}M</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                    <div style={{ fontSize: 12, color: '#52525b' }}>${td.pricePaidPerPoint?.toFixed(1)}M</div>
+                    {td.roundPoints != null && (
+                      <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, color: td.roundPoints > 0 ? '#fff' : td.roundPoints < 0 ? '#f87171' : '#52525b' }}>
+                        {td.roundPoints > 0 ? '+' : ''}{td.roundPoints}
+                      </div>
+                    )}
+                  </div>
                 </div>
               );
             })}
@@ -210,12 +217,34 @@ export default function ViewTeam() {
                     <div style={{ fontSize: 11, color: '#e10600' }}>Constructor pick</div>
                   </div>
                 </div>
-                <div style={{ fontSize: 12, color: '#52525b' }}>${team.constructors[0].pricePaidPerPoint?.toFixed(1)}M</div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 1 }}>
+                  <div style={{ fontSize: 12, color: '#52525b' }}>${team.constructors[0].pricePaidPerPoint?.toFixed(1)}M</div>
+                  {team.constructors[0].roundPoints != null && (
+                    <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, color: team.constructors[0].roundPoints > 0 ? '#fff' : '#52525b' }}>
+                      {team.constructors[0].roundPoints > 0 ? '+' : ''}{team.constructors[0].roundPoints}
+                    </div>
+                  )}
+                </div>
               </div>
             ) : (
               <p style={{ color: '#71717a', margin: 0, padding: '13px 18px', fontSize: 13 }}>No constructor selected</p>
             )}
           </div>
+
+          {/* Round points total */}
+          {team.totalRoundPoints != null && (
+            <div style={{
+              background: team.totalRoundPoints > 0 ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${team.totalRoundPoints > 0 ? 'rgba(34,197,94,0.2)' : 'var(--border)'}`,
+              borderRadius: 10, padding: '12px 18px', marginBottom: 14,
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+            }}>
+              <span style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.6)' }}>Round {week} Points</span>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 28, color: team.totalRoundPoints > 0 ? '#22c55e' : 'rgba(255,255,255,0.4)' }}>
+                {team.totalRoundPoints}
+              </span>
+            </div>
+          )}
 
           <button
             style={{

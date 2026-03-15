@@ -17,6 +17,8 @@ import Transfers from './pages/Transfers';
 import H2HMatchups from './pages/H2HMatchups';
 import Calendar from './pages/Calendar';
 import LeagueSettings from './pages/LeagueSettings';
+import PriceWatch from './pages/PriceWatch';
+import Compare from './pages/Compare';
 
 function Protected({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -44,6 +46,8 @@ export default function App() {
             <Route path="/leagues/:leagueId/h2h" element={<Protected><H2HMatchups /></Protected>} />
             <Route path="/leagues/:leagueId/settings" element={<Protected><LeagueSettings /></Protected>} />
             <Route path="/calendar" element={<Protected><Calendar /></Protected>} />
+            <Route path="/leagues/:leagueId/prices" element={<Protected><PriceWatch /></Protected>} />
+            <Route path="/leagues/:leagueId/compare" element={<Protected><Compare /></Protected>} />
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

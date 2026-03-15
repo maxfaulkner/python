@@ -121,6 +121,24 @@ export default function Leaderboard() {
             }}
           >👥 Members</button>
           <button
+            onClick={() => navigate(`/leagues/${leagueId}/compare`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >⚡ Compare</button>
+          <button
+            onClick={() => navigate(`/leagues/${leagueId}/prices`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >💰 Prices</button>
+          <button
             onClick={() => navigate(`/leagues/${leagueId}/settings`)}
             style={{
               background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',

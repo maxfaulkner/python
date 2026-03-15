@@ -350,18 +350,19 @@ router.get(
       const { leagueId, week } = req.params;
       const userId = req.user.id;
 
+      const weekNum = parseInt(week);
       const team = await prisma.userWeeklyTeam.findUnique({
         where: {
           userId_leagueId_week: {
             userId,
             leagueId,
-            week: parseInt(week),
+            week: weekNum,
           },
         },
         include: {
           drivers: {
             include: {
-              driver: true,
+              driver: { include: { constructor: true } },
             },
           },
           constructors: {
@@ -376,7 +377,29 @@ router.get(
         return res.status(404).json({ error: 'Team not found' });
       }
 
-      res.json(team);
+      // Attach race results per driver for points breakdown
+      const enrichedDrivers = await Promise.all(team.drivers.map(async td => {
+        const results = await prisma.raceResult.findMany({
+          where: { driverId: td.driverId, leagueId, week: weekNum },
+        });
+        let roundPoints = results.reduce((sum, r) => sum + r.points, 0);
+        let isCaptain = team.captainId === td.driverId;
+        if (isCaptain) roundPoints *= team.chipUsed === 'triple_captain' ? 3 : 2;
+        if (team.chipUsed === 'no_negative' && roundPoints < 0) roundPoints = 0;
+        return { ...td, roundPoints, results };
+      }));
+
+      const constructorResult = team.constructors[0] ? await prisma.constructorRaceResult.findMany({
+        where: { constructorId: team.constructors[0].constructorId, leagueId, week: weekNum },
+      }) : [];
+      const constructorRoundPoints = constructorResult.reduce((sum, r) => sum + r.totalPoints, 0);
+      const enrichedConstructors = team.constructors.map((c, i) => ({
+        ...c, roundPoints: i === 0 ? constructorRoundPoints : 0,
+      }));
+
+      const totalRoundPoints = enrichedDrivers.reduce((s, d) => s + d.roundPoints, 0) + constructorRoundPoints;
+
+      res.json({ ...team, drivers: enrichedDrivers, constructors: enrichedConstructors, totalRoundPoints });
     } catch (error) {
       console.error('Error fetching team:', error);
       res.status(500).json({ error: error.message });
