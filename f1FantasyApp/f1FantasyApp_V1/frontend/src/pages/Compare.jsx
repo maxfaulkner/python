@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const TEAM_COLORS = {
@@ -18,7 +18,7 @@ function teamColor(name) {
 
 export default function Compare() {
   const { leagueId } = useParams();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [members, setMembers] = useState([]);
   const [standings, setStandings] = useState([]);
   const [leagueName, setLeagueName] = useState('');

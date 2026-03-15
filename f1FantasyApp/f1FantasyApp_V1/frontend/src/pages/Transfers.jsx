@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const TEAM_COLORS = {
@@ -18,7 +18,7 @@ function teamColor(name) {
 
 export default function Transfers() {
   const { leagueId } = useParams();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [transfers, setTransfers] = useState([]);
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);

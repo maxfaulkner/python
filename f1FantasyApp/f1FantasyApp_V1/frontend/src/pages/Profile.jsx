@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const AVATAR_COLORS = [
@@ -65,7 +65,7 @@ function AchievementBadge({ achievement }) {
 
 export default function Profile() {
   const navigate = useNavigate();
-  const session = getSession();
+  const session = getUser();
   const [profile, setProfile] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [editing, setEditing] = useState(false);

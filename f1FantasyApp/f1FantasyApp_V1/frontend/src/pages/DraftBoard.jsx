@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const TEAM_COLORS = {
@@ -32,7 +32,7 @@ function getSnakeOrder(n, picks) {
 
 export default function DraftBoard() {
   const { leagueId } = useParams();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [members, setMembers] = useState([]);
   const [leagueName, setLeagueName] = useState('');
   const [drivers, setDrivers] = useState([]);

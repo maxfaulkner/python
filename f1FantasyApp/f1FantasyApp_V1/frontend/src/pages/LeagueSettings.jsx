@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const LEAGUE_TYPES = [
@@ -14,7 +14,7 @@ const LEAGUE_TYPES = [
 export default function LeagueSettings() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [league, setLeague] = useState(null);
   const [members, setMembers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -233,7 +233,7 @@ export default function LeagueSettings() {
             style={{
               width: '100%', background: saving ? 'var(--bg-elevated)' : 'var(--red)',
               border: 'none', borderRadius: 10, padding: 13, cursor: saving ? 'not-allowed' : 'pointer',
-              color: '#fff', fontWeight: 800, fontSize: 15, fontFamily: 'inherit',
+              color: '#fff', fontWeight: 800, fontSize: 15,
               fontFamily: 'var(--font-display)', letterSpacing: '0.04em',
             }}
           >

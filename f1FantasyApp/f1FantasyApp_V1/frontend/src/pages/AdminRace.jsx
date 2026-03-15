@@ -61,7 +61,7 @@ export default function AdminRace() {
   if (!formData) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
-      <div style={{ maxWidth: 680, margin: '60px auto', padding: '0 16px', color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
+      <div style={{ maxWidth: 680, margin: '60px auto', color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
         {error || 'Failed to load form data'}
       </div>
     </div>

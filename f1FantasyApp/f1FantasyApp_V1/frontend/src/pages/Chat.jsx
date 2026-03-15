@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 const QUICK_REACTIONS = ['👍', '🔥', '😭', '🏆', '😂', '👀', '🚀', '❤️'];
@@ -171,7 +171,7 @@ function Message({ msg, currentUserId, leagueId, onReact, onDelete, onReply, onP
 
 export default function Chat() {
   const { leagueId } = useParams();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser() || {};
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);

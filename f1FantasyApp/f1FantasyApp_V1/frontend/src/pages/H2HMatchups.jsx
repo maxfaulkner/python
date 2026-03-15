@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 export default function H2HMatchups() {
   const { leagueId } = useParams();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [data, setData] = useState(null);
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
-import { getSession } from '../auth';
+import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
 
 function MemberCard({ member, isYou, onViewProfile }) {
@@ -68,7 +68,7 @@ function MemberCard({ member, isYou, onViewProfile }) {
 export default function LeagueMembers() {
   const { leagueId } = useParams();
   const navigate = useNavigate();
-  const { id: currentUserId } = getSession();
+  const { id: currentUserId } = getUser();
   const [members, setMembers] = useState([]);
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);
