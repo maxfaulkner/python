@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 const TEAM_COLORS = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
@@ -59,12 +60,14 @@ export default function PriceWatch() {
     </div>
   );
 
+  // API returns driverPrice records: { driverId, price, week, driver: { name, constructor: { name } } }
+  // and constructorPrice records: { constructorId, price, week, constructor: { name } }
   const drivers = prices?.current?.drivers || [];
   const constructors = prices?.current?.constructors || [];
   const prevDriverMap = {};
   const prevCtorMap = {};
-  (prices?.prev?.drivers || []).forEach(d => { prevDriverMap[d.id] = d.currentPrice; });
-  (prices?.prev?.constructors || []).forEach(c => { prevCtorMap[c.id] = c.currentPrice; });
+  (prices?.prev?.drivers || []).forEach(d => { prevDriverMap[d.driverId] = d.price; });
+  (prices?.prev?.constructors || []).forEach(c => { prevCtorMap[c.constructorId] = c.price; });
 
   function getChange(id, currentPrice, isConstructor = false) {
     const prevPrice = isConstructor ? prevCtorMap[id] : prevDriverMap[id];
@@ -72,15 +75,20 @@ export default function PriceWatch() {
     return currentPrice - prevPrice;
   }
 
+  // Normalise to flat objects with consistent field names for the table
   const driverItems = drivers.map(d => ({
-    ...d,
-    teamName: d.constructor?.name,
-    change: getChange(d.id, d.currentPrice),
+    id: d.driverId,
+    name: d.driver?.name ?? '—',
+    price: d.price,
+    teamName: d.driver?.constructor?.name ?? '—',
+    change: getChange(d.driverId, d.price),
   }));
   const ctorItems = constructors.map(c => ({
-    ...c,
-    teamName: c.name,
-    change: getChange(c.id, c.currentPrice, true),
+    id: c.constructorId,
+    name: c.constructor?.name ?? '—',
+    price: c.price,
+    teamName: c.constructor?.name ?? '—',
+    change: getChange(c.constructorId, c.price, true),
   }));
 
   const items = tab === 'drivers' ? driverItems : ctorItems;
@@ -101,18 +109,18 @@ export default function PriceWatch() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
 
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 8, flexWrap: 'wrap', gap: 12 }}>
           <div>
-            <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-            <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)', marginTop: 8 }}>
-              {leagueName}
-            </div>
-            <h1 style={{ margin: '4px 0 0', fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
+            <h1 style={{ margin: '0 0 4px', fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
               💰 Price Watch
             </h1>
+            <p style={{ margin: 0, fontSize: 13, color: 'var(--text-3)', maxWidth: 480 }}>
+              Driver and constructor market values for each round. Prices update after race results are imported — rising stars cost more, underperformers drop.
+            </p>
           </div>
 
           {/* Week nav */}
@@ -192,7 +200,30 @@ export default function PriceWatch() {
         </div>
 
         {/* Price table */}
-        {loading ? <div className="spinner" /> : (
+        {loading ? <div className="spinner" /> : sorted.length === 0 ? (
+          <div style={{
+            background: 'var(--bg-card)', border: '1px dashed rgba(255,255,255,0.08)',
+            borderRadius: 14, padding: '48px 24px', textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>💰</div>
+            <div style={{ fontWeight: 700, fontSize: 16, color: '#a1a1aa', marginBottom: 8 }}>
+              No prices found for Round {week}
+            </div>
+            <div style={{ fontSize: 13, color: '#52525b', maxWidth: 360, margin: '0 auto 16px' }}>
+              Prices are seeded before the season starts and update automatically after each race result is imported. Try an earlier round, or ask your league commissioner to import results.
+            </div>
+            {week > 1 && (
+              <button
+                onClick={() => setWeek(w => w - 1)}
+                style={{
+                  background: 'rgba(225,6,0,0.1)', color: '#f87171',
+                  border: '1px solid rgba(225,6,0,0.25)', borderRadius: 8,
+                  padding: '8px 18px', cursor: 'pointer', fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+                }}
+              >← Try Round {week - 1}</button>
+            )}
+          </div>
+        ) : (
           <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
@@ -222,7 +253,7 @@ export default function PriceWatch() {
                       </td>
                       <td style={{ ...td, color: 'var(--text-3)', fontSize: 12 }}>{item.teamName || '—'}</td>
                       <td style={{ ...td, textAlign: 'right', fontWeight: 800, fontFamily: 'var(--font-display)', fontSize: 16 }}>
-                        ${item.currentPrice?.toFixed(1)}M
+                        ${item.price?.toFixed(1)}M
                       </td>
                       {prices?.prev && (
                         <td style={{ ...td, textAlign: 'right' }}>
@@ -238,7 +269,7 @@ export default function PriceWatch() {
                       )}
                       {prices?.prev && (
                         <td style={{ ...td, textAlign: 'right', color: 'var(--text-4)', fontSize: 12 }}>
-                          {change != null ? `$${(item.currentPrice - (change || 0)).toFixed(1)}M` : '—'}
+                          {change != null ? `$${(item.price - (change || 0)).toFixed(1)}M` : '—'}
                         </td>
                       )}
                     </tr>
@@ -252,6 +283,8 @@ export default function PriceWatch() {
     </div>
   );
 }
+
+
 
 const th = {
   padding: '10px 14px', fontSize: 10, fontWeight: 700,
