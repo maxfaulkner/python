@@ -69,11 +69,25 @@ export default function AdminRace() {
 
       <div style={{
         background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.15)',
-        borderRadius: 9, padding: '10px 16px', marginBottom: 20,
+        borderRadius: 9, padding: '10px 16px', marginBottom: formData.resultsExist ? 10 : 20,
         fontSize: 13, color: '#fbbf24',
       }}>
         ⚠ Enter finishing positions (1–20). Leave blank for DNF/DNS.
       </div>
+
+      {formData.resultsExist && (
+        <div style={{
+          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
+          borderRadius: 9, padding: '12px 16px', marginBottom: 20,
+          fontSize: 13, color: '#fca5a5', display: 'flex', alignItems: 'center', gap: 10,
+        }}>
+          <span style={{ fontSize: 16 }}>⚠️</span>
+          <span>
+            <strong>Results already exist</strong> for Round {week} ({formData.existingCount} driver results).
+            Submitting will overwrite the existing data.
+          </span>
+        </div>
+      )}
 
       {error && (
         <div style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', color: '#fca5a5', padding: '10px 14px', borderRadius: 9, marginBottom: 16, fontSize: 13 }}>
@@ -143,7 +157,7 @@ export default function AdminRace() {
             ? <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
                 <span className="spinner-sm" />Processing…
               </span>
-            : 'SUBMIT RESULTS & UPDATE PRICES →'
+            : formData.resultsExist ? 'OVERWRITE RESULTS & UPDATE PRICES →' : 'SUBMIT RESULTS & UPDATE PRICES →'
           }
         </button>
       </form>

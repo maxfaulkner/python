@@ -128,9 +128,15 @@ app.get('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => {
       include: { constructor: true },
     });
 
+    const existingCount = await prisma.raceResult.count({
+      where: { leagueId, raceWeek: parseInt(week) },
+    });
+
     res.json({
       week: parseInt(week),
       league: { id: league.id, name: league.name },
+      resultsExist: existingCount > 0,
+      existingCount,
       drivers: drivers.map(d => ({
         id: d.id,
         f1Id: d.f1Id,
