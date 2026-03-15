@@ -1,4 +1,6 @@
-const BASE = 'http://localhost:3000';
+import { clearSession } from './auth';
+
+const BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 function token() {
   return localStorage.getItem('token');
@@ -17,6 +19,11 @@ async function request(method, path, body) {
     headers: headers(),
     body: body ? JSON.stringify(body) : undefined,
   });
+  if (res.status === 401) {
+    clearSession();
+    window.location.href = '/login';
+    return;
+  }
   const data = await res.json();
   if (!res.ok) throw new Error(data.error || 'Request failed');
   return data;
@@ -50,6 +57,8 @@ export const api = {
     request('GET', `/api/leagues/${leagueId}/leaderboard`),
   getPlayerTeam: (leagueId, week, userId) =>
     request('GET', `/api/leagues/${leagueId}/team/${week}/${userId}`),
+  getDriverForm: (leagueId, week) =>
+    request('GET', `/api/leagues/${leagueId}/driver-form/${week}`),
 
   // Admin
   getAdminRaceForm: (leagueId, week) =>

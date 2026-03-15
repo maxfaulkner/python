@@ -11,3 +11,63 @@ body {
 a { color: #e10600; }
 
 button { font-family: inherit; }
+
+/* ── Spinner ── */
+.spinner {
+  width: 28px;
+  height: 28px;
+  border: 3px solid #e5e7eb;
+  border-top-color: #e10600;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  margin: 32px auto;
+}
+.spinner-sm {
+  width: 16px;
+  height: 16px;
+  border: 2px solid #e5e7eb;
+  border-top-color: #e10600;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+  display: inline-block;
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ── Home page layout ── */
+.home-layout {
+  display: flex;
+  gap: 48px;
+  align-items: flex-start;
+}
+.home-spacer {
+  flex: 1;
+}
+.home-leagues {
+  flex: 0 0 600px;
+}
+.home-results {
+  flex: 0 0 520px;
+}
+
+/* Tablet: drop spacer, results goes fluid */
+@media (max-width: 1200px) {
+  .home-spacer { display: none; }
+  .home-leagues { flex: 0 0 480px; }
+  .home-results { flex: 1; min-width: 0; }
+}
+
+/* Mobile: stack vertically */
+@media (max-width: 800px) {
+  .home-layout { flex-direction: column; gap: 24px; }
+  .home-leagues { flex: none; width: 100%; }
+  .home-results { flex: none; width: 100%; }
+}
+
+/* ── Driver/constructor grid on mobile ── */
+@media (max-width: 600px) {
+  .driver-grid {
+    grid-template-columns: 1fr !important;
+  }
+}

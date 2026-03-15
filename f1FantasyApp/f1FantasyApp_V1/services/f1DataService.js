@@ -46,6 +46,45 @@ async function fetchRaceResults(season, round) {
 }
 
 /**
+ * Fetch sprint race results from Ergast API
+ * Returns: { driverId, finishingPosition, points }
+ */
+async function fetchSprintResults(season, round) {
+  try {
+    const url = `${ERGAST_API}/${season}/${round}/sprint.json`;
+    console.log(`Fetching sprint data from: ${url}`);
+
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`API returned ${response.status}`);
+
+    const data = await response.json();
+    if (!data.MRData.RaceTable.Races || data.MRData.RaceTable.Races.length === 0) {
+      throw new Error('No sprint data found');
+    }
+
+    const race = data.MRData.RaceTable.Races[0];
+    if (!race.SprintResults || race.SprintResults.length === 0) {
+      throw new Error('No sprint results found');
+    }
+
+    const results = [];
+    for (const result of race.SprintResults) {
+      results.push({
+        f1Id: result.Driver.driverId,
+        finishingPosition: parseInt(result.position),
+        points: parseInt(result.points),
+        driverName: `${result.Driver.givenName} ${result.Driver.familyName}`,
+      });
+    }
+
+    return results;
+  } catch (error) {
+    console.error('Error fetching sprint results:', error.message);
+    throw error;
+  }
+}
+
+/**
  * Retry logic: Try up to 5 times with staggered timing
  * Retries at: 0, +9min, +20min, +34min, +51min
  */
@@ -106,14 +145,28 @@ async function mapF1DriverToLocal(f1Id, season, round) {
 /**
  * Process race results: validate and save to database
  * Calculates F1 points (25 for 1st, 18 for 2nd, etc.)
+ * @param {Array} results - race results from fetchRaceResults / fetchSprintResults
+ * @param {object} opts
+ * @param {boolean} opts.isSprint - use sprint points scale (8/7/6/5/4/3/2/1)
+ * @param {Array}  opts.sprintResults - if provided, add sprint bonus on top of race points
  */
-async function processRaceResults(leagueId, raceWeek, season, results) {
-  console.log(`Processing ${results.length} race results for league ${leagueId}, week ${raceWeek}`);
+async function processRaceResults(leagueId, raceWeek, season, results, { isSprint = false, sprintResults = null } = {}) {
+  console.log(`Processing ${results.length} ${isSprint ? 'sprint' : 'race'} results for league ${leagueId}, week ${raceWeek}`);
 
   const F1_POINTS = {
     1: 25, 2: 18, 3: 15, 4: 12, 5: 10,
-    6: 8, 7: 6, 8: 4, 9: 2, 10: 1,
+    6: 8,  7: 6,  8: 4,  9: 2,  10: 1,
   };
+  const SPRINT_POINTS = { 1: 8, 2: 7, 3: 6, 4: 5, 5: 4, 6: 3, 7: 2, 8: 1 };
+  const pointsTable = isSprint ? SPRINT_POINTS : F1_POINTS;
+
+  // Build sprint bonus map (extra points to add when processing a main race on a sprint weekend)
+  const sprintBonus = {};
+  if (sprintResults) {
+    for (const s of sprintResults) {
+      sprintBonus[s.f1Id] = SPRINT_POINTS[s.finishingPosition] || 0;
+    }
+  }
 
   const savedResults = [];
   const failedResults = [];
@@ -131,7 +184,8 @@ async function processRaceResults(leagueId, raceWeek, season, results) {
         continue;
       }
 
-      const points = F1_POINTS[result.finishingPosition] || 0;
+      const basePoints = pointsTable[result.finishingPosition] || 0;
+      const points = basePoints + (sprintBonus[result.f1Id] || 0);
 
       const saved = await prisma.raceResult.create({
         data: {
@@ -184,6 +238,7 @@ async function processRaceResults(leagueId, raceWeek, season, results) {
 
 module.exports = {
   fetchRaceResults,
+  fetchSprintResults,
   fetchRaceResultsWithRetries,
   mapF1DriverToLocal,
   processRaceResults,

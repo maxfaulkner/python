@@ -2,10 +2,12 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const MEDALS = { 1: '🥇', 2: '🥈', 3: '🥉' };
 
 export default function Leaderboard() {
+  usePageTitle('Leaderboard');
   const { leagueId } = useParams();
   const navigate = useNavigate();
   const currentUser = getUser();
@@ -62,7 +64,7 @@ export default function Leaderboard() {
     }
   }
 
-  if (loading) return <p>Loading leaderboard...</p>;
+  if (loading) return <div className="spinner" />;
 
   return (
     <div>
@@ -74,7 +76,7 @@ export default function Leaderboard() {
             onClick={checkForResults}
             disabled={checking}
           >
-            {checking ? 'Checking...' : 'Check for Results'}
+            {checking ? <><span className="spinner-sm" style={{ marginRight: 6 }} />Checking…</> : 'Check for Results'}
           </button>
           <button style={secBtn} onClick={() => navigate('/')}>← Back</button>
         </div>
@@ -121,7 +123,15 @@ export default function Leaderboard() {
                   key={user.userId}
                   style={{ background: isYou ? '#fff7f7' : i % 2 === 0 ? '#fff' : '#f9fafb' }}
                 >
-                  {hasResults && <td style={td}>{MEDALS[user.rank] || user.rank}</td>}
+                  {hasResults && (
+                    <td style={td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        {MEDALS[user.rank] || user.rank}
+                        {user.rankDelta > 0 && <span style={{ color: '#16a34a', fontSize: 11, fontWeight: 700 }}>▲{user.rankDelta}</span>}
+                        {user.rankDelta < 0 && <span style={{ color: '#e10600', fontSize: 11, fontWeight: 700 }}>▼{Math.abs(user.rankDelta)}</span>}
+                      </div>
+                    </td>
+                  )}
                   <td style={td}>
                     <div style={{ fontWeight: 600 }}>
                       {user.userName}

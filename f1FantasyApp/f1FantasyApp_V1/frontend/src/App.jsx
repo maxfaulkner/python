@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isLoggedIn } from './auth';
 import Navbar from './components/Navbar';
+import ErrorBoundary from './components/ErrorBoundary';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Leagues from './pages/Leagues';
@@ -18,6 +19,7 @@ export default function App() {
     <BrowserRouter>
       <Navbar />
       <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 32px' }}>
+        <ErrorBoundary>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -28,6 +30,7 @@ export default function App() {
           <Route path="/leagues/:leagueId/view/:week" element={<Protected><ViewTeam /></Protected>} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
+        </ErrorBoundary>
       </div>
     </BrowserRouter>
   );

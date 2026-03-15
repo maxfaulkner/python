@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { usePageTitle } from '../hooks/usePageTitle';
 
 const JOLPICA = 'https://api.jolpi.ca/ergast/f1';
 const CURRENT_YEAR = new Date().getFullYear();
@@ -13,6 +14,128 @@ const RACE_SESSIONS = [
   { value: 'fp2Results', label: 'Practice 2',     key: 'PracticeResults' },
   { value: 'fp3Results', label: 'Practice 3',     key: 'PracticeResults' },
 ];
+
+function CopyIdButton({ id }) {
+  const [copied, setCopied] = useState(false);
+  function copy() {
+    navigator.clipboard.writeText(id).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+  return (
+    <button onClick={copy} style={{
+      marginTop: 6, background: 'none', border: '1px dashed #d1d5db',
+      borderRadius: 4, padding: '2px 8px', cursor: 'pointer',
+      fontSize: 11, color: copied ? '#16a34a' : '#6b7280',
+      display: 'flex', alignItems: 'center', gap: 4,
+    }}>
+      {copied ? '✓ Copied!' : `📋 Copy invite ID`}
+    </button>
+  );
+}
+
+function CountdownBanner({ onBannerResolved }) {
+  // banner: null | { type: 'locked', raceName, round } | { type: 'countdown', raceName, round, lockTime }
+  const [banner, setBanner] = useState(null);
+  const [timeLeft, setTimeLeft] = useState('');
+
+  useEffect(() => {
+    fetch(`${JOLPICA}/${CURRENT_YEAR}.json`)
+      .then(r => r.json())
+      .then(d => {
+        const now = new Date();
+        const races = d.MRData.RaceTable.Races;
+
+        // Check if we're currently inside a locked race weekend:
+        // qualifying has started but race hasn't finished yet (race time + 2h buffer)
+        const currentlyLocked = races.find(r => {
+          if (!r.Qualifying) return false;
+          const qualiTime = new Date(`${r.Qualifying.date}T${r.Qualifying.time}`);
+          const raceEnd = new Date(`${r.date}T${r.time || '14:00:00Z'}`);
+          raceEnd.setTime(raceEnd.getTime() + 2 * 60 * 60 * 1000);
+          return qualiTime <= now && raceEnd > now;
+        });
+
+        if (currentlyLocked) {
+          const b = {
+            type: 'locked',
+            raceName: currentlyLocked.raceName.replace(' Grand Prix', ' GP'),
+            round: parseInt(currentlyLocked.round),
+          };
+          setBanner(b);
+          onBannerResolved?.(b);
+          return;
+        }
+
+        // Otherwise find the next upcoming qualifying
+        const upcoming = races.find(r => {
+          if (!r.Qualifying) return false;
+          return new Date(`${r.Qualifying.date}T${r.Qualifying.time}`) > now;
+        });
+        if (upcoming) {
+          const b = {
+            type: 'countdown',
+            raceName: upcoming.raceName.replace(' Grand Prix', ' GP'),
+            round: parseInt(upcoming.round),
+            lockTime: new Date(`${upcoming.Qualifying.date}T${upcoming.Qualifying.time}`),
+          };
+          setBanner(b);
+          onBannerResolved?.(b);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (!banner || banner.type !== 'countdown') return;
+    function tick() {
+      const diff = banner.lockTime - new Date();
+      if (diff <= 0) {
+        setTimeLeft('Teams locked');
+        return;
+      }
+      const d = Math.floor(diff / 86400000);
+      const h = Math.floor((diff % 86400000) / 3600000);
+      const m = Math.floor((diff % 3600000) / 60000);
+      const s = Math.floor((diff % 60000) / 1000);
+      const parts = [];
+      if (d > 0) parts.push(`${d}d`);
+      parts.push(`${String(h).padStart(2,'0')}h`);
+      parts.push(`${String(m).padStart(2,'0')}m`);
+      parts.push(`${String(s).padStart(2,'0')}s`);
+      setTimeLeft(parts.join(' '));
+    }
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [banner]);
+
+  if (!banner) return null;
+
+  const locked = banner.type === 'locked' || timeLeft === 'Teams locked';
+  const urgent = !locked && banner.lockTime - new Date() < 3600000;
+
+  return (
+    <div style={{
+      background: locked ? '#fef2f2' : urgent ? '#fffbeb' : '#f0fdf4',
+      border: `1px solid ${locked ? '#fca5a5' : urgent ? '#fbbf24' : '#86efac'}`,
+      color: locked ? '#991b1b' : urgent ? '#92400e' : '#166534',
+      borderRadius: 8, padding: '10px 16px', marginBottom: 20,
+      display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      fontSize: 14,
+    }}>
+      <span>
+        {locked ? '🔒' : '⏱'}&nbsp;
+        <strong>Round {banner.round} — {banner.raceName}</strong>
+        {!locked && <span style={{ fontWeight: 400, marginLeft: 6 }}>team lock</span>}
+      </span>
+      <span style={{ fontWeight: 700, fontVariantNumeric: 'tabular-nums', letterSpacing: 1 }}>
+        {locked ? 'Teams locked' : timeLeft}
+      </span>
+    </div>
+  );
+}
 
 function ResultsPanel() {
   const [mode, setMode]       = useState('race');        // 'race' | 'championship'
@@ -119,7 +242,7 @@ function ResultsPanel() {
         <p style={{ color: '#999', fontSize: 13 }}>Select a race to view results.</p>
       )}
       {error && <p style={{ color: '#c00', fontSize: 13 }}>{error}</p>}
-      {loading && <p style={{ color: '#666', fontSize: 13 }}>Loading...</p>}
+      {loading && <div className="spinner" />}
 
       {results.length > 0 && !isRace && (
         <div style={{ overflowY: 'auto', maxHeight: 480 }}>
@@ -196,6 +319,7 @@ function ResultsPanel() {
 }
 
 export default function Leagues() {
+  usePageTitle('Home');
   const [leagues, setLeagues]     = useState([]);
   const [loading, setLoading]     = useState(true);
   const [error, setError]         = useState('');
@@ -203,6 +327,7 @@ export default function Leagues() {
   const [joinId, setJoinId]       = useState('');
   const [createForm, setCreateForm] = useState({ name: '', season: CURRENT_YEAR, startingRound: 1 });
   const [actionMsg, setActionMsg] = useState('');
+  const [currentRound, setCurrentRound] = useState(null);
   const navigate = useNavigate();
 
   async function load() {
@@ -245,11 +370,12 @@ export default function Leagues() {
   if (loading) return <p>Loading leagues...</p>;
 
   return (
-    <div style={{ display: 'flex', gap: 48, alignItems: 'flex-start' }}>
+    <div className="home-layout">
       {/* Spacer */}
-      <div style={{ flex: 1 }} />
+      <div className="home-spacer" />
       {/* Center: leagues */}
-      <div style={{ flex: '0 0 600px' }}>
+      <div className="home-leagues">
+        <CountdownBanner onBannerResolved={b => setCurrentRound(b.round)} />
         <h2>My Leagues</h2>
         {error && <p style={errStyle}>{error}</p>}
         {actionMsg && <p style={msgStyle}>{actionMsg}</p>}
@@ -294,11 +420,14 @@ export default function Leagues() {
                   <p style={{ margin: 0, color: '#666', fontSize: 13 }}>
                     Season {league.season} · Round {league.startingRound}+ · {league.memberCount} member{league.memberCount !== 1 ? 's' : ''}
                   </p>
-                  <p style={{ margin: '4px 0 0', fontSize: 11, color: '#999' }}>ID: {league.id}</p>
+                  <CopyIdButton id={league.id} />
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
                   <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/view/${league.startingRound}`)}>View Team</button>
-                  <button style={primaryBtn} onClick={() => navigate(`/leagues/${league.id}/team/${league.startingRound}`)}>Pick Team</button>
+                  <button style={primaryBtn} onClick={() => {
+                    const week = currentRound ? Math.max(league.startingRound, currentRound) : league.startingRound;
+                    navigate(`/leagues/${league.id}/team/${week}`);
+                  }}>Pick Team</button>
                   <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/leaderboard`)}>Leaderboard</button>
                   <button style={secBtn} onClick={() => navigate(`/leagues/${league.id}/admin/${league.startingRound}`)}>Admin</button>
                 </div>
@@ -309,12 +438,14 @@ export default function Leagues() {
       </div>
 
       {/* Right: F1 results panel */}
-      <ResultsPanel />
+      <div className="home-results">
+        <ResultsPanel />
+      </div>
     </div>
   );
 }
 
-const panelStyle = { flex: '0 0 520px', background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 24 };
+const panelStyle = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 24 };
 const sel = { padding: '6px 10px', border: '1px solid #ddd', borderRadius: 4, fontSize: 13, background: '#fff', cursor: 'pointer' };
 const card = { background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8, padding: 20, marginBottom: 16 };
 const primaryBtn = { background: '#e10600', color: '#fff', border: 'none', borderRadius: 4, padding: '8px 16px', cursor: 'pointer', fontWeight: 600, fontSize: 14 };

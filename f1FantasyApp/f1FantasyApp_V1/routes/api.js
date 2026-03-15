@@ -2,10 +2,20 @@
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
+const rateLimit = require('express-rate-limit');
 const prisma = require('../prisma');
 const f1DataService = require('../services/f1DataService');
 const pricingEngine = require('../services/pricingEngine');
 const authMiddleware = require('../middleware/auth');
+const { isRoundLocked } = require('../jobs/weeklyRaceImportJob');
+
+const checkResultsLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5,
+  message: { error: 'Too many requests, please wait a minute before checking again.' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
 
 // ============ LEAGUE MANAGEMENT ============
 
@@ -343,7 +353,7 @@ router.get('/leagues/:leagueId/team/:week/:userId', authMiddleware, async (req, 
  * GET /api/leagues/:leagueId/prices/:week
  * Get all driver and constructor prices for a week
  */
-router.get('/leagues/:leagueId/prices/:week', async (req, res) => {
+router.get('/leagues/:leagueId/prices/:week', authMiddleware, async (req, res) => {
   try {
     const { leagueId, week } = req.params;
     const weekNum = parseInt(week);
@@ -375,9 +385,54 @@ router.get('/leagues/:leagueId/prices/:week', async (req, res) => {
       drivers,
       constructors,
       totalBudget: 100,
+      locked: await isRoundLocked(weekNum),
     });
   } catch (error) {
     console.error('Error fetching prices:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ DRIVER FORM & PRICE HISTORY ============
+
+/**
+ * GET /api/leagues/:leagueId/driver-form/:week
+ * Returns last 3 finishing positions and price history for all drivers (for the team picker)
+ */
+router.get('/leagues/:leagueId/driver-form/:week', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const weekNum = parseInt(req.params.week);
+
+    // Last 3 race results per driver
+    const results = await prisma.raceResult.findMany({
+      where: { leagueId, week: { lt: weekNum } },
+      orderBy: { week: 'desc' },
+    });
+
+    // Group by driverId, keep last 3 per driver
+    const formMap = {};
+    for (const r of results) {
+      if (!formMap[r.driverId]) formMap[r.driverId] = [];
+      if (formMap[r.driverId].length < 3) {
+        formMap[r.driverId].push({ week: r.week, position: r.finishingPosition, points: r.points });
+      }
+    }
+
+    // Price history for all drivers (up to current week)
+    const prices = await prisma.driverPrice.findMany({
+      where: { week: { lte: weekNum } },
+      orderBy: { week: 'asc' },
+    });
+    const priceMap = {};
+    for (const p of prices) {
+      if (!priceMap[p.driverId]) priceMap[p.driverId] = [];
+      priceMap[p.driverId].push({ week: p.week, price: p.price });
+    }
+
+    res.json({ form: formMap, prices: priceMap });
+  } catch (error) {
+    console.error('Error fetching driver form:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -462,16 +517,56 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
 
     // Sort by points (desc), then by wins (desc)
     standings.sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) {
-        return b.totalPoints - a.totalPoints;
-      }
+      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
       return b.totalWins - a.totalWins;
     });
+    standings.forEach((u, i) => { u.rank = i + 1; });
 
-    // Add rank
-    standings.forEach((user, index) => {
-      user.rank = index + 1;
+    // Compute previous-round ranks to show movement arrows
+    const latestWeek = await prisma.raceResult.findFirst({
+      where: { leagueId },
+      orderBy: { week: 'desc' },
+      select: { week: true },
     });
+
+    if (latestWeek) {
+      // Re-tally excluding the latest round
+      const prevTotals = {};
+      for (const s of standings) prevTotals[s.userId] = { pts: 0, wins: 0 };
+
+      for (const leagueUser of leagueUsers) {
+        for (const team of leagueUser.user.weeklyTeams) {
+          for (const td of team.drivers) {
+            const results = await prisma.raceResult.findMany({
+              where: { driverId: td.driverId, leagueId, week: { lt: latestWeek.week } },
+            });
+            for (const r of results) {
+              prevTotals[leagueUser.userId].pts += r.points;
+              if (r.finishingPosition === 1) prevTotals[leagueUser.userId].wins++;
+            }
+          }
+          const ctor = team.constructors[0];
+          if (ctor) {
+            const cResults = await prisma.constructorRaceResult.findMany({
+              where: { constructorId: ctor.constructorId, leagueId, week: { lt: latestWeek.week } },
+            });
+            for (const r of cResults) prevTotals[leagueUser.userId].pts += r.totalPoints;
+          }
+        }
+      }
+
+      const prevRanked = Object.entries(prevTotals)
+        .sort(([, a], [, b]) => b.pts !== a.pts ? b.pts - a.pts : b.wins - a.wins)
+        .map(([userId], i) => ({ userId, rank: i + 1 }));
+      const prevRankMap = Object.fromEntries(prevRanked.map(r => [r.userId, r.rank]));
+
+      for (const s of standings) {
+        const prev = prevRankMap[s.userId];
+        s.rankDelta = prev != null ? prev - s.rank : 0; // positive = moved up
+      }
+    } else {
+      standings.forEach(s => { s.rankDelta = 0; });
+    }
 
     res.json(standings);
   } catch (error) {
@@ -550,7 +645,7 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
  * POST /api/admin/check-results
  * Check Jolpica for the most recent completed race and import if not already in DB
  */
-router.post('/admin/check-results', authMiddleware, async (_req, res) => {
+router.post('/admin/check-results', checkResultsLimiter, authMiddleware, async (_req, res) => {
   try {
     const season = new Date().getFullYear();
     const now = new Date();
@@ -560,32 +655,88 @@ router.post('/admin/check-results', authMiddleware, async (_req, res) => {
     const scheduleData = await scheduleRes.json();
     const races = scheduleData.MRData.RaceTable.Races;
 
-    // Find the most recent race that has already started (race time in the past)
+    // Find completed main races (race start time in the past)
     const completedRaces = races.filter(r => new Date(`${r.date}T${r.time || '14:00:00Z'}`) < now);
-    if (completedRaces.length === 0) {
+
+    // Also find sprint-only events: sprint finished but main race hasn't started yet
+    const sprintCompleted = races.filter(r => {
+      if (!r.Sprint) return false;
+      const sprintTime = new Date(`${r.Sprint.date}T${r.Sprint.time || '14:00:00Z'}`);
+      const raceTime = new Date(`${r.date}T${r.time || '14:00:00Z'}`);
+      return sprintTime < now && raceTime >= now;
+    });
+
+    // Determine the most recent completed event and whether it's a sprint
+    let latest = null;
+    let isSprintImport = false;
+
+    if (completedRaces.length > 0 && sprintCompleted.length > 0) {
+      const lastRace = completedRaces[completedRaces.length - 1];
+      const lastSprint = sprintCompleted[sprintCompleted.length - 1];
+      const lastRaceTime = new Date(`${lastRace.date}T${lastRace.time || '14:00:00Z'}`);
+      const lastSprintTime = new Date(`${lastSprint.Sprint.date}T${lastSprint.Sprint.time || '14:00:00Z'}`);
+      if (lastSprintTime > lastRaceTime) {
+        latest = lastSprint;
+        isSprintImport = true;
+      } else {
+        latest = lastRace;
+      }
+    } else if (sprintCompleted.length > 0) {
+      latest = sprintCompleted[sprintCompleted.length - 1];
+      isSprintImport = true;
+    } else if (completedRaces.length > 0) {
+      latest = completedRaces[completedRaces.length - 1];
+    } else {
       return res.json({ status: 'no_race', message: 'No completed races yet this season.' });
     }
 
-    const latest = completedRaces[completedRaces.length - 1];
     const round = parseInt(latest.round);
 
     // Try to fetch results from Jolpica first (before checking leagues)
     let results;
     try {
-      results = await f1DataService.fetchRaceResults(season, round);
+      results = isSprintImport
+        ? await f1DataService.fetchSprintResults(season, round)
+        : await f1DataService.fetchRaceResults(season, round);
     } catch {
-      return res.json({ status: 'not_available', message: `Results for round ${round} (${latest.raceName}) not available yet. Try again later.`, round });
+      const eventLabel = isSprintImport ? 'Sprint results' : 'Results';
+      return res.json({ status: 'not_available', message: `${eventLabel} for round ${round} (${latest.raceName}) not available yet. Try again later.`, round });
     }
 
-    // Process per-league — skip leagues that already have this round imported
+    // If this is a main race on a sprint weekend, also fetch sprint results to combine points
+    let sprintResults = null;
+    if (!isSprintImport && latest.Sprint) {
+      try {
+        sprintResults = await f1DataService.fetchSprintResults(season, round);
+      } catch {
+        // Sprint fetch failed — import race-only
+      }
+    }
+
+    const eventLabel = isSprintImport ? `Sprint — Round ${round} (${latest.raceName})` : `Round ${round} (${latest.raceName})`;
+
+    // Process per-league
     const leagues = await prisma.league.findMany();
     let totalSaved = 0;
     let skipped = 0;
     for (const league of leagues) {
       if (round < league.startingRound) continue;
       const existing = await prisma.raceResult.count({ where: { leagueId: league.id, week: round } });
-      if (existing > 0) { skipped++; continue; }
-      const { savedResults } = await f1DataService.processRaceResults(league.id, round, season, results);
+
+      if (existing > 0) {
+        // Main race on a sprint weekend: wipe sprint-only data and re-import with combined points
+        if (!isSprintImport && latest.Sprint) {
+          await prisma.raceResult.deleteMany({ where: { leagueId: league.id, week: round } });
+          await prisma.constructorRaceResult.deleteMany({ where: { leagueId: league.id, week: round } });
+        } else {
+          skipped++;
+          continue;
+        }
+      }
+
+      const { savedResults } = await f1DataService.processRaceResults(
+        league.id, round, season, results, { isSprint: isSprintImport, sprintResults }
+      );
       await pricingEngine.processPricingAfterRace(league.id, round);
       await prisma.userWeeklyTeam.updateMany({
         where: { leagueId: league.id, week: round + 1 },
@@ -595,10 +746,10 @@ router.post('/admin/check-results', authMiddleware, async (_req, res) => {
     }
 
     if (totalSaved === 0 && skipped > 0) {
-      return res.json({ status: 'already_imported', message: `Round ${round} (${latest.raceName}) already imported for all leagues.`, round });
+      return res.json({ status: 'already_imported', message: `${eventLabel} already imported for all leagues.`, round });
     }
 
-    res.json({ status: 'imported', message: `Round ${round} (${latest.raceName}) imported — ${totalSaved} results saved across ${leagues.length - skipped} league(s).`, round });
+    res.json({ status: 'imported', message: `${eventLabel} imported — ${totalSaved} results saved across ${leagues.length - skipped} league(s).`, round });
   } catch (error) {
     console.error('Error checking results:', error);
     res.status(500).json({ error: error.message });

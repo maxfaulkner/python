@@ -8,6 +8,30 @@ const mailer = require('../services/mailer');
 
 const JOLPICA_API = 'https://api.jolpi.ca/ergast/f1';
 
+// In-memory schedule cache — populated on startup
+let cachedRaces = [];
+
+/**
+ * Returns true if qualifying has started but the race hasn't finished yet for this round.
+ * Lazily fetches the schedule if the cache is empty (e.g. startup fetch failed).
+ */
+async function isRoundLocked(round) {
+  if (cachedRaces.length === 0) {
+    try {
+      cachedRaces = await fetchRaceSchedule(new Date().getFullYear());
+    } catch {
+      return false;
+    }
+  }
+  const race = cachedRaces.find(r => parseInt(r.round) === round);
+  if (!race || !race.Qualifying) return false;
+  const now = new Date();
+  const qualiTime = new Date(`${race.Qualifying.date}T${race.Qualifying.time}`);
+  const raceEnd = new Date(`${race.date}T${race.time || '14:00:00Z'}`);
+  raceEnd.setTime(raceEnd.getTime() + 2 * 60 * 60 * 1000);
+  return qualiTime <= now && raceEnd > now;
+}
+
 async function fetchRaceSchedule(season) {
   const res = await fetch(`${JOLPICA_API}/${season}.json`);
   if (!res.ok) throw new Error(`Failed to fetch schedule: ${res.status}`);
@@ -26,6 +50,7 @@ async function startWeeklyRaceImportJob() {
   let races;
   try {
     races = await fetchRaceSchedule(season);
+    cachedRaces = races;
     console.log(`Fetched ${races.length}-race schedule for ${season}`);
   } catch (err) {
     console.error('Could not fetch F1 schedule:', err.message);
@@ -35,10 +60,10 @@ async function startWeeklyRaceImportJob() {
   for (const race of races) {
     const round = parseInt(race.round);
 
-    // Team lock: 1 hour before qualifying
+    // Team lock: at qualifying start
     if (race.Qualifying) {
       const qualiStart = new Date(`${race.Qualifying.date}T${race.Qualifying.time}`);
-      const lockTime = new Date(qualiStart.getTime() - 60 * 60 * 1000); // -1 hour
+      const lockTime = qualiStart;
 
       if (lockTime > now) {
         schedule.scheduleJob(`lock-r${round}`, lockTime, async () => {
@@ -46,6 +71,15 @@ async function startWeeklyRaceImportJob() {
           await lockTeamsForRound(round);
         });
         console.log(`  Round ${round}: lock at ${lockTime.toUTCString()}`);
+      } else {
+        // Qualifying already passed — lock teams now in case server was restarted mid-weekend
+        const thisRaceEnd = new Date(new Date(`${race.date}T${race.time || '14:00:00Z'}`).getTime() + 2 * 60 * 60 * 1000);
+        if (thisRaceEnd > now) {
+          console.log(`  Round ${round}: qualifying already passed, locking teams now`);
+          lockTeamsForRound(round).catch(err =>
+            console.error(`  Round ${round} catch-up lock failed:`, err.message)
+          );
+        }
       }
     }
 
@@ -161,4 +195,5 @@ async function triggerRaceImportNow(season, round) {
 module.exports = {
   startWeeklyRaceImportJob,
   triggerRaceImportNow,
+  isRoundLocked,
 };
