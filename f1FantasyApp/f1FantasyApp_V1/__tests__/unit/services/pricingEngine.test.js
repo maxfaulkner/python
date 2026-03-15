@@ -119,11 +119,32 @@ describe('calculateMarketPressure', () => {
 });
 
 describe('updateDriverPrice', () => {
-  test('throws when no price record exists for the week', async () => {
+  test('throws only when no price exists in ANY week up to currentWeek', async () => {
+    // Both findUnique (exact week) and findFirst (fallback) return null
     prisma.driverPrice.findUnique.mockResolvedValue(null);
+    prisma.driverPrice.findFirst.mockResolvedValue(null);
     await expect(
-      updateDriverPrice(mockDriver, 5, 'lg1', 1)
+      updateDriverPrice(mockDriver, 5, 'lg1', 2)
     ).rejects.toThrow(/no price found/i);
+  });
+
+  test('falls back to previous-week price when current week price is missing (regression: week-2 import)', async () => {
+    // Simulates importing week-2 results when only week-1 prices were seeded
+    prisma.driverPrice.findUnique.mockResolvedValue(null); // no week-2 price
+    prisma.driverPrice.findFirst.mockResolvedValue({ price: 8.5, week: 1 }); // week-1 fallback
+    prisma.raceResult.findMany.mockResolvedValue([]);
+    prisma.userWeeklyTeamDriver.count.mockResolvedValue(0);
+    prisma.userWeeklyTeam.count.mockResolvedValue(0);
+    prisma.pricingAuditLog.create.mockResolvedValue({});
+
+    // Should NOT throw — uses week-1 price as base
+    const newPrice = await updateDriverPrice(mockDriver, 5, 'lg1', 2);
+    expect(typeof newPrice).toBe('number');
+    expect(newPrice).toBeGreaterThanOrEqual(0.5);
+    // Confirm findFirst was called as the fallback
+    expect(prisma.driverPrice.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: expect.objectContaining({ driverId: mockDriver.id }) })
+    );
   });
 
   test('applies pricing formula and enforces $0.5M floor', async () => {

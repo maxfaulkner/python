@@ -102,7 +102,7 @@ async function calculateMarketPressure(driverId, leagueId, currentWeek) {
  * Formula: new_price = old_price × (1 + performance_delta × 0.15 + market_pressure × 0.08)
  */
 async function updateDriverPrice(driver, finishingPosition, leagueId, currentWeek) {
-  const oldPrice = await prisma.driverPrice.findUnique({
+  let oldPrice = await prisma.driverPrice.findUnique({
     where: {
       driverId_week: {
         driverId: driver.id,
@@ -111,8 +111,21 @@ async function updateDriverPrice(driver, finishingPosition, leagueId, currentWee
     },
   });
 
+  // Fall back to the most recent available price when the exact week is missing.
+  // This handles the case where week N results are imported without week N-1
+  // prices having been generated first (e.g. first import, skipped round, re-seed).
   if (!oldPrice) {
-    throw new Error(`No price found for driver ${driver.id} in week ${currentWeek}`);
+    oldPrice = await prisma.driverPrice.findFirst({
+      where: {
+        driverId: driver.id,
+        week: { lte: currentWeek },
+      },
+      orderBy: { week: 'desc' },
+    });
+  }
+
+  if (!oldPrice) {
+    throw new Error(`No price found for driver ${driver.id} in any week up to ${currentWeek}`);
   }
 
   const perfDelta = await calculatePerformanceDelta(driver, finishingPosition, leagueId, currentWeek);
@@ -172,19 +185,15 @@ async function processPricingAfterRace(leagueId, raceWeek) {
     }
 
     const newPrice = await updateDriverPrice(driver, result.finishingPosition, leagueId, raceWeek);
-    
-    // Create price for next week
-    await prisma.driverPrice.create({
-      data: {
-        driverId: driver.id,
-        week: nextWeek,
-        price: newPrice,
-      },
+
+    // Upsert price for next week (handles re-imports without duplicate-key errors)
+    await prisma.driverPrice.upsert({
+      where: { driverId_week: { driverId: driver.id, week: nextWeek } },
+      create: { driverId: driver.id, week: nextWeek, price: newPrice },
+      update: { price: newPrice },
     });
 
-    priceUpdates.push({ driverId: driver.id, oldPrice: (await prisma.driverPrice.findUnique({
-      where: { driverId_week: { driverId: driver.id, week: raceWeek } }
-    })).price, newPrice });
+    priceUpdates.push({ driverId: driver.id, newPrice });
   }
 
   // Update constructor prices (next week)
@@ -208,12 +217,10 @@ async function processPricingAfterRace(leagueId, raceWeek) {
     const avgPrice = driverPrices.reduce((sum, p) => sum + p.price, 0) / driverPrices.length;
     const constructorPrice = avgPrice * 2.5;
 
-    await prisma.constructorPrice.create({
-      data: {
-        constructorId: constructor.id,
-        week: nextWeek,
-        price: constructorPrice,
-      },
+    await prisma.constructorPrice.upsert({
+      where: { constructorId_week: { constructorId: constructor.id, week: nextWeek } },
+      create: { constructorId: constructor.id, week: nextWeek, price: constructorPrice },
+      update: { price: constructorPrice },
     });
 
     // Also log it

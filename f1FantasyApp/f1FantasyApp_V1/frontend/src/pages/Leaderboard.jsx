@@ -4,6 +4,8 @@ import { api } from '../api';
 import { getUser } from '../auth';
 import { usePageTitle } from '../hooks/usePageTitle';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
+import { showToast } from '../components/Toast';
 
 export default function Leaderboard() {
   const { leagueId } = useParams();
@@ -17,7 +19,6 @@ export default function Leaderboard() {
   const [teamLoading, setTeamLoading] = useState(false);
   const [week, setWeek] = useState(1);
   const [checking, setChecking] = useState(false);
-  const [checkMsg, setCheckMsg] = useState('');
   const [isRaceWeekend, setIsRaceWeekend] = useState(false);
   const [lastRefresh, setLastRefresh] = useState(null);
   const pollRef = useRef(null);
@@ -72,13 +73,12 @@ export default function Leaderboard() {
 
   async function checkForResults() {
     setChecking(true);
-    setCheckMsg('');
     try {
       const res = await api.checkResults();
-      setCheckMsg(res.message);
+      showToast(res.message, res.status === 'imported' ? 'success' : 'info');
       if (res.status === 'imported') await loadAll();
     } catch (err) {
-      setCheckMsg(err.message);
+      showToast(err.message, 'error');
     } finally {
       setChecking(false);
     }
@@ -106,6 +106,7 @@ export default function Leaderboard() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -113,15 +114,11 @@ export default function Leaderboard() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
       <div className="fade-up" style={{ maxWidth: 860, margin: '0 auto', padding: '24px 24px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
         <div>
-          {leagueName && (
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginBottom: 4 }}>
-              {leagueName}
-            </div>
-          )}
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 32, letterSpacing: '-0.01em', marginBottom: 4 }}>
             Leaderboard
           </h2>
@@ -130,79 +127,22 @@ export default function Leaderboard() {
             {hasResults && ` · ${Math.max(...standings.map(s => s.totalPoints))} pts leader`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/stats`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >📊 My Stats</button>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/chat`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >💬 Chat</button>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/members`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >👥 Members</button>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/compare`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >⚡ Compare</button>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/prices`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >💰 Prices</button>
-          <button
-            onClick={() => navigate(`/leagues/${leagueId}/settings`)}
-            style={{
-              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
-              border: '1px solid rgba(255,255,255,0.07)',
-              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
-            }}
-          >⚙️ Settings</button>
-          <button
-            onClick={checkForResults}
-            disabled={checking}
-            style={{
-              background: checking ? 'rgba(255,255,255,0.04)' : 'rgba(245,158,11,0.1)',
-              color: checking ? '#71717a' : '#fbbf24',
-              border: `1px solid ${checking ? 'rgba(255,255,255,0.07)' : 'rgba(245,158,11,0.25)'}`,
-              borderRadius: 9, padding: '8px 16px',
-              cursor: checking ? 'not-allowed' : 'pointer',
-              fontSize: 13, fontWeight: 600,
-              fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 7,
-              transition: 'all 0.15s',
-            }}
-          >
-            {checking ? <><span className="spinner-sm" />Checking…</> : <>⚡ Import Results</>}
-          </button>
-          <button onClick={() => navigate('/')} style={ghostBtn}>← Back</button>
-        </div>
+        <button
+          onClick={checkForResults}
+          disabled={checking}
+          style={{
+            background: checking ? 'rgba(255,255,255,0.04)' : 'rgba(245,158,11,0.1)',
+            color: checking ? '#71717a' : '#fbbf24',
+            border: `1px solid ${checking ? 'rgba(255,255,255,0.07)' : 'rgba(245,158,11,0.25)'}`,
+            borderRadius: 9, padding: '8px 16px',
+            cursor: checking ? 'not-allowed' : 'pointer',
+            fontSize: 13, fontWeight: 600,
+            fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 7,
+            transition: 'all 0.15s',
+          }}
+        >
+          {checking ? <><span className="spinner-sm" />Checking…</> : <>⚡ Import Results</>}
+        </button>
       </div>
 
       {/* Live race weekend banner */}
@@ -224,17 +164,6 @@ export default function Leaderboard() {
         </div>
       )}
 
-      {/* Import result message */}
-      {checkMsg && (
-        <div style={{
-          background: checkMsg.toLowerCase().includes('error') ? 'rgba(225,6,0,0.1)' : 'rgba(34,197,94,0.1)',
-          border: `1px solid ${checkMsg.toLowerCase().includes('error') ? 'rgba(225,6,0,0.25)' : 'rgba(34,197,94,0.25)'}`,
-          color: checkMsg.toLowerCase().includes('error') ? '#fca5a5' : '#86efac',
-          padding: '10px 14px', borderRadius: 9, marginBottom: 16, fontSize: 13,
-        }}>
-          {checkMsg}
-        </div>
-      )}
       {error && (
         <div style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', color: '#fca5a5', padding: '10px 14px', borderRadius: 9, marginBottom: 16, fontSize: 13 }}>
           {error}

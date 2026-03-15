@@ -3,6 +3,8 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { usePageTitle } from '../hooks/usePageTitle';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
+import { showToast } from '../components/Toast';
 
 /* ── F1 team colors (2026) ──────────────────────────────────── */
 const TEAM_COLORS = {
@@ -36,6 +38,7 @@ export default function TeamPicker() {
   const [availableChips, setAvailableChips] = useState([]);
   const [search, setSearch] = useState('');
   const [sortBy, setSortBy] = useState('team');
+  const [teamFilter, setTeamFilter] = useState(null);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -117,10 +120,12 @@ export default function TeamPicker() {
     try {
       await api.submitTeam(leagueId, week, selectedDrivers, selectedConstructor, captainId, chipUsed);
       setSuccess(true);
+      showToast('Team saved! Good luck this round 🏁', 'success');
       if (successTimer.current) clearTimeout(successTimer.current);
       successTimer.current = setTimeout(() => setSuccess(false), 5000);
     } catch (err) {
       setError(err.message);
+      showToast(err.message, 'error');
     } finally {
       setSubmitting(false);
     }
@@ -129,6 +134,7 @@ export default function TeamPicker() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -193,6 +199,7 @@ export default function TeamPicker() {
   if (!prices) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
       <div style={{ padding: 24 }}>
         <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
           {error || 'Failed to load prices'}
@@ -201,10 +208,15 @@ export default function TeamPicker() {
     </div>
   );
 
+  const allTeams = prices
+    ? [...new Set(prices.drivers.map(d => d.driver.constructor.name))].sort()
+    : [];
+
   const filteredDrivers = prices.drivers
     .filter(d =>
-      d.driver.name.toLowerCase().includes(search.toLowerCase()) ||
-      d.driver.constructor.name.toLowerCase().includes(search.toLowerCase())
+      (!teamFilter || d.driver.constructor.name === teamFilter) &&
+      (d.driver.name.toLowerCase().includes(search.toLowerCase()) ||
+       d.driver.constructor.name.toLowerCase().includes(search.toLowerCase()))
     )
     .sort((a, b) => {
       if (sortBy === 'price_desc') return b.price - a.price;
@@ -217,19 +229,16 @@ export default function TeamPicker() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
       <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '-0.01em', marginBottom: 2 }}>
-            Pick Your Team
-          </h2>
-          <div style={{ fontSize: 13, color: '#71717a' }}>
-            {leagueName && <><span style={{ color: '#a1a1aa' }}>{leagueName}</span> · </>}
-            Round {week} · 5 drivers + 1 constructor
-          </div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '-0.01em', marginBottom: 2 }}>
+          Pick Your Team
+        </h2>
+        <div style={{ fontSize: 13, color: '#71717a' }}>
+          Round {week} · Select 5 drivers + 1 constructor within $100M
         </div>
-        <button style={ghostBtnSm} onClick={() => navigate('/')}>← Back</button>
       </div>
 
       {/* Budget bar */}
@@ -301,6 +310,43 @@ export default function TeamPicker() {
 
       {/* Drivers section */}
       <div style={{ marginBottom: 24 }}>
+        {/* Constructor team filter pills */}
+        {allTeams.length > 0 && (
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+            <button
+              onClick={() => setTeamFilter(null)}
+              style={{
+                background: !teamFilter ? 'rgba(225,6,0,0.15)' : 'rgba(255,255,255,0.04)',
+                border: `1px solid ${!teamFilter ? 'rgba(225,6,0,0.35)' : 'rgba(255,255,255,0.08)'}`,
+                borderRadius: 20, padding: '3px 12px', cursor: 'pointer',
+                fontSize: 11, fontWeight: 700, color: !teamFilter ? '#f87171' : '#71717a',
+                fontFamily: 'inherit', transition: 'all 0.15s',
+              }}
+            >All</button>
+            {allTeams.map(team => {
+              const active = teamFilter === team;
+              const color = teamColor(team);
+              return (
+                <button
+                  key={team}
+                  onClick={() => setTeamFilter(active ? null : team)}
+                  style={{
+                    background: active ? `${color}22` : 'rgba(255,255,255,0.03)',
+                    border: `1px solid ${active ? `${color}66` : 'rgba(255,255,255,0.07)'}`,
+                    borderRadius: 20, padding: '3px 12px', cursor: 'pointer',
+                    fontSize: 11, fontWeight: active ? 700 : 500,
+                    color: active ? color : '#71717a',
+                    fontFamily: 'inherit', transition: 'all 0.15s',
+                    display: 'flex', alignItems: 'center', gap: 5,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', background: color, display: 'inline-block', flexShrink: 0 }} />
+                  {team.split(' ').slice(-1)[0]}
+                </button>
+              );
+            })}
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>

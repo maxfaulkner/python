@@ -607,10 +607,17 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
       }} />
 
       <div style={{ paddingLeft: 8 }}>
-        {/* Top row: name + meta */}
+        {/* Top row: name + rank badge */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontWeight: 800, fontSize: 16, color: '#fafafa' }}>{league.name}</span>
+            <span
+              onClick={() => onNavigate(`/leagues/${league.id}`)}
+              style={{ fontWeight: 800, fontSize: 16, color: '#fafafa', cursor: 'pointer', transition: 'color 0.15s' }}
+              onMouseEnter={e => { e.currentTarget.style.color = '#e10600'; }}
+              onMouseLeave={e => { e.currentTarget.style.color = '#fafafa'; }}
+            >
+              {league.name}
+            </span>
             {league.myRole === 'commissioner' && (
               <span style={{ fontSize: 9, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>⭐ COMM</span>
             )}
@@ -620,10 +627,17 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
               </span>
             )}
           </div>
-          {league.myTotalPoints > 0 && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#e10600' }}>{league.myTotalPoints}</span>
-              <span style={{ fontSize: 11, color: '#52525b' }}>pts</span>
+          {league.myRank > 0 && league.myTotalPoints > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{
+                fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 16,
+                color: '#e10600', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.2)',
+                padding: '2px 8px', borderRadius: 6,
+              }}>P{league.myRank}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#fafafa' }}>{league.myTotalPoints}</span>
+                <span style={{ fontSize: 11, color: '#52525b' }}>pts</span>
+              </div>
             </div>
           )}
         </div>
@@ -641,25 +655,12 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
         {league.inviteCode && <CopyInviteButton code={league.inviteCode} id={league.id} />}
         {!league.inviteCode && <CopyInviteButton id={league.id} />}
 
-        {/* Action buttons — full width row below info */}
-        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/view/${week}`)} icon="👁">View</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/team/${week}`)} icon="✏️" primary>Pick</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Board</ActionBtn>
+        {/* Streamlined action buttons */}
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 12 }}>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}`)} icon="🏠" primary>Open League</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/team/${week}`)} icon="✏️">Pick Team</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Standings</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/chat`)} icon="💬">Chat</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/stats`)} icon="📊">Stats</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/members`)} icon="👥">Members</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/transfers`)} icon="🔄">Transfers</ActionBtn>
-          {league.leagueType === 'h2h' && (
-            <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/h2h`)} icon="⚔️">H2H</ActionBtn>
-          )}
-          {league.leagueType === 'season_long' && (
-            <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/draft`)} icon="🎲">Draft</ActionBtn>
-          )}
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/prices`)} icon="💰">Prices</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/compare`)} icon="⚡">Compare</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/quickpick`)} icon="🤖">AutoPick</ActionBtn>
-          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
         </div>
       </div>
     </div>

@@ -1,9 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { isLoggedIn } from './auth';
 import ErrorBoundary from './components/ErrorBoundary';
+import ToastContainer from './components/Toast';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Leagues from './pages/Leagues';
+import LeagueHome from './pages/LeagueHome';
 import TeamPicker from './pages/TeamPicker';
 import Leaderboard from './pages/Leaderboard';
 import AdminRace from './pages/AdminRace';
@@ -30,12 +32,14 @@ export default function App() {
   return (
     <BrowserRouter>
       <ErrorBoundary>
+        <ToastContainer />
         <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
             <Route path="/" element={<Protected><Leagues /></Protected>} />
             <Route path="/leagues" element={<Protected><Leagues /></Protected>} />
             <Route path="/leagues/discover" element={<Protected><PublicLeagues /></Protected>} />
+            <Route path="/leagues/:leagueId" element={<Protected><LeagueHome /></Protected>} />
             <Route path="/leagues/:leagueId/team/:week" element={<Protected><TeamPicker /></Protected>} />
             <Route path="/leagues/:leagueId/leaderboard" element={<Protected><Leaderboard /></Protected>} />
             <Route path="/leagues/:leagueId/admin/:week" element={<Protected><AdminRace /></Protected>} />
