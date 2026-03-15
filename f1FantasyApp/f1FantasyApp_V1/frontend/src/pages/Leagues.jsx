@@ -606,41 +606,43 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
         borderRadius: '14px 0 0 14px',
       }} />
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: 8 }}>
-        <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+      <div style={{ paddingLeft: 8 }}>
+        {/* Top row: name + meta */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span style={{ fontWeight: 800, fontSize: 16, color: '#fafafa' }}>{league.name}</span>
             {league.myRole === 'commissioner' && (
               <span style={{ fontSize: 9, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>⭐ COMM</span>
             )}
-          </div>
-          <div style={{ fontSize: 12, color: '#71717a', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <span>Season {league.season}</span>
-            <span style={{ color: '#52525b' }}>·</span>
-            <span>From Round {league.startingRound}</span>
-            <span style={{ color: '#52525b' }}>·</span>
-            <span style={{ color: '#a1a1aa' }}>{league.memberCount} member{league.memberCount !== 1 ? 's' : ''}</span>
             {league.leagueType && league.leagueType !== 'classic' && (
               <span style={{ fontSize: 10, background: 'rgba(255,255,255,0.07)', padding: '1px 6px', borderRadius: 4, color: '#a1a1aa' }}>
                 {LEAGUE_TYPE_META[league.leagueType]?.icon} {LEAGUE_TYPE_META[league.leagueType]?.label}
               </span>
             )}
           </div>
-          {league.myTeamName && (
-            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>🏎️ {league.myTeamName}</div>
-          )}
           {league.myTotalPoints > 0 && (
-            <div style={{ fontSize: 12, color: '#fafafa', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
-              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, color: '#e10600' }}>{league.myTotalPoints}</span>
-              <span style={{ color: '#52525b' }}>pts season total</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 18, color: '#e10600' }}>{league.myTotalPoints}</span>
+              <span style={{ fontSize: 11, color: '#52525b' }}>pts</span>
             </div>
           )}
-          {league.inviteCode && <CopyInviteButton code={league.inviteCode} id={league.id} />}
-          {!league.inviteCode && <CopyInviteButton id={league.id} />}
         </div>
 
-        {/* Action buttons */}
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end', marginLeft: 12, flexShrink: 0 }}>
+        {/* Meta row */}
+        <div style={{ fontSize: 12, color: '#71717a', display: 'flex', gap: 8, alignItems: 'center', marginBottom: 4, flexWrap: 'wrap' }}>
+          <span>Season {league.season}</span>
+          <span style={{ color: '#3f3f46' }}>·</span>
+          <span>Round {league.startingRound}+</span>
+          <span style={{ color: '#3f3f46' }}>·</span>
+          <span style={{ color: '#a1a1aa' }}>{league.memberCount} member{league.memberCount !== 1 ? 's' : ''}</span>
+          {league.myTeamName && <><span style={{ color: '#3f3f46' }}>·</span><span style={{ color: 'rgba(255,255,255,0.35)' }}>🏎️ {league.myTeamName}</span></>}
+        </div>
+
+        {league.inviteCode && <CopyInviteButton code={league.inviteCode} id={league.id} />}
+        {!league.inviteCode && <CopyInviteButton id={league.id} />}
+
+        {/* Action buttons — full width row below info */}
+        <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 10 }}>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/view/${week}`)} icon="👁">View</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/team/${week}`)} icon="✏️" primary>Pick</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Board</ActionBtn>
