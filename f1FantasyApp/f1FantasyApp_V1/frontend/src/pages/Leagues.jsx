@@ -408,7 +408,7 @@ export default function Leagues() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
-      <div style={{ padding: '24px 32px' }}>
+      <div style={{ maxWidth: 1400, margin: '0 auto', padding: '24px 32px' }}>
     <div className="home-layout fade-up">
       <div className="home-spacer" />
 
