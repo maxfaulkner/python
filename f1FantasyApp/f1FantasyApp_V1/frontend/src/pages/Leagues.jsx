@@ -597,8 +597,11 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', paddingLeft: 8 }}>
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ fontWeight: 800, fontSize: 16, color: '#fafafa', marginBottom: 3, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            {league.name}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 3 }}>
+            <span style={{ fontWeight: 800, fontSize: 16, color: '#fafafa' }}>{league.name}</span>
+            {league.myRole === 'commissioner' && (
+              <span style={{ fontSize: 9, background: 'rgba(251,191,36,0.15)', color: '#fbbf24', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>⭐ COMM</span>
+            )}
           </div>
           <div style={{ fontSize: 12, color: '#71717a', display: 'flex', gap: 12, flexWrap: 'wrap' }}>
             <span>Season {league.season}</span>
@@ -612,6 +615,15 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
               </span>
             )}
           </div>
+          {league.myTeamName && (
+            <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', marginTop: 2 }}>🏎️ {league.myTeamName}</div>
+          )}
+          {league.myTotalPoints > 0 && (
+            <div style={{ fontSize: 12, color: '#fafafa', marginTop: 3, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, color: '#e10600' }}>{league.myTotalPoints}</span>
+              <span style={{ color: '#52525b' }}>pts season total</span>
+            </div>
+          )}
           {league.inviteCode && <CopyInviteButton code={league.inviteCode} id={league.id} />}
           {!league.inviteCode && <CopyInviteButton id={league.id} />}
         </div>

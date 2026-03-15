@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
@@ -17,6 +17,9 @@ export default function Leaderboard() {
   const [week, setWeek] = useState(1);
   const [checking, setChecking] = useState(false);
   const [checkMsg, setCheckMsg] = useState('');
+  const [isRaceWeekend, setIsRaceWeekend] = useState(false);
+  const [lastRefresh, setLastRefresh] = useState(null);
+  const pollRef = useRef(null);
 
   usePageTitle(leagueName ? `${leagueName} — Leaderboard` : 'Leaderboard');
 
@@ -37,6 +40,33 @@ export default function Leaderboard() {
 
   useEffect(() => {
     loadAll().catch(err => setError(err.message)).finally(() => setLoading(false));
+  }, [leagueId]);
+
+  // Check if it's a race weekend and set up auto-polling
+  useEffect(() => {
+    const JOLPICA = 'https://api.jolpi.ca/ergast/f1';
+    const now = new Date();
+    fetch(`${JOLPICA}/${now.getFullYear()}.json`)
+      .then(r => r.json())
+      .then(d => {
+        const races = d.MRData.RaceTable.Races;
+        const raceWeekend = races.find(r => {
+          const quali = r.Qualifying ? new Date(`${r.Qualifying.date}T${r.Qualifying.time}`) : null;
+          const raceEnd = new Date(`${r.date}T${r.time || '14:00:00Z'}`);
+          raceEnd.setTime(raceEnd.getTime() + 2 * 60 * 60 * 1000);
+          return quali && quali <= now && raceEnd > now;
+        });
+        if (raceWeekend) {
+          setIsRaceWeekend(true);
+          // Auto-refresh every 60s during race weekend
+          pollRef.current = setInterval(() => {
+            loadAll().catch(() => {});
+            setLastRefresh(new Date());
+          }, 60000);
+        }
+      })
+      .catch(() => {});
+    return () => { if (pollRef.current) clearInterval(pollRef.current); };
   }, [leagueId]);
 
   async function checkForResults() {
@@ -166,6 +196,25 @@ export default function Leaderboard() {
           <button onClick={() => navigate('/')} style={ghostBtn}>← Back</button>
         </div>
       </div>
+
+      {/* Live race weekend banner */}
+      {isRaceWeekend && (
+        <div style={{
+          background: 'rgba(225,6,0,0.08)', border: '1px solid rgba(225,6,0,0.2)',
+          borderRadius: 10, padding: '10px 16px', marginBottom: 14,
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <span className="live-dot" />
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#f87171' }}>RACE WEEKEND — Auto-refreshing every 60s</span>
+          </div>
+          {lastRefresh && (
+            <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>
+              Last refresh: {lastRefresh.toLocaleTimeString()}
+            </span>
+          )}
+        </div>
+      )}
 
       {/* Import result message */}
       {checkMsg && (

@@ -194,9 +194,14 @@ router.get('/leagues', authMiddleware, async (req, res) => {
       },
     });
 
+    // Enrich each league with the user's role and cached stats
     res.json(leagueUsers.map(lu => ({
       ...lu.league,
       memberCount: lu.league._count.users,
+      myRole: lu.role,
+      myTeamName: lu.teamName,
+      myTotalPoints: lu.totalPoints,
+      myTotalWins: lu.totalWins,
     })));
   } catch (error) {
     console.error('Error listing leagues:', error);

@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
+import Navbar from '../components/Navbar';
 
 export default function AdminRace() {
-  const { leagueId, week } = useParams();
+  const { leagueId, week: weekParam } = useParams();
+  const week = weekParam;
   const navigate = useNavigate();
   const [formData, setFormData] = useState(null);
   const [positions, setPositions] = useState({});
@@ -11,14 +13,22 @@ export default function AdminRace() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
+  const [leagueName, setLeagueName] = useState('');
 
   useEffect(() => {
-    api.getAdminRaceForm(leagueId, week)
-      .then(data => {
+    setLoading(true);
+    setError('');
+    setSuccess('');
+    Promise.all([
+      api.getAdminRaceForm(leagueId, week),
+      api.getLeagues().catch(() => []),
+    ]).then(([data, leagues]) => {
         setFormData(data);
         const initial = {};
         data.drivers.forEach(d => { initial[d.id] = ''; });
         setPositions(initial);
+        const l = leagues.find(l => l.id === leagueId);
+        if (l) setLeagueName(l.name);
       })
       .catch(err => setError(err.message))
       .finally(() => setLoading(false));
@@ -42,10 +52,18 @@ export default function AdminRace() {
     }
   }
 
-  if (loading) return <div className="spinner" />;
+  if (loading) return (
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
+    </div>
+  );
   if (!formData) return (
-    <div style={{ color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
-      {error}
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+      <Navbar />
+      <div style={{ maxWidth: 680, margin: '60px auto', padding: '0 16px', color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
+        {error || 'Failed to load form data'}
+      </div>
     </div>
   );
 
@@ -56,15 +74,26 @@ export default function AdminRace() {
   }, {});
 
   return (
-    <div className="fade-up" style={{ maxWidth: 680, margin: '0 auto' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <div>
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2 }}>
-            Enter Results
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+    <Navbar />
+    <div className="fade-up" style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px' }}>
+      <div style={{ marginBottom: 20 }}>
+        <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
+        {leagueName && (
+          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginTop: 8, marginBottom: 2 }}>
+            {leagueName}
+          </div>
+        )}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, margin: 0 }}>
+            ⚙️ Admin — Enter Results
           </h2>
-          <p style={{ fontSize: 13, color: '#71717a' }}>Round {week} — manual entry</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 9, padding: '4px 10px' }}>
+            <button onClick={() => navigate(`/leagues/${leagueId}/admin/${Math.max(1, parseInt(week) - 1)}`)} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>‹</button>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, minWidth: 72, textAlign: 'center' }}>Round {week}</span>
+            <button onClick={() => navigate(`/leagues/${leagueId}/admin/${parseInt(week) + 1}`)} style={{ background: 'none', border: 'none', color: 'var(--text-3)', cursor: 'pointer', fontSize: 16, padding: '0 4px' }}>›</button>
+          </div>
         </div>
-        <button style={ghostBtn} onClick={() => navigate('/')}>← Back</button>
       </div>
 
       <div style={{
@@ -161,6 +190,7 @@ export default function AdminRace() {
           }
         </button>
       </form>
+    </div>
     </div>
   );
 }
