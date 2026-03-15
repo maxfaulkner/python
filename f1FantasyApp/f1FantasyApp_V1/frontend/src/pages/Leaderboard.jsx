@@ -24,11 +24,13 @@ export default function Leaderboard() {
   const top3 = hasResults ? standings.slice(0, 3) : [];
 
   async function loadAll() {
-    const [boards, leagues] = await Promise.all([
+    const [data, leagues] = await Promise.all([
       api.getLeaderboard(leagueId),
       api.getLeagues().catch(() => []),
     ]);
+    const boards = data.standings ?? data; // backwards compat
     setStandings(boards);
+    if (data.latestRound) setWeek(data.latestRound);
     const lg = leagues.find(l => l.id === leagueId);
     if (lg) setLeagueName(lg.name);
   }
@@ -163,6 +165,39 @@ export default function Leaderboard() {
         </div>
       )}
 
+      {/* Your position callout — only when you're in standings but not podium */}
+      {hasResults && currentUser && (() => {
+        const me = standings.find(s => s.userId === currentUser.id);
+        if (!me || me.rank <= 3) return null;
+        const leader = standings[0];
+        const gap = leader.totalPoints - me.totalPoints;
+        return (
+          <div style={{
+            background: 'rgba(225,6,0,0.06)', border: '1px solid rgba(225,6,0,0.2)',
+            borderRadius: 10, padding: '10px 16px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 22, color: '#e10600' }}>
+                P{me.rank}
+              </span>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#fafafa' }}>Your position</div>
+                <div style={{ fontSize: 11, color: '#71717a' }}>
+                  {gap > 0 ? `${gap} pts behind ${leader.userName}` : 'You\'re leading!'}
+                </div>
+              </div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 24, color: '#fafafa' }}>
+                {me.totalPoints}
+              </span>
+              <span style={{ fontSize: 11, color: '#52525b', marginLeft: 3 }}>pts</span>
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Week navigator */}
       <div style={{
         display: 'flex', alignItems: 'center', gap: 0, marginBottom: 14,
@@ -231,7 +266,7 @@ export default function Leaderboard() {
                     <tr
                       key={user.userId}
                       style={{
-                        background: isYou ? 'rgba(225,6,0,0.05)' : 'transparent',
+                        background: isYou ? 'rgba(225,6,0,0.05)' : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                       }}
                     >

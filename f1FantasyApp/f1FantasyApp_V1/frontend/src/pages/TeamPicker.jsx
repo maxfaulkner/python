@@ -31,6 +31,7 @@ export default function TeamPicker() {
   const [selectedDrivers, setSelectedDrivers] = useState([]);
   const [selectedConstructor, setSelectedConstructor] = useState(null);
   const [search, setSearch] = useState('');
+  const [sortBy, setSortBy] = useState('team');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -172,10 +173,18 @@ export default function TeamPicker() {
     </div>
   );
 
-  const filteredDrivers = prices.drivers.filter(d =>
-    d.driver.name.toLowerCase().includes(search.toLowerCase()) ||
-    d.driver.constructor.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredDrivers = prices.drivers
+    .filter(d =>
+      d.driver.name.toLowerCase().includes(search.toLowerCase()) ||
+      d.driver.constructor.name.toLowerCase().includes(search.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (sortBy === 'price_desc') return b.price - a.price;
+      if (sortBy === 'price_asc') return a.price - b.price;
+      // default: sort by team then by price desc within team
+      const teamCmp = a.driver.constructor.name.localeCompare(b.driver.constructor.name);
+      return teamCmp !== 0 ? teamCmp : b.price - a.price;
+    });
 
   return (
     <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto' }}>
@@ -262,7 +271,7 @@ export default function TeamPicker() {
 
       {/* Drivers section */}
       <div style={{ marginBottom: 24 }}>
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8, flexWrap: 'wrap' }}>
           <div>
             <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b' }}>
               Drivers
@@ -270,32 +279,95 @@ export default function TeamPicker() {
             <span style={{ fontSize: 11, color: '#71717a', marginLeft: 8 }}>
               {selectedDrivers.length}/5 selected · ${driverCost.toFixed(1)}M spent
             </span>
+            {selectedDrivers.length === 5 && (
+              <span style={{ fontSize: 10, background: 'rgba(34,197,94,0.12)', color: '#22c55e', padding: '1px 6px', borderRadius: 4, fontWeight: 700, marginLeft: 6 }}>FULL</span>
+            )}
+            {selectedDrivers.length > 0 && (
+              <button onClick={() => setSelectedDrivers([])} style={{
+                background: 'none', border: 'none', color: '#52525b', fontSize: 11,
+                cursor: 'pointer', fontFamily: 'inherit', marginLeft: 8, padding: 0,
+                transition: 'color 0.15s',
+              }}
+              onMouseEnter={e => e.currentTarget.style.color = '#a1a1aa'}
+              onMouseLeave={e => e.currentTarget.style.color = '#52525b'}
+              >
+                Clear drivers
+              </button>
+            )}
           </div>
-          <input
-            value={search}
-            onChange={e => setSearch(e.target.value)}
-            placeholder="Search name or team..."
-            style={{
-              padding: '6px 12px', background: '#1e1e22',
-              border: '1px solid rgba(255,255,255,0.08)',
-              borderRadius: 8, color: '#fafafa', fontSize: 12,
-              outline: 'none', width: 190,
-            }}
-          />
-        </div>
-        <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-          {filteredDrivers.map(d => (
-            <DriverCard
-              key={d.driverId}
-              driver={d}
-              selected={selectedDrivers.includes(d.driverId)}
-              disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
-              form={formData.form[d.driverId]}
-              priceHistory={formData.prices[d.driverId]}
-              onClick={() => toggleDriver(d.driverId)}
+          <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            <div style={{ display: 'flex', background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, overflow: 'hidden' }}>
+              {[['team', 'Team'], ['price_desc', '$ ↓'], ['price_asc', '$ ↑']].map(([val, label]) => (
+                <button key={val} onClick={() => setSortBy(val)} style={{
+                  padding: '4px 9px', fontSize: 11, fontWeight: 600,
+                  background: sortBy === val ? '#e10600' : 'transparent',
+                  color: sortBy === val ? '#fff' : '#71717a',
+                  border: 'none', cursor: 'pointer', fontFamily: 'inherit',
+                  transition: 'all 0.15s',
+                }}>{label}</button>
+              ))}
+            </div>
+            <input
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search..."
+              style={{
+                padding: '5px 10px', background: '#1e1e22',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: 8, color: '#fafafa', fontSize: 12,
+                outline: 'none', width: 130,
+              }}
             />
-          ))}
+          </div>
         </div>
+        {sortBy === 'team' ? (
+          // Group by constructor when sorted by team
+          Object.entries(
+            filteredDrivers.reduce((acc, d) => {
+              const t = d.driver.constructor.name;
+              if (!acc[t]) acc[t] = [];
+              acc[t].push(d);
+              return acc;
+            }, {})
+          ).map(([teamName, drivers]) => (
+            <div key={teamName} style={{ marginBottom: 12 }}>
+              <div style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
+                color: teamColor(teamName), marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6,
+              }}>
+                <div style={{ width: 3, height: 10, borderRadius: 2, background: teamColor(teamName) }} />
+                {teamName}
+              </div>
+              <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                {drivers.map(d => (
+                  <DriverCard
+                    key={d.driverId}
+                    driver={d}
+                    selected={selectedDrivers.includes(d.driverId)}
+                    disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
+                    form={formData.form[d.driverId]}
+                    priceHistory={formData.prices[d.driverId]}
+                    onClick={() => toggleDriver(d.driverId)}
+                  />
+                ))}
+              </div>
+            </div>
+          ))
+        ) : (
+          <div className="driver-grid" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+            {filteredDrivers.map(d => (
+              <DriverCard
+                key={d.driverId}
+                driver={d}
+                selected={selectedDrivers.includes(d.driverId)}
+                disabled={!selectedDrivers.includes(d.driverId) && selectedDrivers.length >= 5}
+                form={formData.form[d.driverId]}
+                priceHistory={formData.prices[d.driverId]}
+                onClick={() => toggleDriver(d.driverId)}
+              />
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Constructors section */}

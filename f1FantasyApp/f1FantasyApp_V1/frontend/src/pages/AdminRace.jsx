@@ -145,12 +145,12 @@ export default function AdminRace() {
           disabled={submitting}
           style={{
             width: '100%', padding: '13px',
-            background: submitting ? '#7f1d1d' : '#e10600',
+            background: submitting ? '#7f1d1d' : formData.resultsExist ? '#92400e' : '#e10600',
             color: '#fff', border: 'none', borderRadius: 11,
             fontSize: 15, fontWeight: 800, cursor: submitting ? 'not-allowed' : 'pointer',
             fontFamily: "'Barlow Condensed', sans-serif",
             letterSpacing: '0.03em',
-            boxShadow: submitting ? 'none' : '0 4px 20px rgba(225,6,0,0.25)',
+            boxShadow: submitting ? 'none' : formData.resultsExist ? '0 4px 20px rgba(146,64,14,0.3)' : '0 4px 20px rgba(225,6,0,0.25)',
           }}
         >
           {submitting

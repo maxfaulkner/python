@@ -568,7 +568,7 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
       standings.forEach(s => { s.rankDelta = 0; });
     }
 
-    res.json(standings);
+    res.json({ standings, latestRound: latestWeek?.week || null });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     res.status(500).json({ error: error.message });
