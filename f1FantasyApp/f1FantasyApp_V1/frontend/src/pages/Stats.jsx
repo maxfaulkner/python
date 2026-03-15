@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 /* ── Mini bar chart ─────────────────────────────────────────── */
 function MiniBarChart({ data, color = '#e10600', label = '' }) {
@@ -142,9 +143,14 @@ export default function Stats() {
       .finally(() => setLoading(false));
   }, [leagueId]);
 
+  const currentWeek = stats?.rounds?.length > 0
+    ? stats.rounds[stats.rounds.length - 1].week
+    : 1;
+
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -152,6 +158,7 @@ export default function Stats() {
   if (error) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
       <div style={{ maxWidth: 800, margin: '40px auto', padding: '0 16px' }}>
         <div style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.3)', borderRadius: 8, padding: 16, color: '#fca5a5' }}>{error}</div>
       </div>
@@ -161,11 +168,11 @@ export default function Stats() {
   if (!stats || stats.roundsPlayed === 0) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 16px', textAlign: 'center' }}>
         <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
         <h2 style={{ color: '#fff', fontFamily: 'var(--font-display)' }}>No Stats Yet</h2>
         <p style={{ color: 'rgba(255,255,255,0.5)' }}>Stats will appear after your first race result is imported.</p>
-        <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'var(--red)', textDecoration: 'none' }}>← Back to Leaderboard</Link>
       </div>
     </div>
   );
@@ -181,13 +188,10 @@ export default function Stats() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={currentWeek} leagueName={leagueName} />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '20px 16px' }}>
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-          <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)', marginTop: 8 }}>
-            {leagueName}
-          </div>
           <h1 style={{ margin: '4px 0 0', fontSize: 30, fontFamily: 'var(--font-display)', fontWeight: 800 }}>My Season Stats</h1>
         </div>
 
@@ -275,7 +279,7 @@ export default function Stats() {
                     name={d.name}
                     abbr={d.abbr}
                     isCaptain={d.isCaptain}
-                    points={d.isCaptain ? d.points * 2 : d.points}
+                    points={d.isCaptain ? d.points * (selectedRound.chipUsed === 'triple_captain' ? 3 : 2) : d.points}
                   />
                 ))}
                 {selectedRound.constructor && (

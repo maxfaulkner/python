@@ -267,8 +267,13 @@ router.get('/leagues/:leagueId/stats', async (req, res) => {
       let captainBonus = 0;
       if (team.captainId) {
         const capResult = results.find(r => r.driverId === team.captainId);
-        if (capResult) captainBonus = capResult.points;
+        if (capResult) {
+          // triple_captain chip gives 3× (add 2 extra); regular captain gives 2× (add 1 extra)
+          const extraMultiplier = team.chipUsed === 'triple_captain' ? 2 : 1;
+          captainBonus = capResult.points * extraMultiplier;
+        }
       }
+      if (team.chipUsed === 'no_negative') points = Math.max(0, points);
       points += captainBonus;
       points += conResult?.totalPoints || 0;
 

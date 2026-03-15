@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 const TEAM_COLORS = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
@@ -55,20 +56,13 @@ export default function ViewTeam() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
     <Navbar />
+    <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
     <div className="fade-up" style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
-        <div>
-          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-          {leagueName && (
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginBottom: 3, marginTop: 8 }}>
-              {leagueName}
-            </div>
-          )}
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2, margin: 0 }}>
-            My Team
-          </h2>
-        </div>
+      <div style={{ marginBottom: 20 }}>
+        <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2, margin: 0 }}>
+          My Team
+        </h2>
       </div>
 
       {/* Round navigator */}

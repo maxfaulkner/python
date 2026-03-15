@@ -99,7 +99,7 @@ export default function PriceWatch() {
       const cb = b.change ?? 0;
       return Math.abs(cb) - Math.abs(ca);
     }
-    if (sortBy === 'price') return b.currentPrice - a.currentPrice;
+    if (sortBy === 'price') return b.price - a.price;
     return a.name.localeCompare(b.name);
   });
 

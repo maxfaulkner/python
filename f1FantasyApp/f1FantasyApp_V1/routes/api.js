@@ -113,6 +113,60 @@ async function generateH2HMatchups(leagueId, week) {
   }
 }
 
+/**
+ * Update the cached totalPoints and totalWins on LeagueUser for every member
+ * of a league. Called after race results are imported so league-list ranks stay fresh.
+ */
+async function updateLeagueUserCache(leagueId) {
+  try {
+    const leagueUsers = await prisma.leagueUser.findMany({
+      where: { leagueId },
+      include: {
+        user: {
+          include: {
+            weeklyTeams: {
+              where: { leagueId },
+              include: { drivers: true, constructors: true },
+            },
+          },
+        },
+      },
+    });
+
+    for (const lu of leagueUsers) {
+      let totalPoints = 0;
+      let totalWins = 0;
+      for (const team of lu.user.weeklyTeams) {
+        for (const td of team.drivers) {
+          const results = await prisma.raceResult.findMany({
+            where: { driverId: td.driverId, leagueId, week: team.week },
+          });
+          for (const r of results) {
+            let pts = r.points;
+            if (team.chipUsed === 'no_negative' && pts < 0) pts = 0;
+            if (team.captainId === td.driverId) pts *= team.chipUsed === 'triple_captain' ? 3 : 2;
+            totalPoints += pts;
+            if (r.finishingPosition === 1) totalWins++;
+          }
+        }
+        const ctor = team.constructors[0];
+        if (ctor) {
+          const cr = await prisma.constructorRaceResult.findFirst({
+            where: { constructorId: ctor.constructorId, leagueId, week: team.week },
+          });
+          if (cr) totalPoints += cr.totalPoints;
+        }
+      }
+      await prisma.leagueUser.update({
+        where: { userId_leagueId: { userId: lu.userId, leagueId } },
+        data: { totalPoints, totalWins },
+      });
+    }
+  } catch (e) {
+    console.error('updateLeagueUserCache error:', e);
+  }
+}
+
 const checkResultsLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 5,
@@ -194,6 +248,23 @@ router.get('/leagues', authMiddleware, async (req, res) => {
       },
     });
 
+    // For each league, compute rank from cached totalPoints across all members
+    const leagueIds = leagueUsers.map(lu => lu.leagueId);
+    const allMembers = await prisma.leagueUser.findMany({
+      where: { leagueId: { in: leagueIds } },
+      select: { leagueId: true, userId: true, totalPoints: true, totalWins: true },
+    });
+
+    // Build rank map: leagueId -> userId -> rank
+    const rankMap = {};
+    for (const leagueId of leagueIds) {
+      const members = allMembers
+        .filter(m => m.leagueId === leagueId)
+        .sort((a, b) => (b.totalPoints || 0) - (a.totalPoints || 0) || (b.totalWins || 0) - (a.totalWins || 0));
+      rankMap[leagueId] = {};
+      members.forEach((m, i) => { rankMap[leagueId][m.userId] = i + 1; });
+    }
+
     // Enrich each league with the user's role and cached stats
     res.json(leagueUsers.map(lu => ({
       ...lu.league,
@@ -202,6 +273,7 @@ router.get('/leagues', authMiddleware, async (req, res) => {
       myTeamName: lu.teamName,
       myTotalPoints: lu.totalPoints,
       myTotalWins: lu.totalWins,
+      myRank: lu.totalPoints > 0 ? (rankMap[lu.leagueId]?.[userId] ?? null) : null,
     })));
   } catch (error) {
     console.error('Error listing leagues:', error);
@@ -454,22 +526,37 @@ router.post(
         return res.status(400).json({ error: 'Team is locked for this week' });
       }
 
-      // Get current prices
-      const driverPrices = await prisma.driverPrice.findMany({
-        where: {
-          driverId: { in: drivers },
-          week: weekNum,
-        },
+      // Get current prices — fall back to most recent available week if exact week is missing
+      const exactDriverPrices = await prisma.driverPrice.findMany({
+        where: { driverId: { in: drivers }, week: weekNum },
       });
+      const missingDriverIds = drivers.filter(id => !exactDriverPrices.find(p => p.driverId === id));
+      const fallbackDriverPrices = await Promise.all(
+        missingDriverIds.map(id =>
+          prisma.driverPrice.findFirst({
+            where: { driverId: id, week: { lte: weekNum } },
+            orderBy: { week: 'desc' },
+          })
+        )
+      );
+      const driverPrices = [...exactDriverPrices, ...fallbackDriverPrices.filter(Boolean)];
 
-      const constructorPrice = await prisma.constructorPrice.findUnique({
-        where: {
-          constructorId_week: {
-            constructorId,
-            week: weekNum,
-          },
-        },
+      if (driverPrices.length < drivers.length) {
+        return res.status(400).json({ error: 'Price not found for one or more selected drivers' });
+      }
+
+      let constructorPrice = await prisma.constructorPrice.findUnique({
+        where: { constructorId_week: { constructorId, week: weekNum } },
       });
+      if (!constructorPrice) {
+        constructorPrice = await prisma.constructorPrice.findFirst({
+          where: { constructorId, week: { lte: weekNum } },
+          orderBy: { week: 'desc' },
+        });
+      }
+      if (!constructorPrice) {
+        return res.status(400).json({ error: 'Price not found for selected constructor' });
+      }
 
       // Calculate total cost
       const driverCost = driverPrices.reduce((sum, p) => sum + p.price, 0);
@@ -989,8 +1076,15 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     const { leagueId, week } = req.params;
     const { results } = req.body;
     const weekNum = parseInt(week);
+    const userId = req.user.id;
 
-    // TODO: Verify user is admin of this league
+    // Verify user is commissioner of this league
+    const member = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId } },
+    });
+    if (!member || member.role !== 'commissioner') {
+      return res.status(403).json({ error: 'Commissioner only' });
+    }
 
     // Validate each result
     for (const result of results) {
@@ -1034,6 +1128,9 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
         locked: false,
       },
     });
+
+    // Update cached points/wins so league-list rank badge stays accurate (non-blocking)
+    updateLeagueUserCache(leagueId).catch(e => console.error('Cache update error:', e));
 
     res.json({
       message: 'Race results processed',
@@ -1380,6 +1477,7 @@ router.post('/admin/check-results', checkResultsLimiter, authMiddleware, async (
       checkAchievementsAfterRace(league.id, round).catch(e => console.error('Achievement check failed:', e));
       generateH2HMatchups(league.id, round).catch(e => console.error('H2H matchup error:', e));
       notifyResultsImported(league.id, round, league.name, eventLabel).catch(() => {});
+      updateLeagueUserCache(league.id).catch(e => console.error('Cache update error:', e));
       await prisma.userWeeklyTeam.updateMany({
         where: { leagueId: league.id, week: round + 1 },
         data: { locked: false },
