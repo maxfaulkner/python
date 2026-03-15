@@ -623,6 +623,11 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/leaderboard`)} icon="🏆">Board</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/chat`)} icon="💬">Chat</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/stats`)} icon="📊">Stats</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/members`)} icon="👥">Members</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/transfers`)} icon="🔄">Transfers</ActionBtn>
+          {league.leagueType === 'h2h' && (
+            <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/h2h`)} icon="⚔️">H2H</ActionBtn>
+          )}
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
         </div>
       </div>

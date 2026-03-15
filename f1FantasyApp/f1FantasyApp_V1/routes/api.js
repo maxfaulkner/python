@@ -32,6 +32,87 @@ async function notifyResultsImported(leagueId, round, leagueName, eventLabel) {
   }
 }
 
+// Generate or update H2H matchups for a league after results import
+async function generateH2HMatchups(leagueId, week) {
+  try {
+    const league = await prisma.league.findUnique({ where: { id: leagueId } });
+    if (!league || league.leagueType !== 'h2h') return;
+
+    // Get all users in the league
+    const members = await prisma.leagueUser.findMany({
+      where: { leagueId },
+      select: { userId: true },
+    });
+    if (members.length < 2) return;
+
+    // Calculate round scores for all users
+    const roundScores = [];
+    for (const m of members) {
+      const team = await prisma.userWeeklyTeam.findUnique({
+        where: { userId_leagueId_week: { userId: m.userId, leagueId, week } },
+        include: { drivers: true, constructors: true },
+      });
+      if (!team) { roundScores.push({ userId: m.userId, points: 0 }); continue; }
+      let pts = 0;
+      for (const td of team.drivers) {
+        const rs = await prisma.raceResult.findMany({ where: { driverId: td.driverId, leagueId, week } });
+        for (const r of rs) {
+          let p = r.points;
+          if (team.chipUsed === 'no_negative' && p < 0) p = 0;
+          if (team.captainId === td.driverId) p *= team.chipUsed === 'triple_captain' ? 3 : 2;
+          pts += p;
+        }
+      }
+      const ctor = team.constructors[0];
+      if (ctor) {
+        const cr = await prisma.constructorRaceResult.findFirst({ where: { constructorId: ctor.constructorId, leagueId, week } });
+        if (cr) pts += cr.totalPoints;
+      }
+      roundScores.push({ userId: m.userId, points: pts });
+    }
+
+    // Check if matchups already exist for this week
+    const existing = await prisma.h2HMatchup.findMany({ where: { leagueId, week } });
+
+    if (existing.length === 0) {
+      // Pair users randomly (shuffle then pair consecutive)
+      const shuffled = [...roundScores].sort(() => Math.random() - 0.5);
+      const pairs = [];
+      for (let i = 0; i < shuffled.length - 1; i += 2) {
+        pairs.push([shuffled[i], shuffled[i + 1]]);
+      }
+
+      for (const [u1, u2] of pairs) {
+        const winner = u1.points > u2.points ? u1.userId : u2.points > u1.points ? u2.userId : 'draw';
+        await prisma.h2HMatchup.create({
+          data: {
+            leagueId, week,
+            user1Id: u1.userId, user2Id: u2.userId,
+            user1Points: u1.points, user2Points: u2.points,
+            winnerId: winner,
+          },
+        });
+      }
+    } else {
+      // Update existing matchups with actual scores
+      const scoreMap = Object.fromEntries(roundScores.map(s => [s.userId, s.points]));
+      for (const m of existing) {
+        const u1pts = scoreMap[m.user1Id] ?? 0;
+        const u2pts = scoreMap[m.user2Id] ?? 0;
+        const winner = u1pts > u2pts ? m.user1Id : u2pts > u1pts ? m.user2Id : 'draw';
+        await prisma.h2HMatchup.update({
+          where: { id: m.id },
+          data: { user1Points: u1pts, user2Points: u2pts, winnerId: winner },
+        });
+      }
+    }
+
+    console.log(`✓ H2H matchups generated/updated for league ${league.name} Round ${week}`);
+  } catch (e) {
+    console.error('H2H matchup generation error:', e);
+  }
+}
+
 const checkResultsLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
   max: 5,
@@ -912,6 +993,9 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     // Check achievements (non-blocking)
     checkAchievementsAfterRace(leagueId, weekNum).catch(e => console.error('Achievement check failed:', e));
 
+    // Generate H2H matchups if this is an H2H league
+    generateH2HMatchups(leagueId, weekNum).catch(e => console.error('H2H matchup error:', e));
+
     // Unlock teams for next week
     await prisma.userWeeklyTeam.updateMany({
       where: {
@@ -931,6 +1015,118 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     });
   } catch (error) {
     console.error('Error processing race results:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ H2H MATCHUPS ============
+
+/**
+ * GET /api/leagues/:leagueId/h2h
+ * Get all H2H matchups for a league + per-user season records
+ */
+router.get('/leagues/:leagueId/h2h', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+
+    // Verify membership
+    const member = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId } },
+    });
+    if (!member) return res.status(403).json({ error: 'Not a member' });
+
+    const matchups = await prisma.h2HMatchup.findMany({
+      where: { leagueId },
+      orderBy: [{ week: 'desc' }, { createdAt: 'asc' }],
+    });
+
+    // Attach user info
+    const userIds = [...new Set(matchups.flatMap(m => [m.user1Id, m.user2Id]))];
+    const users = await prisma.user.findMany({
+      where: { id: { in: userIds } },
+      select: { id: true, name: true, avatarColor: true },
+    });
+    const luMap = await prisma.leagueUser.findMany({
+      where: { leagueId, userId: { in: userIds } },
+      select: { userId: true, teamName: true },
+    });
+    const userMap = {};
+    users.forEach(u => { userMap[u.id] = { ...u }; });
+    luMap.forEach(lu => { if (userMap[lu.userId]) userMap[lu.userId].teamName = lu.teamName; });
+
+    const enriched = matchups.map(m => ({
+      ...m,
+      user1: userMap[m.user1Id],
+      user2: userMap[m.user2Id],
+    }));
+
+    // Build season records
+    const records = {};
+    for (const m of matchups) {
+      for (const uid of [m.user1Id, m.user2Id]) {
+        if (!records[uid]) records[uid] = { userId: uid, name: userMap[uid]?.name, avatarColor: userMap[uid]?.avatarColor, wins: 0, losses: 0, draws: 0, played: 0, pts: 0 };
+      }
+      if (m.winnerId) {
+        records[m.user1Id].played++;
+        records[m.user2Id].played++;
+        records[m.user1Id].pts += m.user1Points;
+        records[m.user2Id].pts += m.user2Points;
+        if (m.winnerId === 'draw') {
+          records[m.user1Id].draws++;
+          records[m.user2Id].draws++;
+        } else if (m.winnerId === m.user1Id) {
+          records[m.user1Id].wins++;
+          records[m.user2Id].losses++;
+        } else {
+          records[m.user2Id].wins++;
+          records[m.user1Id].losses++;
+        }
+      }
+    }
+
+    res.json({ matchups: enriched, records });
+  } catch (error) {
+    console.error('H2H error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// ============ LEAGUE SETTINGS ============
+
+/**
+ * PUT /api/leagues/:leagueId/settings
+ * Update league settings (commissioner only)
+ */
+router.put('/leagues/:leagueId/settings', authMiddleware, async (req, res) => {
+  try {
+    const { leagueId } = req.params;
+    const userId = req.user.id;
+    const { name, description, isPublic, maxPlayers, transfersPerRound, budget } = req.body;
+
+    // Verify commissioner
+    const member = await prisma.leagueUser.findUnique({
+      where: { userId_leagueId: { userId, leagueId } },
+    });
+    if (!member || member.role !== 'commissioner') {
+      return res.status(403).json({ error: 'Commissioner only' });
+    }
+
+    const updated = await prisma.league.update({
+      where: { id: leagueId },
+      data: {
+        ...(name && { name: name.trim() }),
+        ...(description !== undefined && { description: description.trim() }),
+        ...(isPublic !== undefined && { isPublic }),
+        ...(maxPlayers && { maxPlayers: parseInt(maxPlayers) }),
+        ...(transfersPerRound !== undefined && { transfersPerRound: parseInt(transfersPerRound) }),
+        ...(budget && { budget: parseFloat(budget) }),
+      },
+    });
+
+    res.json({ message: 'Settings updated', league: updated });
+  } catch (error) {
+    console.error('Settings update error:', error);
     res.status(500).json({ error: error.message });
   }
 });
@@ -1036,6 +1232,7 @@ router.post('/admin/check-results', checkResultsLimiter, authMiddleware, async (
       await pricingEngine.processPricingAfterRace(league.id, round);
       // Check achievements and send rank notifications (non-blocking)
       checkAchievementsAfterRace(league.id, round).catch(e => console.error('Achievement check failed:', e));
+      generateH2HMatchups(league.id, round).catch(e => console.error('H2H matchup error:', e));
       notifyResultsImported(league.id, round, league.name, eventLabel).catch(() => {});
       await prisma.userWeeklyTeam.updateMany({
         where: { leagueId: league.id, week: round + 1 },

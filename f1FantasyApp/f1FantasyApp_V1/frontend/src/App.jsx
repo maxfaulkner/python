@@ -13,6 +13,10 @@ import Stats from './pages/Stats';
 import Profile from './pages/Profile';
 import PublicLeagues from './pages/PublicLeagues';
 import LeagueMembers from './pages/LeagueMembers';
+import Transfers from './pages/Transfers';
+import H2HMatchups from './pages/H2HMatchups';
+import Calendar from './pages/Calendar';
+import LeagueSettings from './pages/LeagueSettings';
 
 function Protected({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -36,6 +40,10 @@ export default function App() {
             <Route path="/leagues/:leagueId/chat" element={<Protected><Chat /></Protected>} />
             <Route path="/leagues/:leagueId/stats" element={<Protected><Stats /></Protected>} />
             <Route path="/leagues/:leagueId/members" element={<Protected><LeagueMembers /></Protected>} />
+            <Route path="/leagues/:leagueId/transfers" element={<Protected><Transfers /></Protected>} />
+            <Route path="/leagues/:leagueId/h2h" element={<Protected><H2HMatchups /></Protected>} />
+            <Route path="/leagues/:leagueId/settings" element={<Protected><LeagueSettings /></Protected>} />
+            <Route path="/calendar" element={<Protected><Calendar /></Protected>} />
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>

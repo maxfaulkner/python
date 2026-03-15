@@ -102,6 +102,13 @@ export const api = {
   updateProfile: (data) => request('PUT', '/api/profile', data),
   getPublicProfile: (userId) => request('GET', `/api/profile/${userId}`),
 
+  // H2H
+  getH2HMatchups: (leagueId) => request('GET', `/api/leagues/${leagueId}/h2h`),
+
+  // League Settings (commissioner)
+  updateLeagueSettings: (leagueId, data) =>
+    request('PUT', `/api/leagues/${leagueId}/settings`, data),
+
   // Admin
   getAdminRaceForm: (leagueId, week) =>
     request('GET', `/admin/races/${leagueId}/${week}`),

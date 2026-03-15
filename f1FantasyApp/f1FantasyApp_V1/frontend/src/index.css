@@ -355,3 +355,93 @@ input:focus, textarea:focus, select:focus {
   transform: translateY(-2px);
   border-color: rgba(225,6,0,0.4) !important;
 }
+
+/* ─── Font display alias ─────────────────────────────────────── */
+:root {
+  --font-display: 'Barlow Condensed', sans-serif;
+}
+
+/* ─── Mobile nav hide labels ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav-label { display: none; }
+  .home-layout { padding: 0 4px; }
+}
+
+/* ─── Mobile: Leaderboard buttons wrap ─────────────────────────── */
+@media (max-width: 640px) {
+  .lb-header-actions { flex-wrap: wrap !important; gap: 6px !important; }
+  .lb-header-actions button { font-size: 11px !important; padding: 6px 10px !important; }
+}
+
+/* ─── League card action buttons on mobile ──────────────────── */
+@media (max-width: 520px) {
+  .league-actions { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; }
+}
+
+/* ─── Chat input area ────────────────────────────────────────── */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+@media (max-width: 480px) {
+  .chat-input-row { flex-direction: column; }
+}
+
+/* ─── Stats round pills scroll ───────────────────────────────── */
+.round-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.round-pills::-webkit-scrollbar { height: 3px; }
+.round-pills::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 2px; }
+
+/* ─── Card hover lift ────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* ─── Shimmer loading skeleton ───────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-elevated) 50%, var(--bg-card) 100%);
+  background-size: 200% auto;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--r);
+}
+
+/* ─── Tooltip ────────────────────────────────────────────────── */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+[data-tooltip]:hover::after { opacity: 1; }
+
+/* ─── H2H win/loss colors ────────────────────────────────────── */
+.h2h-win { color: #22c55e; }
+.h2h-loss { color: #f87171; }
+.h2h-draw { color: #fbbf24; }

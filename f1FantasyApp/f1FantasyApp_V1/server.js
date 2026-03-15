@@ -9,6 +9,8 @@ const socialRoutes = require('./routes/social');
 const raceImportJob = require('./jobs/weeklyRaceImportJob');
 const authMiddleware = require('./middleware/auth');
 
+const rateLimit = require('express-rate-limit');
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -20,6 +22,26 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Global rate limiting: 300 requests per minute per IP
+const globalLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 300,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please slow down.' },
+});
+app.use('/api', globalLimiter);
+
+// Auth rate limiting: 20 attempts per minute
+const authLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts, please wait.' },
+});
+app.use('/auth', authLimiter);
 
 // ============ ROUTES ============
 

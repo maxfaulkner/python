@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Link } from 'react-router-dom';
 import { api } from '../api';
+import Navbar from '../components/Navbar';
 
 const TEAM_COLORS = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
@@ -46,21 +47,28 @@ export default function ViewTeam() {
   const budgetUsed = team?.budgetUsed ?? 0;
   const budgetPct = Math.min(100, (budgetUsed / 100) * 100);
 
+  const chipLabels = {
+    wildcard: '🃏 Wildcard', triple_captain: '🎯 Triple Captain',
+    no_negative: '🛡 No Negative', bench_boost: '💺 Bench Boost',
+  };
+
   return (
-    <div className="fade-up" style={{ maxWidth: 640, margin: '0 auto' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+    <Navbar />
+    <div className="fade-up" style={{ maxWidth: 640, margin: '0 auto', padding: '20px 16px' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <div>
+          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
           {leagueName && (
-            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginBottom: 3 }}>
+            <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginBottom: 3, marginTop: 8 }}>
               {leagueName}
             </div>
           )}
-          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2 }}>
+          <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, marginBottom: 2, margin: 0 }}>
             My Team
           </h2>
         </div>
-        <button style={ghostBtn} onClick={() => navigate('/')}>← Back</button>
       </div>
 
       {/* Round navigator */}
@@ -136,6 +144,17 @@ export default function ViewTeam() {
             </div>
           </div>
 
+          {/* Chip badge */}
+          {team.chipUsed && (
+            <div style={{
+              background: 'rgba(251,191,36,0.08)', border: '1px solid rgba(251,191,36,0.2)',
+              borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+              display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, color: '#fbbf24', fontWeight: 600,
+            }}>
+              {chipLabels[team.chipUsed] || team.chipUsed} — Chip Active
+            </div>
+          )}
+
           {/* Drivers */}
           <div style={{
             background: '#18181b', border: '1px solid rgba(255,255,255,0.07)',
@@ -146,16 +165,25 @@ export default function ViewTeam() {
             </div>
             {team.drivers.map((td, i) => {
               const color = teamColor(td.driver?.constructor?.name);
+              const isCaptain = team.captainId === td.driverId;
               return (
                 <div key={td.id} style={{
                   display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                   padding: '11px 18px',
+                  background: isCaptain ? 'rgba(245,158,11,0.04)' : 'transparent',
                   borderBottom: i < team.drivers.length - 1 ? '1px solid rgba(255,255,255,0.04)' : 'none',
                 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <div style={{ width: 3, height: 30, borderRadius: 2, background: color, flexShrink: 0 }} />
+                    <div style={{ width: 3, height: 30, borderRadius: 2, background: isCaptain ? '#fbbf24' : color, flexShrink: 0 }} />
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: 14, color: '#fafafa' }}>{td.driver?.name}</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <span style={{ fontWeight: 600, fontSize: 14, color: '#fafafa' }}>{td.driver?.name}</span>
+                        {isCaptain && (
+                          <span style={{ fontSize: 9, background: 'rgba(251,191,36,0.2)', color: '#fbbf24', padding: '1px 6px', borderRadius: 4, fontWeight: 700 }}>
+                            👑 {team.chipUsed === 'triple_captain' ? '3×' : '2×'} CAPTAIN
+                          </span>
+                        )}
+                      </div>
                       <div style={{ fontSize: 11, color: '#71717a' }}>{td.driver?.constructor?.name}</div>
                     </div>
                   </div>
@@ -205,6 +233,7 @@ export default function ViewTeam() {
           </button>
         </>
       )}
+    </div>
     </div>
   );
 }

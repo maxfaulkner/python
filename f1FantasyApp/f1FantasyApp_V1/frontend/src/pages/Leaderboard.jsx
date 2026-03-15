@@ -112,6 +112,24 @@ export default function Leaderboard() {
             }}
           >💬 Chat</button>
           <button
+            onClick={() => navigate(`/leagues/${leagueId}/members`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >👥 Members</button>
+          <button
+            onClick={() => navigate(`/leagues/${leagueId}/settings`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >⚙️ Settings</button>
+          <button
             onClick={checkForResults}
             disabled={checking}
             style={{
