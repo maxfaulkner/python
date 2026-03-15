@@ -92,7 +92,25 @@ export default function Leaderboard() {
             {hasResults && ` · ${Math.max(...standings.map(s => s.totalPoints))} pts leader`}
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <button
+            onClick={() => navigate(`/leagues/${leagueId}/stats`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >📊 My Stats</button>
+          <button
+            onClick={() => navigate(`/leagues/${leagueId}/chat`)}
+            style={{
+              background: 'rgba(255,255,255,0.04)', color: '#a1a1aa',
+              border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 9, padding: '8px 14px', cursor: 'pointer',
+              fontSize: 13, fontWeight: 600, fontFamily: 'inherit',
+            }}
+          >💬 Chat</button>
           <button
             onClick={checkForResults}
             disabled={checking}
@@ -281,8 +299,21 @@ export default function Leaderboard() {
                         </td>
                       )}
                       <td style={td}>
-                        <div style={{ fontWeight: 600, color: '#fafafa', display: 'flex', alignItems: 'center', gap: 7 }}>
-                          {user.userName}
+                        <div style={{ fontWeight: 600, color: '#fafafa', display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
+                            <div style={{
+                              width: 28, height: 28, borderRadius: '50%',
+                              background: user.avatarColor || '#e10600',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 800, color: '#fff', flexShrink: 0,
+                            }}>
+                              {user.userName?.[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <div style={{ fontSize: 13 }}>{user.userName}</div>
+                              {user.teamName && <div style={{ fontSize: 10, color: '#71717a' }}>{user.teamName}</div>}
+                            </div>
+                          </div>
                           {isYou && (
                             <span style={{
                               fontSize: 9, background: 'rgba(225,6,0,0.15)', color: '#f87171',

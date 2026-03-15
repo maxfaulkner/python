@@ -8,6 +8,29 @@ const f1DataService = require('../services/f1DataService');
 const pricingEngine = require('../services/pricingEngine');
 const authMiddleware = require('../middleware/auth');
 const { isRoundLocked } = require('../jobs/weeklyRaceImportJob');
+const { checkAchievementsAfterRace } = require('../services/achievementService');
+
+// Notify all members of a league that results were imported
+async function notifyResultsImported(leagueId, round, leagueName, eventLabel) {
+  try {
+    const members = await prisma.leagueUser.findMany({
+      where: { leagueId },
+      select: { userId: true },
+    });
+    await prisma.notification.createMany({
+      data: members.map(m => ({
+        userId: m.userId,
+        type: 'result_imported',
+        title: `Results imported — ${leagueName}`,
+        body: `${eventLabel} results are now available. Check the leaderboard!`,
+        data: { leagueId, round },
+      })),
+      skipDuplicates: true,
+    });
+  } catch (e) {
+    console.error('Notify results error:', e);
+  }
+}
 
 const checkResultsLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -886,6 +909,9 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
     // Update pricing
     await pricingEngine.processPricingAfterRace(leagueId, weekNum);
 
+    // Check achievements (non-blocking)
+    checkAchievementsAfterRace(leagueId, weekNum).catch(e => console.error('Achievement check failed:', e));
+
     // Unlock teams for next week
     await prisma.userWeeklyTeam.updateMany({
       where: {
@@ -1008,6 +1034,9 @@ router.post('/admin/check-results', checkResultsLimiter, authMiddleware, async (
         league.id, round, season, results, { isSprint: isSprintImport, sprintResults }
       );
       await pricingEngine.processPricingAfterRace(league.id, round);
+      // Check achievements and send rank notifications (non-blocking)
+      checkAchievementsAfterRace(league.id, round).catch(e => console.error('Achievement check failed:', e));
+      notifyResultsImported(league.id, round, league.name, eventLabel).catch(() => {});
       await prisma.userWeeklyTeam.updateMany({
         where: { leagueId: league.id, week: round + 1 },
         data: { locked: false },

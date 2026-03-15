@@ -12,6 +12,7 @@ import Chat from './pages/Chat';
 import Stats from './pages/Stats';
 import Profile from './pages/Profile';
 import PublicLeagues from './pages/PublicLeagues';
+import LeagueMembers from './pages/LeagueMembers';
 
 function Protected({ children }) {
   return isLoggedIn() ? children : <Navigate to="/login" replace />;
@@ -34,6 +35,7 @@ export default function App() {
             <Route path="/leagues/:leagueId/view/:week" element={<Protected><ViewTeam /></Protected>} />
             <Route path="/leagues/:leagueId/chat" element={<Protected><Chat /></Protected>} />
             <Route path="/leagues/:leagueId/stats" element={<Protected><Stats /></Protected>} />
+            <Route path="/leagues/:leagueId/members" element={<Protected><LeagueMembers /></Protected>} />
             <Route path="/profile" element={<Protected><Profile /></Protected>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
