@@ -645,6 +645,7 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
           )}
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/prices`)} icon="💰">Prices</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/compare`)} icon="⚡">Compare</ActionBtn>
+          <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/quickpick`)} icon="🤖">AutoPick</ActionBtn>
           <ActionBtn onClick={() => onNavigate(`/leagues/${league.id}/admin/${week}`)} icon="⚙️">Admin</ActionBtn>
         </div>
       </div>
