@@ -1,6 +1,6 @@
 {
   "name": "fantasy-f1-league",
-  "version": "1.0.0",
+  "version": "3.0.0",
   "description": "Fantasy F1 League - Weekly driver/team selection with dynamic pricing",
   "main": "server.js",
   "scripts": {
