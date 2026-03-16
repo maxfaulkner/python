@@ -338,23 +338,41 @@ export default function LeagueHome() {
                 background: '#18181b', border: '1px solid rgba(255,255,255,0.06)',
                 borderRadius: 14, padding: '18px 20px',
               }}>
-                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 14 }}>
-                  Your Team — Round {currentWeek}
+                <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#52525b', marginBottom: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span>Your Team — Round {currentWeek}</span>
+                  {currentTeam.locked && (
+                    <span style={{ fontSize: 10, background: 'rgba(245,158,11,0.1)', color: '#fbbf24', padding: '2px 8px', borderRadius: 4, fontWeight: 700 }}>
+                      🔒 Locked
+                    </span>
+                  )}
                 </div>
                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                  {currentTeam.drivers?.map(td => (
-                    <div key={td.driverId || td.id} style={{
-                      background: '#27272a',
-                      border: `1px solid rgba(255,255,255,0.07)`,
-                      borderTop: `2px solid ${tColor(td.driver?.constructor?.name)}`,
-                      borderRadius: 8, padding: '8px 12px',
-                    }}>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: currentTeam.captainId === (td.driverId || td.id) ? '#fbbf24' : '#fafafa' }}>
-                        {currentTeam.captainId === (td.driverId || td.id) ? '👑 ' : ''}{td.driver?.name}
+                  {currentTeam.drivers?.map(td => {
+                    const isCaptain = currentTeam.captainId === (td.driverId || td.id);
+                    return (
+                      <div key={td.driverId || td.id} style={{
+                        background: '#27272a',
+                        border: `1px solid rgba(255,255,255,0.07)`,
+                        borderTop: `2px solid ${isCaptain ? '#fbbf24' : tColor(td.driver?.constructor?.name)}`,
+                        borderRadius: 8, padding: '8px 12px',
+                      }}>
+                        <div style={{ fontSize: 12, fontWeight: 700, color: isCaptain ? '#fbbf24' : '#fafafa' }}>
+                          {isCaptain ? '👑 ' : ''}{td.driver?.name}
+                        </div>
+                        <div style={{ fontSize: 10, color: '#71717a', marginTop: 2 }}>{td.driver?.constructor?.name}</div>
+                        <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                          {td.pricePaidPerPoint != null && (
+                            <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${td.pricePaidPerPoint.toFixed(1)}M</span>
+                          )}
+                          {td.roundPoints != null && (
+                            <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: td.roundPoints > 0 ? '#22c55e' : td.roundPoints < 0 ? '#f87171' : '#52525b' }}>
+                              {td.roundPoints > 0 ? '+' : ''}{td.roundPoints}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ fontSize: 10, color: '#71717a', marginTop: 2 }}>{td.driver?.constructor?.name}</div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {currentTeam.constructors?.[0] && (
                     <div style={{
                       background: 'rgba(225,6,0,0.07)', border: '1px solid rgba(225,6,0,0.2)',
@@ -364,12 +382,34 @@ export default function LeagueHome() {
                         {currentTeam.constructors[0].constructor?.name}
                       </div>
                       <div style={{ fontSize: 10, color: '#e10600', marginTop: 2 }}>Constructor</div>
+                      <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                        {currentTeam.constructors[0].pricePaidPerPoint != null && (
+                          <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${currentTeam.constructors[0].pricePaidPerPoint.toFixed(1)}M</span>
+                        )}
+                        {currentTeam.constructors[0].roundPoints != null && (
+                          <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: currentTeam.constructors[0].roundPoints > 0 ? '#22c55e' : '#52525b' }}>
+                            {currentTeam.constructors[0].roundPoints > 0 ? '+' : ''}{currentTeam.constructors[0].roundPoints}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
                 {currentTeam.budgetUsed != null && (
-                  <div style={{ marginTop: 10, fontSize: 11, color: '#52525b' }}>
-                    ${currentTeam.budgetUsed?.toFixed(1)}M of $100M used
+                  <div style={{ marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ fontSize: 11, color: '#52525b' }}>
+                      ${currentTeam.budgetUsed?.toFixed(1)}M of $100M used
+                    </div>
+                    <button
+                      onClick={() => navigate(`/leagues/${leagueId}/viewteam/${currentWeek}`)}
+                      style={{
+                        background: 'none', border: 'none', color: '#e10600',
+                        cursor: 'pointer', fontSize: 12, fontWeight: 600,
+                        fontFamily: 'inherit', padding: 0,
+                      }}
+                    >
+                      View Full Team →
+                    </button>
                   </div>
                 )}
               </div>

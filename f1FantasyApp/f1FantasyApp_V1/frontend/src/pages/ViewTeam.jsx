@@ -24,11 +24,13 @@ export default function ViewTeam() {
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [prevRoundPoints, setPrevRoundPoints] = useState(null);
 
   useEffect(() => {
     setLoading(true);
     setError('');
     setTeam(null);
+    setPrevRoundPoints(null);
     Promise.all([
       api.getTeam(leagueId, week).catch(() => null),
       api.getLeagues().catch(() => []),
@@ -38,6 +40,13 @@ export default function ViewTeam() {
       if (lg) setLeagueName(lg.name);
     }).catch(err => setError(err.message))
       .finally(() => setLoading(false));
+
+    // Load previous round for comparison
+    if (week > 1) {
+      api.getTeam(leagueId, week - 1).then(prev => {
+        if (prev?.totalRoundPoints != null) setPrevRoundPoints(prev.totalRoundPoints);
+      }).catch(() => {});
+    }
   }, [leagueId, week]);
 
   function changeWeek(delta) {
@@ -149,6 +158,28 @@ export default function ViewTeam() {
             </div>
           )}
 
+          {/* No captain warning */}
+          {team && team.drivers.length > 0 && !team.captainId && !isLocked && (
+            <div style={{
+              background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.25)',
+              borderRadius: 10, padding: '10px 16px', marginBottom: 12,
+              display: 'flex', alignItems: 'center', gap: 10,
+              fontSize: 13, color: '#fbbf24', fontWeight: 600,
+            }}>
+              ⚠ No captain selected — you're missing out on the 2× bonus!
+              <button
+                onClick={() => navigate(`/leagues/${leagueId}/team/${week}`)}
+                style={{
+                  background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.3)',
+                  borderRadius: 6, padding: '3px 10px', cursor: 'pointer',
+                  fontSize: 11, fontWeight: 700, color: '#fbbf24', fontFamily: 'inherit', marginLeft: 'auto',
+                }}
+              >
+                Fix Now →
+              </button>
+            </div>
+          )}
+
           {/* Drivers */}
           <div style={{
             background: '#18181b', border: '1px solid rgba(255,255,255,0.07)',
@@ -237,6 +268,18 @@ export default function ViewTeam() {
               <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 28, color: team.totalRoundPoints > 0 ? '#22c55e' : 'rgba(255,255,255,0.4)' }}>
                 {team.totalRoundPoints}
               </span>
+              {prevRoundPoints != null && team.totalRoundPoints != null && (() => {
+                const diff = team.totalRoundPoints - prevRoundPoints;
+                if (diff === 0) return null;
+                return (
+                  <span style={{
+                    fontSize: 12, fontWeight: 700, marginLeft: 8,
+                    color: diff > 0 ? '#22c55e' : '#f87171',
+                  }}>
+                    {diff > 0 ? '▲' : '▼'} {Math.abs(diff)} vs R{week - 1}
+                  </span>
+                );
+              })()}
             </div>
           )}
 
@@ -255,6 +298,23 @@ export default function ViewTeam() {
             {isLocked ? '🔒 TEAM LOCKED' : 'EDIT TEAM →'}
           </button>
         </>
+      )}
+      {team && !loading && (
+        <div style={{ marginTop: 12, textAlign: 'center' }}>
+          <button
+            onClick={() => navigate(`/leagues/${leagueId}/team/${week + 1}`)}
+            style={{
+              background: 'transparent', border: '1px solid rgba(255,255,255,0.08)',
+              borderRadius: 9, padding: '8px 20px', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, color: '#71717a', fontFamily: 'inherit',
+              transition: 'all 0.15s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.color = '#a1a1aa'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.15)'; }}
+            onMouseLeave={e => { e.currentTarget.style.color = '#71717a'; e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; }}
+          >
+            Pick Round {week + 1} Team →
+          </button>
+        </div>
       )}
     </div>
     </div>

@@ -1,7 +1,8 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 export default function AdminRace() {
   const { leagueId, week: weekParam } = useParams();
@@ -55,12 +56,14 @@ export default function AdminRace() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
   if (!formData) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
       <div style={{ maxWidth: 680, margin: '60px auto', color: '#fca5a5', background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', padding: '12px 16px', borderRadius: 8, fontSize: 14 }}>
         {error || 'Failed to load form data'}
       </div>
@@ -76,14 +79,9 @@ export default function AdminRace() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
     <Navbar />
+    <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
     <div className="fade-up" style={{ maxWidth: 680, margin: '0 auto', padding: '20px 16px' }}>
       <div style={{ marginBottom: 20 }}>
-        <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-        {leagueName && (
-          <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#e10600', marginTop: 8, marginBottom: 2 }}>
-            {leagueName}
-          </div>
-        )}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, margin: 0 }}>
             ⚙️ Admin — Enter Results
@@ -128,6 +126,41 @@ export default function AdminRace() {
           {success}
         </div>
       )}
+
+      {/* Quick fill helper */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+        <button
+          type="button"
+          onClick={() => {
+            const allDrivers = formData.drivers;
+            const filled = {};
+            allDrivers.forEach((d, i) => { filled[d.id] = String(i + 1); });
+            setPositions(filled);
+          }}
+          style={{
+            background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+            borderRadius: 7, padding: '5px 12px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, color: '#a1a1aa', fontFamily: 'inherit',
+          }}
+        >
+          Quick Fill 1–{formData.drivers.length}
+        </button>
+        <button
+          type="button"
+          onClick={() => {
+            const cleared = {};
+            formData.drivers.forEach(d => { cleared[d.id] = ''; });
+            setPositions(cleared);
+          }}
+          style={{
+            background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)',
+            borderRadius: 7, padding: '5px 12px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, color: '#52525b', fontFamily: 'inherit',
+          }}
+        >
+          Clear All
+        </button>
+      </div>
 
       <form onSubmit={handleSubmit}>
         {Object.entries(byConstructor).map(([constructor, drivers]) => (

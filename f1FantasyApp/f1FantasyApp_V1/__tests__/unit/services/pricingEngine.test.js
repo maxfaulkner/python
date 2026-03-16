@@ -119,13 +119,27 @@ describe('calculateMarketPressure', () => {
 });
 
 describe('updateDriverPrice', () => {
-  test('throws only when no price exists in ANY week up to currentWeek', async () => {
-    // Both findUnique (exact week) and findFirst (fallback) return null
+  test('seeds a $8M default price and does NOT throw when no price exists for any week', async () => {
+    // Both findUnique (exact week) and findFirst (fallback) return null — driver has zero price records
     prisma.driverPrice.findUnique.mockResolvedValue(null);
     prisma.driverPrice.findFirst.mockResolvedValue(null);
-    await expect(
-      updateDriverPrice(mockDriver, 5, 'lg1', 2)
-    ).rejects.toThrow(/no price found/i);
+    prisma.driverPrice.upsert.mockResolvedValue({ driverId: mockDriver.id, week: 2, price: 8.0 });
+    prisma.raceResult.findMany.mockResolvedValue([]);
+    prisma.userWeeklyTeamDriver.count.mockResolvedValue(0);
+    prisma.userWeeklyTeam.count.mockResolvedValue(0);
+    prisma.pricingAuditLog.create.mockResolvedValue({});
+
+    // Must NOT throw — should use $8M default and return a valid new price
+    const newPrice = await updateDriverPrice(mockDriver, 5, 'lg1', 2);
+    expect(typeof newPrice).toBe('number');
+    expect(newPrice).toBeGreaterThanOrEqual(0.5);
+    // Confirm upsert was called to seed the default
+    expect(prisma.driverPrice.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { driverId_week: { driverId: mockDriver.id, week: 2 } },
+        create: expect.objectContaining({ price: 8.0 }),
+      })
+    );
   });
 
   test('falls back to previous-week price when current week price is missing (regression: week-2 import)', async () => {

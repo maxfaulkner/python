@@ -1,8 +1,9 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 const QUICK_REACTIONS = ['👍', '🔥', '😭', '🏆', '😂', '👀', '🚀', '❤️'];
 
@@ -264,15 +265,12 @@ export default function Chat() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)', display: 'flex', flexDirection: 'column' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName || ''} />
 
       <div style={{ maxWidth: 800, margin: '0 auto', width: '100%', flex: 1, display: 'flex', flexDirection: 'column', padding: '0 16px 16px' }}>
         {/* Header */}
         <div style={{ padding: '20px 0 12px', display: 'flex', alignItems: 'center', gap: 12, borderBottom: '1px solid var(--border)' }}>
-          <Link to="/leagues" style={{ color: 'rgba(255,255,255,0.5)', textDecoration: 'none', fontSize: 13 }}>← Back</Link>
           <div>
-            <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)' }}>
-              {leagueName}
-            </div>
             <h1 style={{ margin: 0, fontSize: 22, fontFamily: 'var(--font-display)', color: '#fff' }}>League Chat</h1>
           </div>
           <div style={{ marginLeft: 'auto', fontSize: 11, color: 'rgba(255,255,255,0.3)' }}>

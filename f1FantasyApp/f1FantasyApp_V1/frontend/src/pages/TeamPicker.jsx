@@ -81,11 +81,16 @@ export default function TeamPicker() {
     if (locked) return;
     setSelectedDrivers(prev => {
       if (prev.includes(driverId)) {
-        // If deselecting captain, clear captain
         if (captainId === driverId) setCaptainId(null);
         return prev.filter(id => id !== driverId);
       }
-      return prev.length < 5 ? [...prev, driverId] : prev;
+      if (prev.length >= 5) return prev;
+      const next = [...prev, driverId];
+      // Auto-assign captain when 5th driver picked and no captain set yet
+      if (next.length === 5 && !captainId) {
+        setCaptainId(next[0]);
+      }
+      return next;
     });
   }
 
@@ -221,6 +226,15 @@ export default function TeamPicker() {
     .sort((a, b) => {
       if (sortBy === 'price_desc') return b.price - a.price;
       if (sortBy === 'price_asc') return a.price - b.price;
+      if (sortBy === 'form') {
+        // Sort by best recent form — lowest finishing position = best
+        const getFormScore = (d) => {
+          const results = formData.form[d.driverId];
+          if (!results || results.length === 0) return 999;
+          return results[results.length - 1].position; // most recent
+        };
+        return getFormScore(a) - getFormScore(b);
+      }
       // default: sort by team then by price desc within team
       const teamCmp = a.driver.constructor.name.localeCompare(b.driver.constructor.name);
       return teamCmp !== 0 ? teamCmp : b.price - a.price;
@@ -230,7 +244,7 @@ export default function TeamPicker() {
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
       <LeagueNav leagueId={leagueId} week={parseInt(week)} leagueName={leagueName} />
-      <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px' }}>
+      <div className="fade-up" style={{ maxWidth: 900, margin: '0 auto', padding: '24px 24px 100px' }}>
       {/* Header */}
       <div style={{ marginBottom: 20 }}>
         <h2 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 28, letterSpacing: '-0.01em', marginBottom: 2 }}>
@@ -285,6 +299,22 @@ export default function TeamPicker() {
           }} />
         </div>
       </div>
+      {(selectedDrivers.length > 0 || selectedConstructor || captainId || chipUsed) && (
+        <div style={{ textAlign: 'right', marginTop: 6 }}>
+          <button
+            onClick={() => { setSelectedDrivers([]); setSelectedConstructor(null); setCaptainId(null); setChipUsed(null); }}
+            style={{
+              background: 'none', border: 'none', color: '#52525b', fontSize: 11,
+              cursor: 'pointer', fontFamily: 'inherit', padding: 0,
+              transition: 'color 0.15s',
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = '#f87171'}
+            onMouseLeave={e => e.currentTarget.style.color = '#52525b'}
+          >
+            ✕ Reset all
+          </button>
+        </div>
+      )}
 
       {error && (
         <div style={{ background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)', color: '#fca5a5', padding: '10px 14px', borderRadius: 9, marginBottom: 14, fontSize: 13 }}>
@@ -373,7 +403,7 @@ export default function TeamPicker() {
           </div>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
             <div style={{ display: 'flex', background: '#18181b', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 7, overflow: 'hidden' }}>
-              {[['team', 'Team'], ['price_desc', '$ ↓'], ['price_asc', '$ ↑']].map(([val, label]) => (
+              {[['team', 'Team'], ['price_desc', '$ ↓'], ['price_asc', '$ ↑'], ['form', 'Form']].map(([val, label]) => (
                 <button key={val} onClick={() => setSortBy(val)} style={{
                   padding: '4px 9px', fontSize: 11, fontWeight: 600,
                   background: sortBy === val ? '#e10600' : 'transparent',
@@ -530,6 +560,68 @@ export default function TeamPicker() {
           : canSubmit ? 'SAVE TEAM →' : 'COMPLETE YOUR TEAM TO SAVE'
         }
       </button>
+      {/* Sticky bottom bar — selected picks summary */}
+      {(selectedDrivers.length > 0 || selectedConstructor) && !success && (
+        <div style={{
+          position: 'fixed', bottom: 0, left: 0, right: 0, zIndex: 100,
+          background: 'rgba(9,9,11,0.96)', backdropFilter: 'blur(12px)',
+          borderTop: '1px solid rgba(255,255,255,0.08)',
+          padding: '10px 16px',
+          display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap',
+          justifyContent: 'space-between',
+        }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', flex: 1 }}>
+            {selectedDrivers.map(id => {
+              const d = prices.drivers.find(p => p.driverId === id);
+              if (!d) return null;
+              const isCaptain = captainId === id;
+              return (
+                <div key={id} style={{
+                  background: isCaptain ? 'rgba(251,191,36,0.15)' : 'rgba(255,255,255,0.07)',
+                  border: `1px solid ${isCaptain ? 'rgba(251,191,36,0.4)' : 'rgba(255,255,255,0.12)'}`,
+                  borderRadius: 6, padding: '3px 8px',
+                  fontSize: 11, fontWeight: 600,
+                  color: isCaptain ? '#fbbf24' : '#fafafa',
+                }}>
+                  {isCaptain ? '👑 ' : ''}{d.driver?.abbr || d.driver?.name?.split(' ').pop()}
+                </div>
+              );
+            })}
+            {selectedConstructor && (() => {
+              const c = prices.constructors.find(p => p.constructorId === selectedConstructor);
+              return c ? (
+                <div style={{
+                  background: 'rgba(225,6,0,0.1)', border: '1px solid rgba(225,6,0,0.25)',
+                  borderRadius: 6, padding: '3px 8px', fontSize: 11, fontWeight: 600, color: '#f87171',
+                }}>
+                  {c.constructor?.name?.split(' ').pop()}
+                </div>
+              ) : null;
+            })()}
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+            <span style={{
+              fontSize: 14, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif",
+              color: overBudget ? '#f87171' : remaining < 5 ? '#fbbf24' : '#22c55e',
+            }}>
+              ${remaining.toFixed(1)}M left
+            </span>
+            <button
+              onClick={handleSubmit}
+              disabled={submitting || !canSubmit}
+              style={{
+                background: !canSubmit ? '#3f3f46' : '#e10600',
+                color: '#fff', border: 'none', borderRadius: 8,
+                padding: '8px 18px', cursor: !canSubmit ? 'not-allowed' : 'pointer',
+                fontSize: 13, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif",
+                letterSpacing: '0.04em',
+              }}
+            >
+              {submitting ? 'Saving…' : canSubmit ? 'SAVE →' : 'COMPLETE TEAM'}
+            </button>
+          </div>
+        </div>
+      )}
       </div>
     </div>
   );

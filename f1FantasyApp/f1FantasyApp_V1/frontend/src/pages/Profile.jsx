@@ -228,6 +228,7 @@ export default function Profile() {
             {[
               { label: 'Total Points', value: profile.stats.totalPoints, icon: '🏆' },
               { label: 'Rounds Played', value: profile.stats.roundsPlayed, icon: '🏁' },
+              { label: 'Avg / Round', value: profile.stats.roundsPlayed > 0 ? (profile.stats.totalPoints / profile.stats.roundsPlayed).toFixed(1) : '—', icon: '📈' },
               { label: 'Best Round', value: profile.stats.bestRoundPoints, icon: '⚡' },
               { label: 'Leagues', value: profile.stats.leagueCount, icon: '🏎️' },
               { label: 'Achievements', value: profile.stats.achievementCount, icon: '🎖️' },
@@ -254,7 +255,7 @@ export default function Profile() {
               {profile.leagues.map(lu => (
                 <Link
                   key={lu.leagueId}
-                  to={`/leagues/${lu.leagueId}/leaderboard`}
+                  to={`/leagues/${lu.leagueId}`}
                   style={{
                     background: 'var(--bg-card)', border: '1px solid var(--border)',
                     borderRadius: 10, padding: '12px 16px', textDecoration: 'none',

@@ -103,6 +103,16 @@ export default function Leaderboard() {
     setViewingTeam(null);
   }
 
+  useEffect(() => {
+    function handleKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+      if (e.key === 'ArrowLeft') changeWeek(-1);
+      if (e.key === 'ArrowRight') changeWeek(1);
+    }
+    document.addEventListener('keydown', handleKey);
+    return () => document.removeEventListener('keydown', handleKey);
+  }, [week]); // week dependency so changeWeek closure is fresh
+
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
@@ -110,6 +120,12 @@ export default function Leaderboard() {
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
+
+  const roundWinnerId = hasResults
+    ? standings
+        .filter(s => s.roundPoints?.[week] != null)
+        .sort((a, b) => (b.roundPoints?.[week] || 0) - (a.roundPoints?.[week] || 0))[0]?.userId
+    : null;
 
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
@@ -274,6 +290,36 @@ export default function Leaderboard() {
           >›</button>
         </div>
       </div>
+      <div style={{ fontSize: 10, color: '#3f3f46', textAlign: 'right', marginTop: 4, marginBottom: 8 }}>
+        ← → arrow keys to navigate rounds
+      </div>
+
+      {hasResults && (() => {
+        const roundScores = standings
+          .filter(s => s.roundPoints?.[week] != null)
+          .sort((a, b) => (b.roundPoints[week] || 0) - (a.roundPoints[week] || 0));
+        const winner = roundScores[0];
+        if (!winner || !winner.roundPoints?.[week]) return null;
+        const isYouWinner = winner.userId === currentUser?.id;
+        return (
+          <div style={{
+            background: 'rgba(245,158,11,0.07)', border: '1px solid rgba(245,158,11,0.2)',
+            borderRadius: 10, padding: '10px 16px', marginBottom: 14,
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <span style={{ fontSize: 18 }}>🏆</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: '#fbbf24' }}>
+              Round {week} winner:
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: '#fafafa' }}>
+              {isYouWinner ? 'You' : winner.userName}
+            </span>
+            <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 800, fontSize: 16, color: '#fbbf24', marginLeft: 'auto' }}>
+              {winner.roundPoints[week]} pts
+            </span>
+          </div>
+        );
+      })()}
 
       {/* Standings table */}
       <div style={{
@@ -293,6 +339,7 @@ export default function Leaderboard() {
                 <th style={th}>Player</th>
                 {hasResults && <th style={th}>Points</th>}
                 {hasResults && <th style={th}>Wins</th>}
+                {hasResults && <th style={th}>Rnd {week}</th>}
                 <th style={th}>Round {week} Team</th>
               </tr>
             </thead>
@@ -300,13 +347,17 @@ export default function Leaderboard() {
               {standings.map((user, i) => {
                 const isYou = user.userId === currentUser?.id;
                 const isExpanded = viewingTeam?.userId === user.userId;
-                const colSpan = hasResults ? 5 : 2;
+                const colSpan = hasResults ? 6 : 2;
                 return (
                   <>
                     <tr
                       key={user.userId}
                       style={{
-                        background: isYou ? 'rgba(225,6,0,0.05)' : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
+                        background: isYou
+                          ? 'rgba(225,6,0,0.05)'
+                          : user.userId === roundWinnerId && hasResults
+                          ? 'rgba(245,158,11,0.04)'
+                          : i % 2 === 0 ? 'transparent' : 'rgba(255,255,255,0.015)',
                         borderBottom: '1px solid rgba(255,255,255,0.04)',
                       }}
                     >
@@ -356,6 +407,16 @@ export default function Leaderboard() {
                         <td style={td}>
                           {user.totalWins > 0
                             ? <span style={{ color: '#f59e0b', fontWeight: 700 }}>🏆 {user.totalWins}</span>
+                            : <span style={{ color: '#3f3f46' }}>—</span>
+                          }
+                        </td>
+                      )}
+                      {hasResults && (
+                        <td style={td}>
+                          {user.roundPoints?.[week] != null
+                            ? <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 16, color: user.userId === roundWinnerId ? '#fbbf24' : user.roundPoints[week] > 0 ? '#a1a1aa' : '#52525b' }}>
+                                {user.roundPoints[week]}
+                              </span>
                             : <span style={{ color: '#3f3f46' }}>—</span>
                           }
                         </td>
@@ -471,16 +532,31 @@ function TeamCard({ team, userName }) {
         {userName}'s picks — Round {team.week}
       </div>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-        {team.drivers.map(td => (
-          <div key={td.id} style={{
-            background: '#27272a', border: '1px solid rgba(255,255,255,0.07)',
-            borderRadius: 8, padding: '6px 12px',
-            borderTop: `2px solid ${tColor(td.driver?.constructor?.name)}`,
-          }}>
-            <div style={{ fontWeight: 600, fontSize: 12, color: '#fafafa' }}>{td.driver?.name}</div>
-            <div style={{ fontSize: 10, color: '#71717a' }}>{td.driver?.constructor?.name}</div>
-          </div>
-        ))}
+        {team.drivers.map(td => {
+          const isCaptain = team.captainId === td.driverId;
+          return (
+            <div key={td.id} style={{
+              background: '#27272a', border: '1px solid rgba(255,255,255,0.07)',
+              borderRadius: 8, padding: '6px 12px',
+              borderTop: `2px solid ${isCaptain ? '#fbbf24' : tColor(td.driver?.constructor?.name)}`,
+            }}>
+              <div style={{ fontWeight: 600, fontSize: 12, color: isCaptain ? '#fbbf24' : '#fafafa' }}>
+                {isCaptain ? '👑 ' : ''}{td.driver?.name}
+              </div>
+              <div style={{ fontSize: 10, color: '#71717a' }}>{td.driver?.constructor?.name}</div>
+              <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+                {td.pricePaidPerPoint != null && (
+                  <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${td.pricePaidPerPoint.toFixed(1)}M</span>
+                )}
+                {td.roundPoints != null && (
+                  <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: td.roundPoints > 0 ? '#22c55e' : td.roundPoints < 0 ? '#f87171' : '#52525b' }}>
+                    {td.roundPoints > 0 ? '+' : ''}{td.roundPoints}
+                  </span>
+                )}
+              </div>
+            </div>
+          );
+        })}
         {team.constructors[0] && (
           <div style={{
             background: 'rgba(225,6,0,0.08)', border: '1px solid rgba(225,6,0,0.2)',
@@ -489,11 +565,28 @@ function TeamCard({ team, userName }) {
           }}>
             <div style={{ fontWeight: 600, fontSize: 12, color: '#fafafa' }}>{team.constructors[0].constructor?.name}</div>
             <div style={{ fontSize: 10, color: '#e10600' }}>Constructor</div>
+            <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
+              {team.constructors[0].pricePaidPerPoint != null && (
+                <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${team.constructors[0].pricePaidPerPoint.toFixed(1)}M</span>
+              )}
+              {team.constructors[0].roundPoints != null && (
+                <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: team.constructors[0].roundPoints > 0 ? '#22c55e' : '#52525b' }}>
+                  {team.constructors[0].roundPoints > 0 ? '+' : ''}{team.constructors[0].roundPoints}
+                </span>
+              )}
+            </div>
           </div>
         )}
       </div>
-      <div style={{ fontSize: 11, color: '#52525b', marginTop: 8 }}>
-        Budget: ${team.budgetUsed?.toFixed(1)}M of $100M used
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 }}>
+        <div style={{ fontSize: 11, color: '#52525b' }}>
+          Budget: ${team.budgetUsed?.toFixed(1)}M of $100M used
+        </div>
+        {team.totalRoundPoints != null && (
+          <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 900, fontSize: 16, color: team.totalRoundPoints > 0 ? '#22c55e' : '#52525b' }}>
+            {team.totalRoundPoints > 0 ? '+' : ''}{team.totalRoundPoints} pts
+          </div>
+        )}
       </div>
     </div>
   );

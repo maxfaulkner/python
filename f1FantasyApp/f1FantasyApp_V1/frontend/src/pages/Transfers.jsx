@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 const TEAM_COLORS = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
@@ -22,6 +23,7 @@ export default function Transfers() {
   const [transfers, setTransfers] = useState([]);
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);
+  const [mineOnly, setMineOnly] = useState(false);
 
   useEffect(() => {
     Promise.all([
@@ -36,7 +38,8 @@ export default function Transfers() {
   }, [leagueId]);
 
   // Group transfers by round
-  const byRound = transfers.reduce((acc, tx) => {
+  const displayTransfers = mineOnly ? transfers.filter(tx => tx.userId === currentUserId) : transfers;
+  const byRound = displayTransfers.reduce((acc, tx) => {
     const key = tx.week ?? tx.round ?? 0;
     if (!acc[key]) acc[key] = [];
     acc[key].push(tx);
@@ -47,6 +50,7 @@ export default function Transfers() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -54,17 +58,26 @@ export default function Transfers() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
 
         {/* Header */}
-        <div style={{ marginBottom: 24 }}>
-          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-          <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)', marginTop: 8 }}>
-            {leagueName}
-          </div>
-          <h1 style={{ margin: '4px 0 0', fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+          <h1 style={{ margin: 0, fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
             Transfer History
           </h1>
+          <button
+            onClick={() => setMineOnly(m => !m)}
+            style={{
+              background: mineOnly ? 'rgba(225,6,0,0.1)' : 'rgba(255,255,255,0.04)',
+              border: `1px solid ${mineOnly ? 'rgba(225,6,0,0.3)' : 'rgba(255,255,255,0.09)'}`,
+              borderRadius: 8, padding: '6px 14px', cursor: 'pointer',
+              fontSize: 12, fontWeight: 600, color: mineOnly ? '#f87171' : '#a1a1aa',
+              fontFamily: 'inherit',
+            }}
+          >
+            {mineOnly ? '👤 Mine only' : '👥 All players'}
+          </button>
         </div>
 
         {transfers.length === 0 ? (
@@ -83,8 +96,12 @@ export default function Transfers() {
                 fontSize: 11, fontWeight: 700, letterSpacing: '0.1em',
                 textTransform: 'uppercase', color: 'var(--text-3)',
                 marginBottom: 8, paddingLeft: 4,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'center',
               }}>
-                Round {round}
+                <span>Round {round}</span>
+                <span style={{ color: '#3f3f46', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>
+                  {byRound[round].length} transfer{byRound[round].length !== 1 ? 's' : ''}
+                </span>
               </div>
               <div style={{
                 background: 'var(--bg-card)',
@@ -100,6 +117,15 @@ export default function Transfers() {
                   />
                 ))}
               </div>
+              {(() => {
+                const netCost = byRound[round].reduce((s, tx) => s + (tx.costDiff || 0), 0);
+                if (netCost === 0) return null;
+                return (
+                  <div style={{ fontSize: 11, color: netCost > 0 ? '#f87171' : '#86efac', paddingLeft: 4, marginTop: 4, fontWeight: 600 }}>
+                    Net cost: {netCost > 0 ? '+' : ''}{netCost.toFixed(1)}M this round
+                  </div>
+                );
+              })()}
             </div>
           ))
         )}

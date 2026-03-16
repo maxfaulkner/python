@@ -1,8 +1,62 @@
-import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useState, useEffect, useRef } from 'react';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
 import LeagueNav from '../components/LeagueNav';
+
+/* ── Info tooltip ────────────────────────────────────────────── */
+function InfoTooltip({ text }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function handleClick(e) {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    }
+    document.addEventListener('mousedown', handleClick);
+    return () => document.removeEventListener('mousedown', handleClick);
+  }, [open]);
+
+  return (
+    <span ref={ref} style={{ position: 'relative', display: 'inline-flex', verticalAlign: 'middle', marginLeft: 5 }}>
+      <button
+        onClick={e => { e.stopPropagation(); setOpen(o => !o); }}
+        style={{
+          width: 15, height: 15, borderRadius: '50%',
+          background: open ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.08)',
+          border: '1px solid rgba(255,255,255,0.2)',
+          color: 'rgba(255,255,255,0.5)', fontSize: 9, fontWeight: 700,
+          cursor: 'pointer', display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+          padding: 0, lineHeight: 1, fontFamily: 'serif',
+          transition: 'all 0.15s', flexShrink: 0,
+        }}
+        title={text}
+      >
+        i
+      </button>
+      {open && (
+        <div style={{
+          position: 'absolute', bottom: 'calc(100% + 6px)', left: '50%',
+          transform: 'translateX(-50%)',
+          background: '#1c1c1f', border: '1px solid rgba(255,255,255,0.12)',
+          borderRadius: 8, padding: '8px 12px',
+          fontSize: 12, color: 'rgba(255,255,255,0.75)', lineHeight: 1.5,
+          width: 220, zIndex: 999, boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
+          pointerEvents: 'none',
+        }}>
+          {text}
+          <div style={{
+            position: 'absolute', bottom: -5, left: '50%', transform: 'translateX(-50%)',
+            width: 8, height: 8, background: '#1c1c1f',
+            border: '1px solid rgba(255,255,255,0.12)', borderTop: 'none', borderLeft: 'none',
+            transform: 'translateX(-50%) rotate(45deg)',
+          }} />
+        </div>
+      )}
+    </span>
+  );
+}
 
 /* ── Mini bar chart ─────────────────────────────────────────── */
 function MiniBarChart({ data, color = '#e10600', label = '' }) {
@@ -84,14 +138,15 @@ function CumulativeChart({ rounds }) {
 }
 
 /* ── Stat card ──────────────────────────────────────────────── */
-function StatCard({ label, value, sub, color = '#fff', icon }) {
+function StatCard({ label, value, sub, color = '#fff', icon, info }) {
   return (
     <div style={{
       background: 'var(--bg-card)', border: '1px solid var(--border)',
       borderRadius: 12, padding: '16px 20px',
     }}>
-      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>
+      <div style={{ fontSize: 11, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center' }}>
         {icon && <span style={{ marginRight: 4 }}>{icon}</span>}{label}
+        {info && <InfoTooltip text={info} />}
       </div>
       <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'var(--font-display)', color, lineHeight: 1 }}>{value}</div>
       {sub && <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', marginTop: 4 }}>{sub}</div>}
@@ -100,7 +155,7 @@ function StatCard({ label, value, sub, color = '#fff', icon }) {
 }
 
 /* ── Driver row in points breakdown ────────────────────────── */
-function DriverRow({ name, abbr, isCaptain, points, color }) {
+function DriverRow({ name, isCaptain, points, color }) {
   return (
     <div style={{
       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
@@ -185,6 +240,14 @@ export default function Stats() {
 
   const totalCaptainBonus = stats.rounds.reduce((s, r) => s + (r.captainBonus || 0), 0);
 
+  const captainFreq = {};
+  for (const r of stats.rounds) {
+    if (r.captainName) {
+      captainFreq[r.captainName] = (captainFreq[r.captainName] || 0) + 1;
+    }
+  }
+  const goToCaptain = Object.entries(captainFreq).sort((a, b) => b[1] - a[1])[0];
+
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
@@ -197,11 +260,16 @@ export default function Stats() {
 
         {/* Summary cards */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 12, marginBottom: 24 }}>
-          <StatCard label="Total Points" value={stats.totalPoints} icon="🏆" color="#fff" />
-          <StatCard label="Rounds Played" value={stats.roundsPlayed} icon="🏁" color="rgba(255,255,255,0.8)" />
-          <StatCard label="Avg Per Round" value={stats.avgPoints} sub="points" icon="📈" color="rgba(255,255,255,0.8)" />
-          <StatCard label="Best Round" value={stats.bestRound?.points || 0} sub={`Round ${stats.bestRound?.week}`} icon="⚡" color="#22c55e" />
-          <StatCard label="Captain Bonus" value={`+${totalCaptainBonus}`} sub={`${captainPct}% hit rate`} icon="👑" color="#fbbf24" />
+          <StatCard label="Total Points" value={stats.totalPoints} icon="🏆" color="#fff"
+            info="Your cumulative score across all rounds this season, based on your drivers' and constructor's finishing positions." />
+          <StatCard label="Rounds Played" value={stats.roundsPlayed} icon="🏁" color="rgba(255,255,255,0.8)"
+            info="Number of race weekends where you submitted a team. Missing a round scores 0 pts for that week." />
+          <StatCard label="Avg Per Round" value={stats.avgPoints} sub="points" icon="📈" color="rgba(255,255,255,0.8)"
+            info="Your mean score per round — Total Points ÷ Rounds Played. A useful measure of consistency across the season." />
+          <StatCard label="Best Round" value={stats.bestRound?.points || 0} sub={`Round ${stats.bestRound?.week}`} icon="⚡" color="#22c55e"
+            info="Your highest single-round score this season. This round is highlighted in gold on the bar chart below." />
+          <StatCard label="Captain Bonus" value={`+${totalCaptainBonus}`} sub={goToCaptain ? `${captainPct}% hit rate · ${goToCaptain[0]}` : `${captainPct}% hit rate`} icon="👑" color="#fbbf24"
+            info="Extra points earned from your captain picks. Your captain scores 2× points (3× with Triple Captain chip). Hit rate = % of rounds your captain finished with a positive score." />
         </div>
 
         {/* Cumulative line chart */}
@@ -209,8 +277,9 @@ export default function Stats() {
           background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12,
           padding: 20, marginBottom: 16,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'rgba(255,255,255,0.8)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center' }}>
             📈 Cumulative Points Over Season
+            <InfoTooltip text="Your running total score as the season progresses. A steeper upward slope means a stronger streak of high-scoring rounds." />
           </div>
           <CumulativeChart rounds={stats.rounds} />
         </div>
@@ -220,8 +289,9 @@ export default function Stats() {
           background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12,
           padding: 20, marginBottom: 16,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'rgba(255,255,255,0.8)' }}>
-            📊 Points Per Round <span style={{ color: '#fbbf24', fontSize: 11, fontWeight: 400 }}>(gold = best round)</span>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 16, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center' }}>
+            📊 Points Per Round <span style={{ color: '#fbbf24', fontSize: 11, fontWeight: 400, marginLeft: 6 }}>(gold = best round)</span>
+            <InfoTooltip text="Each bar = one round's score. Gold bar = your best round. Green bars are above your season average; red bars are below." />
           </div>
           <MiniBarChart data={barData} />
         </div>
@@ -231,9 +301,59 @@ export default function Stats() {
           background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12,
           padding: 20, marginBottom: 16,
         }}>
-          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'rgba(255,255,255,0.8)' }}>
+          <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 12, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center' }}>
             🏎️ Round Breakdown
+            <InfoTooltip text="Click any row to see the full driver & constructor breakdown for that round. Rnd = round number, Pts = your score, Cumulative = running season total." />
           </div>
+
+          {/* Rounds summary table */}
+          <div style={{ overflowX: 'auto', marginBottom: 16 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+              <thead>
+                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
+                  <th style={{ padding: '6px 10px', textAlign: 'left', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontSize: 10 }}>Rnd</th>
+                  <th style={{ padding: '6px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontSize: 10 }}>Pts</th>
+                  <th style={{ padding: '6px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontSize: 10 }}>Cumulative</th>
+                  <th style={{ padding: '6px 10px', textAlign: 'left', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontSize: 10 }}>Captain</th>
+                  <th style={{ padding: '6px 10px', textAlign: 'left', color: 'rgba(255,255,255,0.4)', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', fontSize: 10 }}>Chip</th>
+                </tr>
+              </thead>
+              <tbody>
+                {stats.rounds.map(round => (
+                  <tr
+                    key={round.week}
+                    onClick={() => setSelectedRound(round)}
+                    style={{
+                      borderBottom: '1px solid rgba(255,255,255,0.04)',
+                      cursor: 'pointer',
+                      background: selectedRound?.week === round.week ? 'rgba(225,6,0,0.07)' : 'transparent',
+                    }}
+                  >
+                    <td style={{ padding: '7px 10px', fontWeight: 700, color: selectedRound?.week === round.week ? '#f87171' : '#fff' }}>R{round.week}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 14, color: round.points >= stats.avgPoints ? '#22c55e' : '#f87171' }}>
+                      {round.points}
+                    </td>
+                    <td style={{ padding: '7px 10px', textAlign: 'right', color: 'rgba(255,255,255,0.6)' }}>{round.cumulative}</td>
+                    <td style={{ padding: '7px 10px', color: '#fbbf24', fontSize: 11 }}>
+                      {round.captainName ? `👑 ${round.captainName}` : <span style={{ color: '#3f3f46' }}>—</span>}
+                    </td>
+                    <td style={{ padding: '7px 10px' }}>
+                      {round.chipUsed ? (
+                        <span style={{
+                          fontSize: 10, background: 'rgba(251,191,36,0.15)', color: '#fbbf24',
+                          padding: '2px 7px', borderRadius: 4, fontWeight: 700,
+                        }}>
+                          {round.chipUsed === 'wildcard' ? '🃏' : round.chipUsed === 'triple_captain' ? '👑' : round.chipUsed === 'no_negative' ? '🛡' : '💺'}
+                          {' '}{round.chipUsed.replace('_', ' ')}
+                        </span>
+                      ) : <span style={{ color: '#3f3f46' }}>—</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
           {/* Round selector */}
           <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 16 }}>
             {stats.rounds.map(r => (
@@ -277,7 +397,6 @@ export default function Stats() {
                   <DriverRow
                     key={d.id}
                     name={d.name}
-                    abbr={d.abbr}
                     isCaptain={d.isCaptain}
                     points={d.isCaptain ? d.points * (selectedRound.chipUsed === 'triple_captain' ? 3 : 2) : d.points}
                   />
@@ -292,8 +411,26 @@ export default function Stats() {
               </div>
 
               {selectedRound.captainName && (
-                <div style={{ fontSize: 12, color: '#fbbf24' }}>
-                  👑 Captain: {selectedRound.captainName} · +{selectedRound.captainBonus} bonus pts
+                <div style={{ marginTop: 8 }}>
+                  <div style={{ fontSize: 12, color: '#fbbf24', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 4 }}>
+                    👑 Captain: {selectedRound.captainName} · +{selectedRound.captainBonus} bonus pts
+                    <InfoTooltip text="The bonus points earned from your captain's 2× multiplier (or 3× with Triple Captain chip). The bar below shows what % of your total round score this bonus represents." />
+                  </div>
+                  {selectedRound.points > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ flex: 1, height: 4, background: 'rgba(255,255,255,0.07)', borderRadius: 2, overflow: 'hidden' }}>
+                        <div style={{
+                          height: 4,
+                          width: `${Math.min(100, Math.round((selectedRound.captainBonus / selectedRound.points) * 100))}%`,
+                          background: 'linear-gradient(90deg, #fbbf24, #f59e0b)',
+                          borderRadius: 2,
+                        }} />
+                      </div>
+                      <span style={{ fontSize: 10, color: '#fbbf24', fontWeight: 700, minWidth: 36 }}>
+                        {Math.round((selectedRound.captainBonus / selectedRound.points) * 100)}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -303,16 +440,55 @@ export default function Stats() {
         {/* Best/worst */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
           <div style={{ background: 'rgba(34,197,94,0.06)', border: '1px solid rgba(34,197,94,0.2)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 11, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>⚡ Best Round</div>
+            <div style={{ fontSize: 11, color: '#22c55e', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center' }}>⚡ Best Round <InfoTooltip text="Your highest single-round score this season. The gold bar on the chart above marks this round." /></div>
             <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-display)' }}>Round {stats.bestRound?.week}</div>
             <div style={{ fontSize: 18, color: '#22c55e', fontWeight: 700 }}>{stats.bestRound?.points} pts</div>
           </div>
           <div style={{ background: 'rgba(225,6,0,0.06)', border: '1px solid rgba(225,6,0,0.15)', borderRadius: 12, padding: 16 }}>
-            <div style={{ fontSize: 11, color: '#f87171', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>💀 Worst Round</div>
+            <div style={{ fontSize: 11, color: '#f87171', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6, display: 'flex', alignItems: 'center' }}>💀 Worst Round <InfoTooltip text="Your lowest single-round score this season. Don't stress — one bad weekend doesn't define a season." /></div>
             <div style={{ fontSize: 24, fontWeight: 800, fontFamily: 'var(--font-display)' }}>Round {stats.worstRound?.week}</div>
             <div style={{ fontSize: 18, color: '#f87171', fontWeight: 700 }}>{stats.worstRound?.points} pts</div>
           </div>
         </div>
+
+        {/* Most used drivers */}
+        {stats.rounds.length > 0 && (() => {
+          const freq = {};
+          for (const r of stats.rounds) {
+            for (const d of (r.drivers || [])) {
+              if (!freq[d.name]) freq[d.name] = { name: d.name, count: 0, totalPts: 0 };
+              freq[d.name].count++;
+              freq[d.name].totalPts += d.points || 0;
+            }
+          }
+          const sorted = Object.values(freq).sort((a, b) => b.count - a.count || b.totalPts - a.totalPts).slice(0, 8);
+          if (sorted.length === 0) return null;
+          return (
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: 20, marginBottom: 16 }}>
+              <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 14, color: 'rgba(255,255,255,0.8)', display: 'flex', alignItems: 'center' }}>
+                🔄 Your Most-Picked Drivers
+                <InfoTooltip text="Drivers you've selected most frequently across the season. Total pts = combined points scored by that driver in all rounds you picked them." />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                {sorted.map((d, i) => (
+                  <div key={d.name} style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.3)', width: 16, textAlign: 'right' }}>{i + 1}</span>
+                    <span style={{ flex: 1, fontSize: 13, fontWeight: 600, color: '#fff' }}>{d.name}</span>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'center' }}>
+                      <div style={{ height: 6, width: `${(d.count / stats.rounds.length) * 80}px`, background: '#e10600', borderRadius: 3, minWidth: 4 }} />
+                      <span style={{ fontSize: 11, color: 'rgba(255,255,255,0.5)', minWidth: 60, textAlign: 'right' }}>
+                        {d.count}/{stats.rounds.length} rounds
+                      </span>
+                      <span style={{ fontSize: 11, color: d.totalPts > 0 ? '#22c55e' : 'rgba(255,255,255,0.3)', minWidth: 50, textAlign: 'right', fontWeight: 600 }}>
+                        {d.totalPts > 0 ? '+' : ''}{d.totalPts} pts
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );

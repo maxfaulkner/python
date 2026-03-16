@@ -125,7 +125,14 @@ async function updateDriverPrice(driver, finishingPosition, leagueId, currentWee
   }
 
   if (!oldPrice) {
-    throw new Error(`No price found for driver ${driver.id} in any week up to ${currentWeek}`);
+    // No price record at all — seed a $8M default so the import doesn't crash.
+    console.warn(`No price found for driver ${driver.id} up to week ${currentWeek}; seeding $8M default`);
+    await prisma.driverPrice.upsert({
+      where: { driverId_week: { driverId: driver.id, week: currentWeek } },
+      create: { driverId: driver.id, week: currentWeek, price: 8.0 },
+      update: {},
+    });
+    oldPrice = { price: 8.0 };
   }
 
   const perfDelta = await calculatePerformanceDelta(driver, finishingPosition, leagueId, currentWeek);

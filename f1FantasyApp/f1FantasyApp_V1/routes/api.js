@@ -675,7 +675,29 @@ router.get('/leagues/:leagueId/team/:week/:userId', authMiddleware, async (req, 
 
     if (!team) return res.status(404).json({ error: 'No team found for this player' });
 
-    res.json(team);
+    // Enrich with round points (same logic as the self-team endpoint)
+    const weekNum = parseInt(week);
+    const enrichedDrivers = await Promise.all(team.drivers.map(async td => {
+      const results = await prisma.raceResult.findMany({
+        where: { driverId: td.driverId, leagueId, week: weekNum },
+      });
+      let roundPoints = results.reduce((sum, r) => sum + r.points, 0);
+      if (team.captainId === td.driverId) roundPoints *= team.chipUsed === 'triple_captain' ? 3 : 2;
+      if (team.chipUsed === 'no_negative' && roundPoints < 0) roundPoints = 0;
+      return { ...td, roundPoints };
+    }));
+
+    const constructorResult = team.constructors[0] ? await prisma.constructorRaceResult.findMany({
+      where: { constructorId: team.constructors[0].constructorId, leagueId, week: weekNum },
+    }) : [];
+    const constructorRoundPoints = constructorResult.reduce((sum, r) => sum + r.totalPoints, 0);
+    const enrichedConstructors = team.constructors.map((c, i) => ({
+      ...c, roundPoints: i === 0 ? constructorRoundPoints : 0,
+    }));
+
+    const totalRoundPoints = enrichedDrivers.reduce((s, d) => s + d.roundPoints, 0) + constructorRoundPoints;
+
+    res.json({ ...team, drivers: enrichedDrivers, constructors: enrichedConstructors, totalRoundPoints });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -1097,6 +1119,9 @@ router.post('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => 
 
     // Delete any existing results for this week (to allow re-entry)
     await prisma.raceResult.deleteMany({
+      where: { leagueId, week: weekNum },
+    });
+    await prisma.constructorRaceResult.deleteMany({
       where: { leagueId, week: weekNum },
     });
 

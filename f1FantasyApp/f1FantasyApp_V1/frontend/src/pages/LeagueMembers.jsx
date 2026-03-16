@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
-function MemberCard({ member, isYou, onViewProfile }) {
+function MemberCard({ member, isYou, onViewProfile, onCompare }) {
   const [hover, setHover] = useState(false);
 
   return (
@@ -61,6 +62,21 @@ function MemberCard({ member, isYou, onViewProfile }) {
           <div style={{ fontSize: 10, color: 'rgba(255,255,255,0.4)' }}>points</div>
         </div>
       )}
+
+      {/* Compare button */}
+      {!isYou && onCompare && (
+        <button
+          onClick={onCompare}
+          style={{
+            background: 'rgba(225,6,0,0.08)', border: '1px solid rgba(225,6,0,0.2)',
+            borderRadius: 7, padding: '4px 12px', cursor: 'pointer',
+            fontSize: 11, fontWeight: 600, color: '#f87171', fontFamily: 'inherit',
+            transition: 'all 0.15s', flexShrink: 0,
+          }}
+        >
+          Compare →
+        </button>
+      )}
     </div>
   );
 }
@@ -107,6 +123,7 @@ export default function LeagueMembers() {
   if (loading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName || ''} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -116,14 +133,11 @@ export default function LeagueMembers() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName || ''} />
       <div style={{ maxWidth: 700, margin: '0 auto', padding: '20px 16px' }}>
 
         {/* Header */}
         <div style={{ marginBottom: 24 }}>
-          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-          <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)', marginTop: 8 }}>
-            {leagueName}
-          </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 }}>
             <h1 style={{ margin: 0, fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
               {members.length} Members
@@ -181,6 +195,7 @@ export default function LeagueMembers() {
               key={m.userId}
               member={m}
               isYou={m.userId === currentUserId}
+              onCompare={() => navigate(`/leagues/${leagueId}/compare`)}
             />
           ))}
         </div>

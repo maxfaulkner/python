@@ -103,6 +103,10 @@ export default function PriceWatch() {
     return a.name.localeCompare(b.name);
   });
 
+  const priceRanked = [...items].sort((a, b) => b.price - a.price);
+  const top3Ids = new Set(priceRanked.slice(0, 3).map(i => i.id));
+  const bottom3Ids = new Set(priceRanked.slice(-3).map(i => i.id));
+
   const risers = items.filter(i => (i.change ?? 0) > 0).sort((a, b) => b.change - a.change).slice(0, 5);
   const fallers = items.filter(i => (i.change ?? 0) < 0).sort((a, b) => a.change - b.change).slice(0, 5);
 
@@ -246,7 +250,7 @@ export default function PriceWatch() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <div style={{ width: 3, height: 28, borderRadius: 2, background: teamColor(item.teamName || item.name), flexShrink: 0 }} />
                           <div>
-                            <div style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>{item.name}</div>
+                            <div style={{ fontWeight: 700, fontSize: 13, color: '#fff' }}>{item.name}{top3Ids.has(item.id) && <span title="Top 3 most expensive" style={{ fontSize: 9, color: '#fbbf24', fontWeight: 700, marginLeft: 4 }}>★</span>}{bottom3Ids.has(item.id) && items.length > 3 && <span title="Budget pick" style={{ fontSize: 9, color: '#52525b', fontWeight: 700, marginLeft: 4 }}>◆</span>}</div>
                             {item.abbr && <div style={{ fontSize: 10, color: 'var(--text-4)' }}>{item.abbr}</div>}
                           </div>
                         </div>

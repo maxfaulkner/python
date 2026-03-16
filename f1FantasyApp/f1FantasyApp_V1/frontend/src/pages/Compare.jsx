@@ -1,8 +1,9 @@
 import { useState, useEffect } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
+import LeagueNav from '../components/LeagueNav';
 
 const TEAM_COLORS = {
   'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
@@ -145,6 +146,7 @@ export default function Compare() {
   if (initLoading) return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
       <div style={{ textAlign: 'center', paddingTop: 80 }}><div className="spinner" /></div>
     </div>
   );
@@ -152,15 +154,12 @@ export default function Compare() {
   return (
     <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
       <Navbar />
+      <LeagueNav leagueId={leagueId} week={week} leagueName={leagueName} />
       <div style={{ maxWidth: 960, margin: '0 auto', padding: '20px 16px' }}>
 
         {/* Header */}
         <div style={{ marginBottom: 20 }}>
-          <Link to={`/leagues/${leagueId}/leaderboard`} style={{ color: 'rgba(255,255,255,0.4)', textDecoration: 'none', fontSize: 13 }}>← Leaderboard</Link>
-          <div style={{ fontSize: 11, color: 'var(--red)', textTransform: 'uppercase', letterSpacing: 2, fontFamily: 'var(--font-display)', marginTop: 8 }}>
-            {leagueName}
-          </div>
-          <h1 style={{ margin: '4px 0 0', fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 28, fontFamily: 'var(--font-display)', fontWeight: 800 }}>
             ⚡ Compare Players
           </h1>
         </div>
@@ -205,6 +204,55 @@ export default function Compare() {
           </div>
         )}
 
+        {p1info && p2info && p1info.totalPoints !== p2info.totalPoints && (
+          <div style={{
+            background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)',
+            borderRadius: 8, padding: '8px 14px', marginBottom: 16,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            fontSize: 13,
+          }}>
+            <span style={{ fontWeight: 700, color: '#fafafa' }}>
+              {p1info.totalPoints > p2info.totalPoints ? p1info.userName : p2info.userName}
+            </span>
+            <span style={{ color: '#71717a' }}>leads the season by</span>
+            <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 16, color: '#e10600' }}>
+              {Math.abs(p1info.totalPoints - p2info.totalPoints)} pts
+            </span>
+          </div>
+        )}
+
+        {/* Who won this round? */}
+        {!loading && team1 && team2 && team1.totalRoundPoints != null && team2.totalRoundPoints != null && (() => {
+          const diff = team1.totalRoundPoints - team2.totalRoundPoints;
+          const winner = diff > 0 ? p1info?.userName : diff < 0 ? p2info?.userName : null;
+          const winnerPts = diff > 0 ? team1.totalRoundPoints : team2.totalRoundPoints;
+          const loserPts = diff > 0 ? team2.totalRoundPoints : team1.totalRoundPoints;
+          return (
+            <div style={{
+              background: 'rgba(225,6,0,0.07)', border: '1px solid rgba(225,6,0,0.2)',
+              borderRadius: 12, padding: '12px 18px', marginBottom: 16,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+              textAlign: 'center',
+            }}>
+              {winner ? (
+                <>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 900, fontSize: 22, color: '#fafafa' }}>
+                    {winner}
+                  </span>
+                  <span style={{ fontSize: 13, color: '#71717a' }}>wins Round {week}</span>
+                  <span style={{ fontFamily: 'var(--font-display)', fontWeight: 800, fontSize: 18, color: '#e10600' }}>
+                    {winnerPts} – {loserPts}
+                  </span>
+                </>
+              ) : (
+                <span style={{ fontSize: 14, fontWeight: 600, color: '#71717a' }}>
+                  Tie — {team1.totalRoundPoints} pts each
+                </span>
+              )}
+            </div>
+          );
+        })()}
+
         {/* Teams side by side */}
         {loading ? <div className="spinner" /> : (
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
@@ -216,6 +264,34 @@ export default function Compare() {
             </div>
           </div>
         )}
+
+        {/* Shared picks */}
+        {!loading && team1 && team2 && (() => {
+          const ids1 = new Set(team1.drivers?.map(d => d.driverId));
+          const shared = team2.drivers?.filter(d => ids1.has(d.driverId)) || [];
+          if (shared.length === 0) return (
+            <div style={{ marginTop: 14, padding: '12px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, fontSize: 13, color: 'var(--text-4)', textAlign: 'center' }}>
+              No shared picks this round
+            </div>
+          );
+          return (
+            <div style={{ marginTop: 14, background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 12, padding: '12px 16px' }}>
+              <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'var(--text-3)', marginBottom: 10 }}>
+                🤝 Shared Picks ({shared.length})
+              </div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                {shared.map(td => (
+                  <div key={td.driverId} style={{
+                    background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 7, padding: '5px 12px', fontSize: 12, fontWeight: 600, color: '#fff',
+                  }}>
+                    {td.driver?.name}
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
