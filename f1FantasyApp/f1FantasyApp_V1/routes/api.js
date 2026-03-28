@@ -285,6 +285,30 @@ router.get('/leagues', authMiddleware, async (req, res) => {
  * GET /api/leagues/:leagueId
  * Get a single league's details and members
  */
+/**
+ * GET /api/leagues/public
+ * Browse public leagues
+ */
+router.get('/leagues/public', authMiddleware, async (req, res) => {
+  try {
+    const leagues = await prisma.league.findMany({
+      where: { isPublic: true },
+      include: {
+        _count: { select: { users: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    res.json(leagues.map(l => ({
+      ...l,
+      memberCount: l._count.users,
+    })));
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 router.get('/leagues/:leagueId', authMiddleware, async (req, res) => {
   try {
     const { leagueId } = req.params;
@@ -384,30 +408,6 @@ router.post('/leagues/join-code/:code', authMiddleware, async (req, res) => {
     });
 
     res.json({ message: 'Joined league successfully', leagueId: league.id, leagueName: league.name });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-});
-
-/**
- * GET /api/leagues/public
- * Browse public leagues
- */
-router.get('/leagues/public', authMiddleware, async (req, res) => {
-  try {
-    const leagues = await prisma.league.findMany({
-      where: { isPublic: true },
-      include: {
-        _count: { select: { users: true } },
-      },
-      orderBy: { createdAt: 'desc' },
-      take: 50,
-    });
-
-    res.json(leagues.map(l => ({
-      ...l,
-      memberCount: l._count.users,
-    })));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
