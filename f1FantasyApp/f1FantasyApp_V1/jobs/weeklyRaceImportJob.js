@@ -192,8 +192,32 @@ async function triggerRaceImportNow(season, round) {
   await importRaceResults(season, round);
 }
 
+let lastCatchUpCheck = 0;
+
+/**
+ * Check all past rounds and import any that are missing results.
+ * Called non-blocking after login. Rate-limited to once per 5 minutes.
+ */
+async function checkAndImportPastRounds() {
+  if (Date.now() - lastCatchUpCheck < 5 * 60 * 1000) return;
+  lastCatchUpCheck = Date.now();
+
+  const now = new Date();
+  const season = now.getFullYear();
+
+  for (const race of cachedRaces) {
+    const raceEnd = new Date(
+      new Date(`${race.date}T${race.time || '14:00:00Z'}`).getTime() + 3 * 60 * 60 * 1000
+    );
+    if (raceEnd < now) {
+      await importRaceResults(season, parseInt(race.round));
+    }
+  }
+}
+
 module.exports = {
   startWeeklyRaceImportJob,
   triggerRaceImportNow,
+  checkAndImportPastRounds,
   isRoundLocked,
 };

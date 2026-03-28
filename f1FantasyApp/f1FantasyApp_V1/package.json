@@ -4,7 +4,8 @@
   "description": "Fantasy F1 League - Weekly driver/team selection with dynamic pricing",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "npx prisma migrate deploy && node server.js",
+    "build": "npx prisma generate && cd frontend && npm install && npm run build",
     "dev": "nodemon server.js",
     "seed": "node scripts/seedDatabase.js",
     "migrate": "prisma migrate dev",
@@ -23,7 +24,7 @@
   "license": "MIT",
   "dependencies": {
     "@prisma/client": "^5.7.1",
-    "bcrypt": "^5.1.1",
+    "bcrypt": "^6.0.0",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",

@@ -126,6 +126,11 @@ app.post('/auth/login', async (req, res) => {
       token,
       user: { id: user.id, email: user.email, name: user.name },
     });
+
+    // Non-blocking: check if any past rounds are missing results and import them
+    raceImportJob.checkAndImportPastRounds().catch(err =>
+      console.error('Catch-up import check failed:', err.message)
+    );
   } catch (error) {
     console.error('Login error:', error);
     res.status(500).json({ error: error.message });
@@ -175,6 +180,16 @@ app.get('/admin/races/:leagueId/:week', authMiddleware, async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// ============ STATIC FRONTEND (production only) ============
+
+if (process.env.NODE_ENV === 'production') {
+  const path = require('path');
+  app.use(express.static(path.join(__dirname, 'frontend/dist')));
+  app.get('*', (req, res) => {
+    res.sendFile(path.join(__dirname, 'frontend/dist/index.html'));
+  });
+}
 
 // ============ ERROR HANDLING ============
 

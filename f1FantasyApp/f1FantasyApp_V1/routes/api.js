@@ -714,27 +714,44 @@ router.get('/leagues/:leagueId/prices/:week', authMiddleware, async (req, res) =
     const { leagueId, week } = req.params;
     const weekNum = parseInt(week);
 
-    const drivers = await prisma.driverPrice.findMany({
-      where: {
-        week: weekNum,
-      },
-      include: {
-        driver: {
-          include: { constructor: true },
-        },
-      },
+    let drivers = await prisma.driverPrice.findMany({
+      where: { week: weekNum },
+      include: { driver: { include: { constructor: true } } },
     });
 
-    const constructors = await prisma.constructorPrice.findMany({
-      where: {
-        week: weekNum,
-      },
-      include: {
-        constructor: {
-          include: { drivers: true },
-        },
-      },
+    // Fall back to most recent available week if no prices exist for requested week
+    if (drivers.length === 0) {
+      const latest = await prisma.driverPrice.findFirst({
+        where: { week: { lte: weekNum } },
+        orderBy: { week: 'desc' },
+        select: { week: true },
+      });
+      if (latest) {
+        drivers = await prisma.driverPrice.findMany({
+          where: { week: latest.week },
+          include: { driver: { include: { constructor: true } } },
+        });
+      }
+    }
+
+    let constructors = await prisma.constructorPrice.findMany({
+      where: { week: weekNum },
+      include: { constructor: { include: { drivers: true } } },
     });
+
+    if (constructors.length === 0) {
+      const latest = await prisma.constructorPrice.findFirst({
+        where: { week: { lte: weekNum } },
+        orderBy: { week: 'desc' },
+        select: { week: true },
+      });
+      if (latest) {
+        constructors = await prisma.constructorPrice.findMany({
+          where: { week: latest.week },
+          include: { constructor: { include: { drivers: true } } },
+        });
+      }
+    }
 
     res.json({
       week: weekNum,
