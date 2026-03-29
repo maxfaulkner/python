@@ -99,7 +99,7 @@ struct JolpicaResult: Decodable, Identifiable {
     let time: JolpicaLapTime?
     let fastestLap: JolpicaFastestLap?
 
-    var id: String { driver.driverId }
+    var id: String { "\(driver.driverId)-\(position)" }
     var positionInt: Int? { Int(position) }
     var pointsDouble: Double { Double(points) ?? 0 }
     var gridInt: Int? { Int(grid) }

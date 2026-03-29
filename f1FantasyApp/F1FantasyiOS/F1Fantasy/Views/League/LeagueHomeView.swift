@@ -74,6 +74,10 @@ struct LeagueHomeView: View {
                     .cardStyle()
                     .padding(.horizontal)
 
+                    // Activity feed
+                    ActivityFeedView(leagueId: league.id)
+                        .padding(.horizontal)
+
                     Spacer()
                 }
                 .padding(.top, 16)

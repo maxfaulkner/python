@@ -15,6 +15,16 @@ struct StatsView: View {
                 else { content }
             }
         }
+        .navigationTitle("Stats")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                NavigationLink(destination: TeamHistoryView(leagueId: leagueId, latestWeek: currentWeek)) {
+                    Image(systemName: "clock.arrow.circlepath")
+                        .foregroundStyle(.appRed)
+                }
+            }
+        }
         .task { await vm.load(leagueId: leagueId, week: currentWeek) }
         .refreshable { await vm.load(leagueId: leagueId, week: currentWeek) }
     }

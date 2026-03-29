@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const prisma = require('../prisma');
 const authMiddleware = require('../middleware/auth');
+const { sendPushToUsers } = require('../services/pushNotificationService');
 
 router.use(authMiddleware);
 
@@ -145,11 +146,15 @@ router.get('/profile', async (req, res) => {
       }) : [];
 
       let roundPts = results.reduce((s, r) => s + r.points, 0);
-      // Apply captain multiplier
+      // Apply captain multiplier (triple_captain = 3x, regular = 2x)
       if (team.captainId) {
         const captainResult = results.find(r => r.driverId === team.captainId);
-        if (captainResult) roundPts += captainResult.points; // extra 1x (total 2x)
+        if (captainResult) {
+          const extraMultiplier = team.chipUsed === 'triple_captain' ? 2 : 1;
+          roundPts += captainResult.points * extraMultiplier;
+        }
       }
+      if (team.chipUsed === 'no_negative') roundPts = Math.max(0, roundPts);
       roundPts += conResults.reduce((s, r) => s + r.totalPoints, 0);
 
       if (results.length > 0 || conResults.length > 0) {
@@ -171,6 +176,23 @@ router.get('/profile', async (req, res) => {
     });
   } catch (error) {
     console.error('Profile fetch error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * PUT /api/profile/push-token
+ * Save or clear the APNs device push token for the current user
+ */
+router.put('/profile/push-token', async (req, res) => {
+  try {
+    const { pushToken } = req.body;
+    await prisma.user.update({
+      where: { id: req.user.id },
+      data: { pushToken: pushToken ?? null },
+    });
+    res.json({ message: 'Push token updated' });
+  } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });

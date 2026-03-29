@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ProfileView: View {
     @Environment(AuthService.self) private var authService
+    @AppStorage("colorSchemePreference") private var colorSchemePreference = "dark"
     @State private var isEditing = false
     @State private var editName = ""
     @State private var editBio = ""
@@ -71,6 +72,37 @@ struct ProfileView: View {
                                 }
                             }
                         }
+                    }
+
+                    // Appearance picker
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Appearance")
+                            .font(.caption).foregroundStyle(.appTextDim)
+                            .padding(.leading, 4)
+                        Picker("Appearance", selection: $colorSchemePreference) {
+                            Text("System").tag("system")
+                            Text("Dark").tag("dark")
+                            Text("Light").tag("light")
+                        }
+                        .pickerStyle(.segmented)
+                    }
+                    .padding(.horizontal, 24)
+
+                    // Biometric toggle
+                    if !authService.biometryTypeName.isEmpty {
+                        HStack {
+                            Label("Sign in with \(authService.biometryTypeName)",
+                                  systemImage: authService.biometryTypeName == "Face ID" ? "faceid" : "touchid")
+                                .font(.subheadline).foregroundStyle(.appTextPrimary)
+                            Spacer()
+                            Toggle("", isOn: Binding(
+                                get: { authService.biometricEnabled },
+                                set: { authService.biometricEnabled = $0 }
+                            ))
+                            .tint(Color.appRed)
+                            .labelsHidden()
+                        }
+                        .padding(.horizontal, 24)
                     }
 
                     // Sign out

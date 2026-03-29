@@ -28,6 +28,20 @@ struct PriceWatchView: View {
                     .padding(.vertical, 4)
                 }
             } else {
+                if constructors.count >= 2 {
+                    NavigationLink(destination: ConstructorComparisonView(constructors: constructors)) {
+                        Label("Compare Constructors", systemImage: "arrow.left.arrow.right")
+                            .font(.subheadline).fontWeight(.semibold)
+                            .foregroundStyle(.appRed)
+                            .frame(maxWidth: .infinity)
+                            .padding(12)
+                            .background(Color.appCard)
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appRed.opacity(0.3), lineWidth: 1))
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, 4)
+                }
                 ForEach(constructors.sorted(by: { $0.price > $1.price })) { entry in
                     PriceRow(
                         name: entry.constructor?.name ?? "Unknown",

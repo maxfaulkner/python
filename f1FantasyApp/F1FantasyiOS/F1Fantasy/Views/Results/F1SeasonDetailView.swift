@@ -8,6 +8,7 @@ struct DriverSeasonView: View {
 
     @State private var results: [JolpicaResultRace] = []
     @State private var isLoading = true
+    @State private var hasError = false
 
     private let season = Calendar.current.component(.year, from: Date())
 
@@ -16,6 +17,8 @@ struct DriverSeasonView: View {
             Color.appBackground.ignoresSafeArea()
             if isLoading {
                 LoadingView()
+            } else if hasError {
+                ErrorView(message: "Could not load season results") { Task { await load() } }
             } else if results.isEmpty {
                 VStack(spacing: 12) {
                     Text("🏎").font(.system(size: 48))
@@ -104,10 +107,14 @@ struct DriverSeasonView: View {
     }
 
     private func load() async {
-        let url = URL(string: "https://api.jolpi.ca/ergast/f1/\(season)/drivers/\(driver.driverId)/results.json")!
+        isLoading = true
+        hasError = false
+        let url = URL(string: "https://api.jolpi.ca/ergast/f1/\(season)/drivers/\(driver.driverId)/results.json?limit=100")!
         guard let (data, _) = try? await URLSession.shared.data(from: url),
               let response = try? JSONDecoder().decode(JolpicaResultsResponse.self, from: data) else {
-            isLoading = false; return
+            hasError = true
+            isLoading = false
+            return
         }
         results = response.mrData.raceTable.races
         isLoading = false
@@ -172,6 +179,7 @@ struct ConstructorSeasonView: View {
 
     @State private var results: [JolpicaResultRace] = []
     @State private var isLoading = true
+    @State private var hasError = false
 
     private let season = Calendar.current.component(.year, from: Date())
 
@@ -180,6 +188,8 @@ struct ConstructorSeasonView: View {
             Color.appBackground.ignoresSafeArea()
             if isLoading {
                 LoadingView()
+            } else if hasError {
+                ErrorView(message: "Could not load season results") { Task { await load() } }
             } else if results.isEmpty {
                 VStack(spacing: 12) {
                     Text("🏎").font(.system(size: 48))
@@ -219,7 +229,7 @@ struct ConstructorSeasonView: View {
                             Divider().background(Color.appBorder)
                             statCell(value: "\(podiums)", label: "Podiums")
                             Divider().background(Color.appBorder)
-                            statCell(value: "\(results.count)", label: "Races")
+                            statCell(value: "\(results.count)", label: "GPs")
                         }
                         .frame(height: 60)
                         .background(Color.appCard)
@@ -256,10 +266,15 @@ struct ConstructorSeasonView: View {
     }
 
     private func load() async {
-        let url = URL(string: "https://api.jolpi.ca/ergast/f1/\(season)/constructors/\(constructor.constructorId)/results.json?limit=100")!
+        isLoading = true
+        hasError = false
+        // limit=200 covers a full 24-round season with 2 drivers per round
+        let url = URL(string: "https://api.jolpi.ca/ergast/f1/\(season)/constructors/\(constructor.constructorId)/results.json?limit=200")!
         guard let (data, _) = try? await URLSession.shared.data(from: url),
               let response = try? JSONDecoder().decode(JolpicaResultsResponse.self, from: data) else {
-            isLoading = false; return
+            hasError = true
+            isLoading = false
+            return
         }
         results = response.mrData.raceTable.races
         isLoading = false

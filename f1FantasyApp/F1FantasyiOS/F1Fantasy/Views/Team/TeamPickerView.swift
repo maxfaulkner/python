@@ -3,6 +3,7 @@ import SwiftUI
 struct TeamPickerView: View {
     let leagueId: String
     let week: Int
+    var leagueName: String = ""
     @State private var vm = TeamPickerViewModel()
     @State private var activeTab = 0
     @State private var browseWeek: Int = 1
@@ -105,6 +106,12 @@ struct TeamPickerView: View {
                     .padding(.horizontal, 16)
                 }
 
+                // Share button
+                if let team = vm.existingTeam, !team.drivers.isEmpty {
+                    ShareableTeamCardView(leagueName: leagueName, week: browseWeek, team: team)
+                        .padding(.horizontal, 16)
+                }
+
                 // Empty team state
                 if vm.existingTeam == nil || (vm.existingTeam?.drivers.isEmpty ?? true) {
                     VStack(spacing: 12) {
@@ -146,6 +153,8 @@ struct TeamPickerView: View {
             }
             .pickerStyle(.segmented)
             .padding(.horizontal, 16).padding(.vertical, 8)
+
+            captainSuggestionBanner
 
             if activeTab == 0 {
                 HStack {
@@ -211,6 +220,56 @@ struct TeamPickerView: View {
             .disabled(!vm.canSubmit || vm.isSubmitting)
             .padding(.horizontal, 16).padding(.bottom, 16)
         }
+    }
+
+    // MARK: - Captain Suggestion Banner
+
+    private var captainSuggestionBanner: some View {
+        Group {
+            let selectedEntries = (vm.pricesResponse?.drivers ?? []).filter { vm.selectedDriverIds.contains($0.driverId) }
+            if vm.selectedDriverIds.count == 5,
+               let suggested = selectedEntries.max(by: { scoreForCaptain($0) < scoreForCaptain($1) }),
+               vm.captainId != suggested.driverId {
+                HStack(spacing: 10) {
+                    Image(systemName: "star.fill").foregroundStyle(.appGold).font(.subheadline)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Captain Pick: \(suggested.driver?.name ?? "Unknown")")
+                            .font(.caption).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                        Text("Highest combined price & recent form")
+                            .font(.caption2).foregroundStyle(.appTextDim)
+                    }
+                    Spacer()
+                    Button {
+                        vm.captainId = suggested.driverId
+                    } label: {
+                        Text("Apply")
+                            .font(.caption).fontWeight(.bold)
+                            .foregroundStyle(.black)
+                            .padding(.horizontal, 10).padding(.vertical, 4)
+                            .background(Color.appGold)
+                            .clipShape(Capsule())
+                    }
+                }
+                .padding(.horizontal, 14).padding(.vertical, 10)
+                .background(Color.appGold.opacity(0.08))
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(RoundedRectangle(cornerRadius: 10).stroke(Color.appGold.opacity(0.25), lineWidth: 1))
+                .padding(.horizontal, 16)
+                .transition(.move(edge: .top).combined(with: .opacity))
+                .animation(.easeInOut(duration: 0.2), value: vm.selectedDriverIds.count)
+            }
+        }
+    }
+
+    private func scoreForCaptain(_ entry: DriverPriceEntry) -> Double {
+        let priceScore = entry.price
+        let formScore: Double
+        if let recent = entry.recentResults, !recent.isEmpty {
+            formScore = Double(recent.reduce(0, +)) / Double(recent.count)
+        } else {
+            formScore = 0
+        }
+        return priceScore + formScore * 0.5
     }
 
     // MARK: - Helpers

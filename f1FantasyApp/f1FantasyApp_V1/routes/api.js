@@ -9,6 +9,7 @@ const pricingEngine = require('../services/pricingEngine');
 const authMiddleware = require('../middleware/auth');
 const { isRoundLocked } = require('../jobs/weeklyRaceImportJob');
 const { checkAchievementsAfterRace } = require('../services/achievementService');
+const { sendPushToUsers } = require('../services/pushNotificationService');
 
 // Notify all members of a league that results were imported
 async function notifyResultsImported(leagueId, round, leagueName, eventLabel) {
@@ -27,6 +28,14 @@ async function notifyResultsImported(leagueId, round, leagueName, eventLabel) {
       })),
       skipDuplicates: true,
     });
+
+    // Send APNs push notifications to all league members with a push token
+    const userIds = members.map(m => m.userId);
+    await sendPushToUsers(userIds, {
+      title: `Results imported — ${leagueName}`,
+      body: `${eventLabel} results are now available. Check the leaderboard!`,
+      data: { leagueId, round, type: 'result_imported' },
+    }, prisma);
   } catch (e) {
     console.error('Notify results error:', e);
   }
@@ -559,9 +568,10 @@ router.post(
       }
 
       // Calculate total cost
+      const leagueForBudget = await prisma.league.findUnique({ where: { id: leagueId }, select: { budget: true } });
+      const budget = leagueForBudget?.budget ?? 100; // millions
       const driverCost = driverPrices.reduce((sum, p) => sum + p.price, 0);
       const totalCost = driverCost + constructorPrice.price;
-      const budget = 100; // millions
 
       if (totalCost > budget) {
         return res.status(400).json({
@@ -585,59 +595,48 @@ router.post(
         });
       }
 
-      // Upsert team
-      const team = await prisma.userWeeklyTeam.upsert({
-        where: {
-          userId_leagueId_week: {
+      // Upsert team + selections atomically
+      const team = await prisma.$transaction(async (tx) => {
+        const t = await tx.userWeeklyTeam.upsert({
+          where: {
+            userId_leagueId_week: { userId, leagueId, week: weekNum },
+          },
+          create: {
             userId,
             leagueId,
             week: weekNum,
+            budgetUsed: totalCost,
+            captainId: captainId || null,
+            chipUsed: chipUsed || null,
           },
-        },
-        create: {
-          userId,
-          leagueId,
-          week: weekNum,
-          budgetUsed: totalCost,
-          captainId: captainId || null,
-          chipUsed: chipUsed || null,
-        },
-        update: {
-          budgetUsed: totalCost,
-          captainId: captainId || null,
-          chipUsed: chipUsed || null,
-        },
-      });
-
-      // Delete old driver selections
-      await prisma.userWeeklyTeamDriver.deleteMany({
-        where: { teamId: team.id },
-      });
-
-      // Add new driver selections
-      for (const driverId of drivers) {
-        const price = driverPrices.find(p => p.driverId === driverId);
-        await prisma.userWeeklyTeamDriver.create({
-          data: {
-            teamId: team.id,
-            driverId,
-            pricePaidPerPoint: price.price,
+          update: {
+            budgetUsed: totalCost,
+            captainId: captainId || null,
+            chipUsed: chipUsed || null,
           },
         });
-      }
 
-      // Delete old constructor selection
-      await prisma.userWeeklyTeamConstructor.deleteMany({
-        where: { teamId: team.id },
-      });
+        // Replace driver selections
+        await tx.userWeeklyTeamDriver.deleteMany({ where: { teamId: t.id } });
+        await tx.userWeeklyTeamDriver.createMany({
+          data: drivers.map(driverId => ({
+            teamId: t.id,
+            driverId,
+            pricePaidPerPoint: driverPrices.find(p => p.driverId === driverId)?.price ?? 0,
+          })),
+        });
 
-      // Add new constructor selection
-      await prisma.userWeeklyTeamConstructor.create({
-        data: {
-          teamId: team.id,
-          constructorId,
-          pricePaidPerPoint: constructorPrice.price,
-        },
+        // Replace constructor selection
+        await tx.userWeeklyTeamConstructor.deleteMany({ where: { teamId: t.id } });
+        await tx.userWeeklyTeamConstructor.create({
+          data: {
+            teamId: t.id,
+            constructorId,
+            pricePaidPerPoint: constructorPrice.price,
+          },
+        });
+
+        return t;
       });
 
       res.json({
@@ -713,6 +712,7 @@ router.get('/leagues/:leagueId/prices/:week', authMiddleware, async (req, res) =
   try {
     const { leagueId, week } = req.params;
     const weekNum = parseInt(week);
+    const league = await prisma.league.findUnique({ where: { id: leagueId }, select: { budget: true } });
 
     let drivers = await prisma.driverPrice.findMany({
       where: { week: weekNum },
@@ -757,7 +757,7 @@ router.get('/leagues/:leagueId/prices/:week', authMiddleware, async (req, res) =
       week: weekNum,
       drivers,
       constructors,
-      totalBudget: 100,
+      totalBudget: league?.budget ?? 100,
       locked: await isRoundLocked(weekNum),
     });
   } catch (error) {
@@ -816,66 +816,80 @@ router.get('/leagues/:leagueId/driver-form/:week', authMiddleware, async (req, r
  * GET /api/leagues/:leagueId/leaderboard
  * Get season leaderboard with points and tie-breaker
  */
-router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
+router.get('/leagues/:leagueId/leaderboard', authMiddleware, async (req, res) => {
   try {
     const { leagueId } = req.params;
 
-    // Get all users in league
+    // 1. Fetch league for startingRound, then all users with team selections
+    const league = await prisma.league.findUnique({
+      where: { id: leagueId },
+      select: { startingRound: true },
+    });
+    const startingRound = league?.startingRound ?? 1;
+
     const leagueUsers = await prisma.leagueUser.findMany({
       where: { leagueId },
       include: {
         user: {
+          select: { id: true, name: true, email: true, avatarColor: true },
           include: {
             weeklyTeams: {
-              where: { leagueId },
-              include: {
-                drivers: true,
-                constructors: true,
-              },
+              where: { leagueId, week: { gte: startingRound } },
+              include: { drivers: true, constructors: true },
             },
           },
         },
       },
     });
 
-    // Calculate points for each user
-    const standings = [];
+    // 2. Batch fetch ALL driver race results and constructor results for this league
+    const [allDriverResults, allCtorResults, latestWeekRow] = await Promise.all([
+      prisma.raceResult.findMany({ where: { leagueId } }),
+      prisma.constructorRaceResult.findMany({ where: { leagueId } }),
+      prisma.raceResult.findFirst({ where: { leagueId }, orderBy: { week: 'desc' }, select: { week: true } }),
+    ]);
 
-    for (const leagueUser of leagueUsers) {
+    // Build fast lookup maps
+    const driverResultMap = {};
+    for (const r of allDriverResults) {
+      const key = `${r.driverId}:${r.week}`;
+      if (!driverResultMap[key]) driverResultMap[key] = [];
+      driverResultMap[key].push(r);
+    }
+    const ctorResultMap = {};
+    for (const r of allCtorResults) {
+      ctorResultMap[`${r.constructorId}:${r.week}`] = r;
+    }
+
+    const latestWeek = latestWeekRow?.week ?? null;
+
+    // 3. Compute standings in memory (no extra DB queries)
+    const standings = [];
+    for (const lu of leagueUsers) {
       let totalPoints = 0;
       let totalWins = 0;
       const roundPoints = {};
 
-      for (const team of leagueUser.user.weeklyTeams) {
+      for (const team of lu.user.weeklyTeams) {
         let weekPoints = 0;
 
-        // Get points for drivers in team
-        for (const teamDriver of team.drivers) {
-          const results = await prisma.raceResult.findMany({
-            where: { driverId: teamDriver.driverId, leagueId, week: team.week },
-          });
-
-          for (const result of results) {
-            let pts = result.points;
-            // Apply chip: no_negative zeroes out negative points
+        for (const td of team.drivers) {
+          const results = driverResultMap[`${td.driverId}:${team.week}`] ?? [];
+          for (const r of results) {
+            let pts = r.points;
             if (team.chipUsed === 'no_negative' && pts < 0) pts = 0;
-            // Apply captain 2x multiplier
-            if (team.captainId === teamDriver.driverId) {
-              const multiplier = team.chipUsed === 'triple_captain' ? 3 : 2;
-              pts = pts * multiplier;
+            if (team.captainId === td.driverId) {
+              pts *= team.chipUsed === 'triple_captain' ? 3 : 2;
             }
             weekPoints += pts;
-            if (result.finishingPosition === 1) totalWins++;
+            if (r.finishingPosition === 1) totalWins++;
           }
         }
 
-        // Get constructor points
-        const constructor = team.constructors[0];
-        if (constructor) {
-          const constructorResults = await prisma.constructorRaceResult.findMany({
-            where: { constructorId: constructor.constructorId, leagueId, week: team.week },
-          });
-          for (const result of constructorResults) weekPoints += result.totalPoints;
+        const ctor = team.constructors[0];
+        if (ctor) {
+          const cr = ctorResultMap[`${ctor.constructorId}:${team.week}`];
+          if (cr) weekPoints += cr.totalPoints;
         }
 
         totalPoints += weekPoints;
@@ -883,71 +897,59 @@ router.get('/leagues/:leagueId/leaderboard', async (req, res) => {
       }
 
       standings.push({
-        userId: leagueUser.userId,
-        userName: leagueUser.user.name,
-        email: leagueUser.user.email,
-        teamName: leagueUser.teamName,
-        avatarColor: leagueUser.user.avatarColor,
+        userId: lu.userId,
+        userName: lu.user.name,
+        email: lu.user.email,
+        teamName: lu.teamName,
+        avatarColor: lu.user.avatarColor,
         totalPoints,
         totalWins,
         roundPoints,
       });
     }
 
-    // Sort by points (desc), then by wins (desc)
-    standings.sort((a, b) => {
-      if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-      return b.totalWins - a.totalWins;
-    });
+    standings.sort((a, b) => b.totalPoints !== a.totalPoints
+      ? b.totalPoints - a.totalPoints
+      : b.totalWins - a.totalWins);
     standings.forEach((u, i) => { u.rank = i + 1; });
 
-    // Compute previous-round ranks to show movement arrows
-    const latestWeek = await prisma.raceResult.findFirst({
-      where: { leagueId },
-      orderBy: { week: 'desc' },
-      select: { week: true },
-    });
-
+    // 4. Compute previous-round ranks in memory (reuse already-fetched data)
     if (latestWeek) {
-      // Re-tally excluding the latest round
       const prevTotals = {};
-      for (const s of standings) prevTotals[s.userId] = { pts: 0, wins: 0 };
-
-      for (const leagueUser of leagueUsers) {
-        for (const team of leagueUser.user.weeklyTeams) {
+      for (const lu of leagueUsers) {
+        let pts = 0; let wins = 0;
+        for (const team of lu.user.weeklyTeams) {
+          if (team.week >= latestWeek) continue;
           for (const td of team.drivers) {
-            const results = await prisma.raceResult.findMany({
-              where: { driverId: td.driverId, leagueId, week: { lt: latestWeek.week } },
-            });
-            for (const r of results) {
-              prevTotals[leagueUser.userId].pts += r.points;
-              if (r.finishingPosition === 1) prevTotals[leagueUser.userId].wins++;
+            for (const r of (driverResultMap[`${td.driverId}:${team.week}`] ?? [])) {
+              let p = r.points;
+              if (team.chipUsed === 'no_negative' && p < 0) p = 0;
+              if (team.captainId === td.driverId) p *= team.chipUsed === 'triple_captain' ? 3 : 2;
+              pts += p;
+              if (r.finishingPosition === 1) wins++;
             }
           }
           const ctor = team.constructors[0];
           if (ctor) {
-            const cResults = await prisma.constructorRaceResult.findMany({
-              where: { constructorId: ctor.constructorId, leagueId, week: { lt: latestWeek.week } },
-            });
-            for (const r of cResults) prevTotals[leagueUser.userId].pts += r.totalPoints;
+            const cr = ctorResultMap[`${ctor.constructorId}:${team.week}`];
+            if (cr) pts += cr.totalPoints;
           }
         }
+        prevTotals[lu.userId] = { pts, wins };
       }
-
       const prevRanked = Object.entries(prevTotals)
         .sort(([, a], [, b]) => b.pts !== a.pts ? b.pts - a.pts : b.wins - a.wins)
         .map(([userId], i) => ({ userId, rank: i + 1 }));
       const prevRankMap = Object.fromEntries(prevRanked.map(r => [r.userId, r.rank]));
-
       for (const s of standings) {
         const prev = prevRankMap[s.userId];
-        s.rankDelta = prev != null ? prev - s.rank : 0; // positive = moved up
+        s.rankDelta = prev != null ? prev - s.rank : 0;
       }
     } else {
       standings.forEach(s => { s.rankDelta = 0; });
     }
 
-    res.json({ standings, latestRound: latestWeek?.week || null });
+    res.json({ standings, latestRound: latestWeek });
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     res.status(500).json({ error: error.message });
@@ -999,51 +1001,57 @@ router.get('/leagues/:leagueId/transfers', authMiddleware, async (req, res) => {
  * GET /api/leagues/:leagueId/leaderboard/weekly/:week
  * Get per-round leaderboard rankings
  */
-router.get('/leagues/:leagueId/leaderboard/weekly/:week', async (req, res) => {
+router.get('/leagues/:leagueId/leaderboard/weekly/:week', authMiddleware, async (req, res) => {
   try {
     const { leagueId, week } = req.params;
     const weekNum = parseInt(week);
 
-    const teams = await prisma.userWeeklyTeam.findMany({
-      where: { leagueId, week: weekNum },
-      include: {
-        user: { select: { id: true, name: true, avatarColor: true } },
-        drivers: true,
-        constructors: true,
-      },
-    });
+    const [teams, allDriverResults, allCtorResults] = await Promise.all([
+      prisma.userWeeklyTeam.findMany({
+        where: { leagueId, week: weekNum },
+        include: {
+          user: { select: { id: true, name: true, avatarColor: true } },
+          drivers: true,
+          constructors: true,
+        },
+      }),
+      prisma.raceResult.findMany({ where: { leagueId, week: weekNum } }),
+      prisma.constructorRaceResult.findMany({ where: { leagueId, week: weekNum } }),
+    ]);
 
-    const weekStandings = [];
-    for (const team of teams) {
+    // Build maps for O(1) lookup
+    const driverResultMap = {};
+    for (const r of allDriverResults) {
+      if (!driverResultMap[r.driverId]) driverResultMap[r.driverId] = [];
+      driverResultMap[r.driverId].push(r);
+    }
+    const ctorResultMap = {};
+    for (const r of allCtorResults) ctorResultMap[r.constructorId] = r;
+
+    const weekStandings = teams.map(team => {
       let pts = 0;
       for (const td of team.drivers) {
-        const results = await prisma.raceResult.findMany({
-          where: { driverId: td.driverId, leagueId, week: weekNum },
-        });
-        for (const r of results) {
+        for (const r of (driverResultMap[td.driverId] ?? [])) {
           let p = r.points;
-          if (team.captainId === td.driverId) {
-            p *= team.chipUsed === 'triple_captain' ? 3 : 2;
-          }
+          if (team.chipUsed === 'no_negative' && p < 0) p = 0;
+          if (team.captainId === td.driverId) p *= team.chipUsed === 'triple_captain' ? 3 : 2;
           pts += p;
         }
       }
       const ctor = team.constructors[0];
       if (ctor) {
-        const cr = await prisma.constructorRaceResult.findFirst({
-          where: { constructorId: ctor.constructorId, leagueId, week: weekNum },
-        });
+        const cr = ctorResultMap[ctor.constructorId];
         if (cr) pts += cr.totalPoints;
       }
-      weekStandings.push({
+      return {
         userId: team.userId,
         userName: team.user.name,
         avatarColor: team.user.avatarColor,
         points: pts,
         captainId: team.captainId,
         chipUsed: team.chipUsed,
-      });
-    }
+      };
+    });
 
     weekStandings.sort((a, b) => b.points - a.points);
     weekStandings.forEach((s, i) => { s.rank = i + 1; });
@@ -1607,5 +1615,99 @@ async function fetchResultsForWeek(weekNum, res) {
     })),
   });
 }
+
+// GET /api/leagues/:leagueId/activity
+// Returns a chronological feed of recent league events
+router.get('/leagues/:leagueId/activity', authMiddleware, async (req, res) => {
+  const { leagueId } = req.params;
+  const limit = Math.min(parseInt(req.query.limit) || 20, 50);
+
+  const member = await prisma.leagueMember.findUnique({
+    where: { leagueId_userId: { leagueId, userId: req.user.id } },
+  });
+  if (!member) return res.status(403).json({ error: 'Not a member of this league' });
+
+  // Gather events from multiple sources in parallel
+  const [recentTeams, recentResults, recentMessages, members] = await Promise.all([
+    // Recent team submissions
+    prisma.weeklyTeam.findMany({
+      where: { leagueId },
+      orderBy: { updatedAt: 'desc' },
+      take: limit,
+      include: { user: { select: { id: true, name: true } } },
+    }),
+    // Rounds with results available
+    prisma.raceResult.findMany({
+      where: { leagueId },
+      distinct: ['week'],
+      orderBy: { week: 'desc' },
+      take: 5,
+      select: { week: true, createdAt: true },
+    }),
+    // Recent chat messages
+    prisma.leagueMessage.findMany({
+      where: { leagueId },
+      orderBy: { createdAt: 'desc' },
+      take: 5,
+      include: { user: { select: { id: true, name: true } } },
+    }),
+    // League members (for join events)
+    prisma.leagueMember.findMany({
+      where: { leagueId },
+      orderBy: { joinedAt: 'desc' },
+      take: 5,
+      include: { user: { select: { id: true, name: true } } },
+    }),
+  ]);
+
+  const events = [];
+
+  for (const team of recentTeams) {
+    events.push({
+      id: `team-${team.id}`,
+      type: 'team_submitted',
+      title: `${team.user.name} submitted their Round ${team.week} team`,
+      userId: team.user.id,
+      userName: team.user.name,
+      week: team.week,
+      timestamp: team.updatedAt.toISOString(),
+    });
+  }
+
+  for (const result of recentResults) {
+    events.push({
+      id: `result-${leagueId}-${result.week}`,
+      type: 'results_imported',
+      title: `Round ${result.week} results are in`,
+      week: result.week,
+      timestamp: result.createdAt.toISOString(),
+    });
+  }
+
+  for (const msg of recentMessages) {
+    events.push({
+      id: `msg-${msg.id}`,
+      type: 'chat_message',
+      title: `${msg.user.name}: ${msg.content.length > 60 ? msg.content.slice(0, 57) + '…' : msg.content}`,
+      userId: msg.user.id,
+      userName: msg.user.name,
+      timestamp: msg.createdAt.toISOString(),
+    });
+  }
+
+  for (const m of members) {
+    events.push({
+      id: `join-${m.userId}`,
+      type: 'member_joined',
+      title: `${m.user.name} joined the league`,
+      userId: m.user.id,
+      userName: m.user.name,
+      timestamp: m.joinedAt.toISOString(),
+    });
+  }
+
+  events.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+  res.json({ events: events.slice(0, limit) });
+});
 
 module.exports = router;

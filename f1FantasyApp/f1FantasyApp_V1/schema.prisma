@@ -19,6 +19,7 @@ model User {
   password          String   // bcrypt hash
   bio               String?
   avatarColor       String   @default("#e10600")
+  pushToken         String?  // APNs device token for iOS push notifications
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 

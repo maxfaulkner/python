@@ -4,6 +4,8 @@ struct LoginView: View {
     @Environment(AuthService.self) private var authService
     @State private var vm: AuthViewModel?
     @State private var showRegister = false
+    @State private var biometricError: String?
+    @State private var showEnableBiometricsPrompt = false
 
     var body: some View {
         ZStack {
@@ -40,10 +42,20 @@ struct LoginView: View {
                                     .foregroundStyle(.appError)
                                     .multilineTextAlignment(.center)
                             }
+                            if let err = biometricError {
+                                Text(err).font(.caption).foregroundStyle(.appError).multilineTextAlignment(.center)
+                            }
 
                             // Sign In
                             Button {
-                                Task { await vm.login() }
+                                biometricError = nil
+                                Task {
+                                    await vm.login()
+                                    if authService.isAuthenticated && !authService.biometricEnabled
+                                        && !authService.biometryTypeName.isEmpty {
+                                        showEnableBiometricsPrompt = true
+                                    }
+                                }
                             } label: {
                                 ZStack {
                                     RoundedRectangle(cornerRadius: 12)
@@ -60,6 +72,30 @@ struct LoginView: View {
                             }
                             .disabled(vm.isLoading)
 
+                            // Biometric unlock button (shown when opted-in + token exists)
+                            if authService.biometricEnabled && !authService.biometryTypeName.isEmpty
+                                && KeychainHelper.shared.loadToken() != nil {
+                                Button {
+                                    Task {
+                                        do { try await authService.tryBiometricUnlock() }
+                                        catch { biometricError = "Biometric unlock failed." }
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: authService.biometryTypeName == "Face ID"
+                                              ? "faceid" : "touchid")
+                                        Text("Sign in with \(authService.biometryTypeName)")
+                                            .fontWeight(.semibold)
+                                    }
+                                    .foregroundStyle(.appTextPrimary)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 50)
+                                    .background(Color.appCard)
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(Color.appBorder))
+                                }
+                            }
+
                             // Register
                             Button("Create an account") { showRegister = true }
                                 .font(.subheadline)
@@ -75,6 +111,13 @@ struct LoginView: View {
         }
         .navigationDestination(isPresented: $showRegister) {
             RegisterView()
+        }
+        .alert("Enable \(authService.biometryTypeName)?",
+               isPresented: $showEnableBiometricsPrompt) {
+            Button("Enable") { authService.biometricEnabled = true }
+            Button("Not Now", role: .cancel) {}
+        } message: {
+            Text("Sign in faster next time using \(authService.biometryTypeName).")
         }
     }
 }

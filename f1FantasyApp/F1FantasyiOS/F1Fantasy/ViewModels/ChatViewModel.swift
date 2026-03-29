@@ -23,8 +23,19 @@ final class ChatViewModel {
             let fetched: [LeagueMessage] = try await APIClient.shared.request(
                 "GET", path: "/api/leagues/\(leagueId)/chat"
             )
-            messages = fetched
-        } catch {}
+            if refresh {
+                // Merge: only append messages not already in the list
+                let existingIds = Set(messages.map { $0.id })
+                let newMessages = fetched.filter { !existingIds.contains($0.id) }
+                if !newMessages.isEmpty { messages.append(contentsOf: newMessages) }
+            } else {
+                messages = fetched
+            }
+        } catch let e as APIError {
+            if !refresh { errorMessage = e.errorDescription }
+        } catch {
+            if !refresh { errorMessage = error.localizedDescription }
+        }
         if !refresh { isLoading = false }
     }
 
@@ -35,8 +46,11 @@ final class ChatViewModel {
                 "GET", path: "/api/leagues/\(leagueId)/chat",
                 queryItems: [URLQueryItem(name: "before", value: oldest.id), URLQueryItem(name: "limit", value: "50")]
             )
-            messages = fetched + messages
-        } catch {}
+            let existingIds = Set(messages.map { $0.id })
+            let newOlder = fetched.filter { !existingIds.contains($0.id) }
+            messages = newOlder + messages
+        } catch let e as APIError { errorMessage = e.errorDescription }
+        catch { errorMessage = error.localizedDescription }
     }
 
     func sendMessage() async {
@@ -57,15 +71,20 @@ final class ChatViewModel {
     }
 
     func startPolling() {
+        // Cancel any existing poll loop before starting a new one
+        pollTask?.cancel()
         pollTask = Task {
             while !Task.isCancelled {
                 do {
                     try await Task.sleep(for: .seconds(8))
-                    await loadMessages(refresh: true)
+                    if !Task.isCancelled { await loadMessages(refresh: true) }
                 } catch { break }
             }
         }
     }
 
-    func stopPolling() { pollTask?.cancel() }
+    func stopPolling() {
+        pollTask?.cancel()
+        pollTask = nil
+    }
 }

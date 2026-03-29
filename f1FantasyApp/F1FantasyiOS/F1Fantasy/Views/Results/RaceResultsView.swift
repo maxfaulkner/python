@@ -21,6 +21,17 @@ final class RaceResultsViewModel {
     var isLoadingStandings = false
     var errorMessage: String?
 
+    // Live timing: true when the currently-selected round's race day is today ± 12h
+    var isLive: Bool {
+        guard let race = currentRace else { return false }
+        let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+        guard let raceDate = fmt.date(from: race.date) else { return false }
+        let diff = abs(raceDate.timeIntervalSinceNow)
+        return diff < 12 * 3600 // within 12 hours of race date
+    }
+
+    private var livePollingTask: Task<Void, Never>?
+
     enum TopTab { case results, standings }
     enum Session: String, CaseIterable { case race = "Race"; case qualifying = "Qualifying"; case sprint = "Sprint" }
     enum StandingsTab: String, CaseIterable { case drivers = "Drivers"; case constructors = "Constructors" }
@@ -117,6 +128,26 @@ final class RaceResultsViewModel {
         selectedSession = session
         await loadSession()
     }
+
+    // MARK: - Live Polling
+
+    func startLivePollingIfNeeded() {
+        guard isLive else { return }
+        livePollingTask?.cancel()
+        livePollingTask = Task {
+            while !Task.isCancelled && isLive {
+                do {
+                    try await Task.sleep(for: .seconds(60))
+                    if !Task.isCancelled { await loadSession() }
+                } catch { break }
+            }
+        }
+    }
+
+    func stopLivePolling() {
+        livePollingTask?.cancel()
+        livePollingTask = nil
+    }
 }
 
 // MARK: - Root View
@@ -152,9 +183,30 @@ struct RaceResultsView: View {
                 }
             }
             .navigationTitle("Results")
+            .toolbar {
+                if vm.isLive {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        HStack(spacing: 4) {
+                            Circle().fill(Color.appRed).frame(width: 7, height: 7)
+                            Text("LIVE")
+                                .font(.system(size: 11, weight: .bold))
+                                .foregroundStyle(.appRed)
+                        }
+                        .padding(.horizontal, 8).padding(.vertical, 4)
+                        .background(Color.appRed.opacity(0.12))
+                        .clipShape(Capsule())
+                    }
+                }
+            }
             .task {
                 await vm.loadSchedule()
                 await vm.loadSession()
+                vm.startLivePollingIfNeeded()
+            }
+            .onDisappear { vm.stopLivePolling() }
+            .onChange(of: vm.selectedRound) { _, _ in
+                vm.stopLivePolling()
+                vm.startLivePollingIfNeeded()
             }
             .onChange(of: vm.topTab) { _, tab in
                 if tab == .standings { Task { await vm.loadStandings() } }

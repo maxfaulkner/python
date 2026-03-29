@@ -94,6 +94,10 @@ final class TeamPickerViewModel {
 
     func submit(leagueId: String, week: Int) async {
         guard canSubmit else { return }
+        guard let constructorId = selectedConstructorId else {
+            errorMessage = "Please select a constructor"
+            return
+        }
         isSubmitting = true
         errorMessage = nil
         do {
@@ -101,7 +105,7 @@ final class TeamPickerViewModel {
                 "POST", path: "/api/leagues/\(leagueId)/team/\(week)",
                 body: SubmitTeamRequest(
                     drivers: selectedDriverIds,
-                    constructorId: selectedConstructorId!,
+                    constructorId: constructorId,
                     captainId: captainId,
                     chipUsed: chipUsed
                 )
