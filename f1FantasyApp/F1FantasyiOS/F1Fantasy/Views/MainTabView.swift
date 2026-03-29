@@ -13,24 +13,28 @@ struct MainTabView: View {
             .tabItem { Label("Leagues", systemImage: "flag.checkered") }
             .tag(0)
 
+            RaceResultsView()
+            .tabItem { Label("Results", systemImage: "flag.checkered.2.crossed") }
+            .tag(1)
+
             NavigationStack {
                 DiscoverLeaguesView()
             }
             .tabItem { Label("Discover", systemImage: "magnifyingglass") }
-            .tag(1)
+            .tag(2)
 
             NavigationStack {
                 NotificationsView()
             }
             .tabItem { Label("Alerts", systemImage: "bell") }
             .badge(unreadCount > 0 ? unreadCount : 0)
-            .tag(2)
+            .tag(3)
 
             NavigationStack {
                 ProfileView()
             }
             .tabItem { Label("Profile", systemImage: "person.circle") }
-            .tag(3)
+            .tag(4)
         }
         .tint(Color.appRed)
         .preferredColorScheme(.dark)

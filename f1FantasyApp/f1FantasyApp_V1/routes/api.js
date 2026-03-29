@@ -1538,4 +1538,74 @@ router.post('/admin/check-results', checkResultsLimiter, authMiddleware, async (
   }
 });
 
+// ============ RACE RESULTS (PUBLIC) ============
+
+/**
+ * GET /api/results/latest
+ * Returns the most recent round that has results, plus the results themselves.
+ */
+router.get('/results/latest', authMiddleware, async (req, res) => {
+  try {
+    const latest = await prisma.raceResult.findFirst({
+      orderBy: { week: 'desc' },
+      select: { week: true },
+    });
+    if (!latest) return res.json({ week: null, drivers: [], constructors: [] });
+    req.params = { ...req.params, week: String(latest.week) };
+    return fetchResultsForWeek(latest.week, res);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+/**
+ * GET /api/results/:week
+ * Returns finishing positions and fantasy points for all drivers/constructors in a given week.
+ * Results are league-agnostic (same across leagues — picked from the first league found).
+ */
+router.get('/results/:week', authMiddleware, async (req, res) => {
+  try {
+    const weekNum = parseInt(req.params.week);
+    await fetchResultsForWeek(weekNum, res);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
+async function fetchResultsForWeek(weekNum, res) {
+  // Pick any league that has results for this week (results are identical across leagues)
+  const anyResult = await prisma.raceResult.findFirst({ where: { week: weekNum }, select: { leagueId: true } });
+  if (!anyResult) return res.json({ week: weekNum, drivers: [], constructors: [] });
+
+  const leagueId = anyResult.leagueId;
+
+  const [driverResults, constructorResults] = await Promise.all([
+    prisma.raceResult.findMany({
+      where: { leagueId, week: weekNum },
+      include: { driver: { include: { constructor: true } } },
+      orderBy: { finishingPosition: 'asc' },
+    }),
+    prisma.constructorRaceResult.findMany({
+      where: { leagueId, week: weekNum },
+      include: { constructor: true },
+      orderBy: { totalPoints: 'desc' },
+    }),
+  ]);
+
+  res.json({
+    week: weekNum,
+    drivers: driverResults.map(r => ({
+      position: r.finishingPosition,
+      gridPosition: r.gridPosition,
+      points: r.points,
+      isSprint: r.isSprint,
+      driver: r.driver,
+    })),
+    constructors: constructorResults.map(r => ({
+      points: r.totalPoints,
+      constructor: r.constructor,
+    })),
+  });
+}
+
 module.exports = router;

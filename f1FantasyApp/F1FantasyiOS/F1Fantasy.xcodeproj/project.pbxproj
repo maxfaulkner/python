@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		014C37E235F0F8F582FAEEAC /* F1FantasyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDB54E655919344F5C42E31 /* F1FantasyApp.swift */; };
 		0316A9304EE9F636F5794E56 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919929646EEA0DD33363437B /* RegisterView.swift */; };
+		055E87ACFFAF145BAABBCEB4 /* RaceResultEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95972D2F60765235178ECBF3 /* RaceResultEntry.swift */; };
 		085AB22DE26B70BA13E5DFC4 /* LeaguesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5CDD51115726F92403508 /* LeaguesListView.swift */; };
 		0E4468E2AFD478D50631DA08 /* RankDeltaBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421FF11C1B470F2000D64DB5 /* RankDeltaBadge.swift */; };
 		0FDA833CC6E0CAB63FB09DF9 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E38F339E8590BACFFD4C31D /* KeychainHelper.swift */; };
@@ -18,6 +19,7 @@
 		40224B0564F2E185B566261F /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B69E302FC8372F0C4C0BD58 /* MainTabView.swift */; };
 		474100D35E6751CDC2452099 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8AFC510F862776E6F0CF08 /* ChatViewModel.swift */; };
 		4C1CBF4EBFF92A5ABE25BD08 /* BudgetBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 702AE8E9F51A918F13689C87 /* BudgetBar.swift */; };
+		4C8297CA884D60EC8A99252C /* RaceResultsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AFF8D03F6F20B0E274F9C5 /* RaceResultsView.swift */; };
 		5032E44B91D53CCA22CAC17F /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 574CD64280AAF811448FB04F /* ChatView.swift */; };
 		53A3A2EE86F0EF022307BC0C /* DiscoverLeaguesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B38A5E624174E494890CD922 /* DiscoverLeaguesView.swift */; };
 		5644D1D43EA31BB46442B98B /* ErrorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 07221C8BFCDC24BCFD2A77DE /* ErrorView.swift */; };
@@ -57,6 +59,7 @@
 		0F28A86F770F840A03B2214A /* Notification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Notification.swift; sourceTree = "<group>"; };
 		10CB17C847C57EE7CD6C1DCA /* LeaderboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardView.swift; sourceTree = "<group>"; };
 		12C5CDD51115726F92403508 /* LeaguesListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaguesListView.swift; sourceTree = "<group>"; };
+		17AFF8D03F6F20B0E274F9C5 /* RaceResultsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceResultsView.swift; sourceTree = "<group>"; };
 		206A2E495C40FF592C6AF762 /* DesignTokens.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignTokens.swift; sourceTree = "<group>"; };
 		21FEC10668C28DC54C5BD2B3 /* TeamPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamPickerView.swift; sourceTree = "<group>"; };
 		3262E7FEDD16A4B189635FF3 /* Extensions.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Extensions.swift; sourceTree = "<group>"; };
@@ -82,6 +85,7 @@
 		8CEFCFAFC8A1673324CACABA /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		8E38F339E8590BACFFD4C31D /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		919929646EEA0DD33363437B /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
+		95972D2F60765235178ECBF3 /* RaceResultEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceResultEntry.swift; sourceTree = "<group>"; };
 		A8761DF1C39E22EFEEF54A36 /* RaceResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceResult.swift; sourceTree = "<group>"; };
 		B38A5E624174E494890CD922 /* DiscoverLeaguesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverLeaguesView.swift; sourceTree = "<group>"; };
 		C24C1E7E1281747B2792B0EC /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -108,6 +112,14 @@
 				8E38F339E8590BACFFD4C31D /* KeychainHelper.swift */,
 			);
 			path = Utilities;
+			sourceTree = "<group>";
+		};
+		23CE1D197352008B81755269 /* Results */ = {
+			isa = PBXGroup;
+			children = (
+				17AFF8D03F6F20B0E274F9C5 /* RaceResultsView.swift */,
+			);
+			path = Results;
 			sourceTree = "<group>";
 		};
 		2CC90B27A2860DB4DC629CAD /* ViewModels */ = {
@@ -247,6 +259,7 @@
 				FA60E31753677B46735D1C08 /* Leagues */,
 				69D660769CE7657432D2AC13 /* Notifications */,
 				9735FC955CDB3DEF725A8AD5 /* Profile */,
+				23CE1D197352008B81755269 /* Results */,
 				7F8B49592E7F4373BBA36C88 /* Shared */,
 				5B2010C81E6634749C9A023F /* Stats */,
 				2D50D5C5B0E300891C9C29F0 /* Team */,
@@ -297,6 +310,7 @@
 				7355E4909F88903AAD3FA18E /* Message.swift */,
 				0F28A86F770F840A03B2214A /* Notification.swift */,
 				A8761DF1C39E22EFEEF54A36 /* RaceResult.swift */,
+				95972D2F60765235178ECBF3 /* RaceResultEntry.swift */,
 				F8032B69F097A35812670E65 /* Team.swift */,
 				63DF8ECEBE12277DCFAE016E /* User.swift */,
 			);
@@ -396,6 +410,8 @@
 				C83DCFFD27EBC986148EB04F /* PriceWatchView.swift in Sources */,
 				8E0E290B973EDCC60061616B /* ProfileView.swift in Sources */,
 				D28DFE9C244369C0D5A639BE /* RaceResult.swift in Sources */,
+				055E87ACFFAF145BAABBCEB4 /* RaceResultEntry.swift in Sources */,
+				4C8297CA884D60EC8A99252C /* RaceResultsView.swift in Sources */,
 				0E4468E2AFD478D50631DA08 /* RankDeltaBadge.swift in Sources */,
 				0316A9304EE9F636F5794E56 /* RegisterView.swift in Sources */,
 				79C7A7931D463D31D2B5154F /* StatsView.swift in Sources */,
