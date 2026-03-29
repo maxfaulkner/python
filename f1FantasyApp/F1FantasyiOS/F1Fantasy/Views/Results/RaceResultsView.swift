@@ -79,23 +79,23 @@ final class RaceResultsViewModel {
     func loadStandings() async {
         guard driverStandings.isEmpty && constructorStandings.isEmpty else { return }
         isLoadingStandings = true
-        async let driversData = fetchStandings(type: "driverstandings")
-        async let constructorsData = fetchStandings(type: "constructorstandings")
+        async let driversData = fetchDriverStandings()
+        async let constructorsData = fetchConstructorStandings()
         let (d, c) = await (driversData, constructorsData)
         driverStandings = d
         constructorStandings = c
         isLoadingStandings = false
     }
 
-    private func fetchStandings<T: Decodable>(type: String) async -> T where T == [JolpicaDriverStanding] {
-        let url = URL(string: "\(base)/\(season)/\(type).json")!
+    private func fetchDriverStandings() async -> [JolpicaDriverStanding] {
+        let url = URL(string: "\(base)/\(season)/driverstandings.json")!
         guard let (data, _) = try? await URLSession.shared.data(from: url),
               let response = try? JSONDecoder().decode(JolpicaStandingsResponse.self, from: data) else { return [] }
         return response.mrData.standingsTable.standingsLists.first?.driverStandings ?? []
     }
 
-    private func fetchStandings<T: Decodable>(type: String) async -> T where T == [JolpicaConstructorStanding] {
-        let url = URL(string: "\(base)/\(season)/\(type).json")!
+    private func fetchConstructorStandings() async -> [JolpicaConstructorStanding] {
+        let url = URL(string: "\(base)/\(season)/constructorstandings.json")!
         guard let (data, _) = try? await URLSession.shared.data(from: url),
               let response = try? JSONDecoder().decode(JolpicaStandingsResponse.self, from: data) else { return [] }
         return response.mrData.standingsTable.standingsLists.first?.constructorStandings ?? []
