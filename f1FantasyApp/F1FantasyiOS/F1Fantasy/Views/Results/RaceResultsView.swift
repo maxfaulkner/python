@@ -305,25 +305,39 @@ struct SessionResultsView: View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
                 ForEach(vm.schedule) { race in
-                    Button {
+                    RoundPill(
+                        race: race,
+                        isSelected: vm.selectedRound == race.roundInt
+                    ) {
                         Task { await vm.selectRound(race.roundInt) }
-                    } label: {
-                        VStack(spacing: 2) {
-                            Text("R\(race.round)")
-                                .font(.system(size: 11, weight: .bold))
-                            Text(race.circuit.location.country)
-                                .font(.system(size: 9))
-                                .lineLimit(1)
-                        }
-                        .padding(.horizontal, 10).padding(.vertical, 6)
-                        .background(vm.selectedRound == race.roundInt ? Color.appRed : Color.appCard)
-                        .foregroundStyle(vm.selectedRound == race.roundInt ? .white : .appTextDim)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 4)
         }
+    }
+}
+
+struct RoundPill: View {
+    let race: JolpicaRace
+    let isSelected: Bool
+    let onTap: () -> Void
+
+    var body: some View {
+        Button(action: onTap) {
+            VStack(spacing: 2) {
+                Text("R\(race.round)")
+                    .font(.system(size: 11, weight: .bold))
+                Text(race.circuit.location.country)
+                    .font(.system(size: 9))
+                    .lineLimit(1)
+            }
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(isSelected ? Color.appRed : Color.appCard)
+            .foregroundStyle(isSelected ? Color.white : Color.appTextDim)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
     }
 }
 
