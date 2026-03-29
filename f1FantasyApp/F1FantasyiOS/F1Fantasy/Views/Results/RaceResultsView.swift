@@ -1,42 +1,125 @@
 import SwiftUI
 
+// MARK: - ViewModel
+
 @Observable
 final class RaceResultsViewModel {
-    var results: RaceResultsResponse?
-    var latestWeek: Int?
-    var browseWeek: Int = 1
-    var isLoading = false
-    var errorMessage: String?
-    var activeTab = 0  // 0 = drivers, 1 = constructors
+    var schedule: [JolpicaRace] = []
+    var selectedRound: Int = 0          // 0 = not yet set
+    var selectedSession: Session = .race
+    var topTab: TopTab = .results
 
-    func loadLatest() async {
-        isLoading = true
-        errorMessage = nil
-        do {
-            let response: RaceResultsResponse = try await APIClient.shared.request(
-                "GET", path: "/api/results/latest"
-            )
-            results = response
-            latestWeek = response.week
-            browseWeek = response.week
-        } catch let e as APIError { errorMessage = e.errorDescription }
-        catch { errorMessage = error.localizedDescription }
-        isLoading = false
+    var raceResults: [JolpicaResult] = []
+    var sprintResults: [JolpicaResult] = []
+    var qualifyingResults: [JolpicaQualifyingResult] = []
+    var driverStandings: [JolpicaDriverStanding] = []
+    var constructorStandings: [JolpicaConstructorStanding] = []
+    var standingsTab: StandingsTab = .drivers
+
+    var isLoadingSchedule = false
+    var isLoadingSession = false
+    var isLoadingStandings = false
+    var errorMessage: String?
+
+    enum TopTab { case results, standings }
+    enum Session: String, CaseIterable { case race = "Race"; case qualifying = "Qualifying"; case sprint = "Sprint" }
+    enum StandingsTab: String, CaseIterable { case drivers = "Drivers"; case constructors = "Constructors" }
+
+    private let season = Calendar.current.component(.year, from: Date())
+    private let base = "https://api.jolpi.ca/ergast/f1"
+
+    var currentRace: JolpicaRace? { schedule.first(where: { $0.roundInt == selectedRound }) }
+    var availableSessions: [Session] {
+        guard let race = currentRace else { return [.race, .qualifying] }
+        return race.hasSprint ? [.race, .qualifying, .sprint] : [.race, .qualifying]
     }
 
-    func loadWeek(_ week: Int) async {
-        isLoading = true
+    func loadSchedule() async {
+        guard schedule.isEmpty else { return }
+        isLoadingSchedule = true
         errorMessage = nil
         do {
-            let response: RaceResultsResponse = try await APIClient.shared.request(
-                "GET", path: "/api/results/\(week)"
-            )
-            results = response
-        } catch let e as APIError { errorMessage = e.errorDescription }
-        catch { errorMessage = error.localizedDescription }
-        isLoading = false
+            let url = URL(string: "\(base)/\(season).json")!
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let response = try JSONDecoder().decode(JolpicaScheduleResponse.self, from: data)
+            schedule = response.mrData.raceTable?.races ?? []
+            // Default to most recent completed round
+            let now = Date()
+            let fmt = DateFormatter(); fmt.dateFormat = "yyyy-MM-dd"
+            let lastCompleted = schedule.last(where: { fmt.date(from: $0.date).map { $0 < now } ?? false })
+            selectedRound = lastCompleted?.roundInt ?? schedule.first?.roundInt ?? 1
+        } catch { errorMessage = error.localizedDescription }
+        isLoadingSchedule = false
+    }
+
+    func loadSession() async {
+        isLoadingSession = true
+        do {
+            switch selectedSession {
+            case .race:
+                let url = URL(string: "\(base)/\(season)/\(selectedRound)/results.json")!
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(JolpicaResultsResponse.self, from: data)
+                raceResults = response.mrData.raceTable.races.first?.results ?? []
+            case .sprint:
+                let url = URL(string: "\(base)/\(season)/\(selectedRound)/sprint.json")!
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(JolpicaResultsResponse.self, from: data)
+                sprintResults = response.mrData.raceTable.races.first?.sprintResults ?? []
+            case .qualifying:
+                let url = URL(string: "\(base)/\(season)/\(selectedRound)/qualifying.json")!
+                let (data, _) = try await URLSession.shared.data(from: url)
+                let response = try JSONDecoder().decode(JolpicaQualifyingResponse.self, from: data)
+                qualifyingResults = response.mrData.raceTable.races.first?.qualifyingResults ?? []
+            }
+        } catch { /* empty results = not available yet */ }
+        isLoadingSession = false
+    }
+
+    func loadStandings() async {
+        guard driverStandings.isEmpty && constructorStandings.isEmpty else { return }
+        isLoadingStandings = true
+        async let driversData = fetchStandings(type: "driverstandings")
+        async let constructorsData = fetchStandings(type: "constructorstandings")
+        let (d, c) = await (driversData, constructorsData)
+        driverStandings = d
+        constructorStandings = c
+        isLoadingStandings = false
+    }
+
+    private func fetchStandings<T: Decodable>(type: String) async -> T where T == [JolpicaDriverStanding] {
+        let url = URL(string: "\(base)/\(season)/\(type).json")!
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let response = try? JSONDecoder().decode(JolpicaStandingsResponse.self, from: data) else { return [] }
+        return response.mrData.standingsTable.standingsLists.first?.driverStandings ?? []
+    }
+
+    private func fetchStandings<T: Decodable>(type: String) async -> T where T == [JolpicaConstructorStanding] {
+        let url = URL(string: "\(base)/\(season)/\(type).json")!
+        guard let (data, _) = try? await URLSession.shared.data(from: url),
+              let response = try? JSONDecoder().decode(JolpicaStandingsResponse.self, from: data) else { return [] }
+        return response.mrData.standingsTable.standingsLists.first?.constructorStandings ?? []
+    }
+
+    func selectRound(_ round: Int) async {
+        selectedRound = round
+        raceResults = []
+        sprintResults = []
+        qualifyingResults = []
+        // If sprint not available for this round, fall back to race
+        if selectedSession == .sprint && !(currentRace?.hasSprint ?? false) {
+            selectedSession = .race
+        }
+        await loadSession()
+    }
+
+    func selectSession(_ session: Session) async {
+        selectedSession = session
+        await loadSession()
     }
 }
+
+// MARK: - Root View
 
 struct RaceResultsView: View {
     @State private var vm = RaceResultsViewModel()
@@ -45,140 +128,208 @@ struct RaceResultsView: View {
         NavigationStack {
             ZStack {
                 Color.appBackground.ignoresSafeArea()
-                Group {
-                    if vm.isLoading && vm.results == nil { LoadingView() }
-                    else if let err = vm.errorMessage, vm.results == nil {
-                        ErrorView(message: err) { Task { await vm.loadLatest() } }
-                    } else if let results = vm.results {
-                        content(results)
-                    } else {
-                        VStack(spacing: 12) {
-                            Text("🏁").font(.system(size: 48))
-                            Text("No results yet").font(.subheadline).foregroundStyle(.appTextDim)
-                            Text("Results will appear here after each race.")
-                                .font(.caption).foregroundStyle(.appTextFaint)
-                                .multilineTextAlignment(.center)
+
+                if vm.isLoadingSchedule {
+                    LoadingView()
+                } else if let err = vm.errorMessage, vm.schedule.isEmpty {
+                    ErrorView(message: err) { Task { await vm.loadSchedule() } }
+                } else {
+                    VStack(spacing: 0) {
+                        // Top tab: Results vs Standings
+                        Picker("", selection: $vm.topTab) {
+                            Text("Session Results").tag(RaceResultsViewModel.TopTab.results)
+                            Text("Championship").tag(RaceResultsViewModel.TopTab.standings)
                         }
-                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .pickerStyle(.segmented)
+                        .padding(.horizontal, 16).padding(.top, 12).padding(.bottom, 8)
+
+                        if vm.topTab == .results {
+                            SessionResultsView(vm: vm)
+                        } else {
+                            ChampionshipView(vm: vm)
+                        }
                     }
                 }
             }
             .navigationTitle("Results")
-            .task { await vm.loadLatest() }
-            .refreshable { await vm.loadLatest() }
+            .task {
+                await vm.loadSchedule()
+                await vm.loadSession()
+            }
+            .onChange(of: vm.topTab) { _, tab in
+                if tab == .standings { Task { await vm.loadStandings() } }
+            }
+            .refreshable {
+                vm.raceResults = []
+                vm.sprintResults = []
+                vm.qualifyingResults = []
+                vm.driverStandings = []
+                vm.constructorStandings = []
+                await vm.loadSchedule()
+                if vm.topTab == .results { await vm.loadSession() }
+                else { await vm.loadStandings() }
+            }
         }
     }
+}
 
-    private func content(_ results: RaceResultsResponse) -> some View {
+// MARK: - Session Results
+
+struct SessionResultsView: View {
+    let vm: RaceResultsViewModel
+
+    var body: some View {
         ScrollView {
-            VStack(spacing: 12) {
-                // Week navigator
-                weekNavigator
+            VStack(spacing: 10) {
+                // Round picker
+                roundPicker
 
-                // Sprint badge
-                if results.drivers.first?.isSprint == true {
-                    HStack(spacing: 6) {
-                        Image(systemName: "bolt.fill").font(.caption2)
-                        Text("Sprint Race").font(.caption).fontWeight(.semibold)
+                // Race name header
+                if let race = vm.currentRace {
+                    VStack(spacing: 2) {
+                        Text(race.raceName)
+                            .font(.headline).fontWeight(.bold).foregroundStyle(.appTextPrimary)
+                        Text("\(race.circuit.location.locality), \(race.circuit.location.country)")
+                            .font(.caption).foregroundStyle(.appTextDim)
                     }
-                    .foregroundStyle(.appGold)
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background(Color.appGold.opacity(0.12))
-                    .clipShape(Capsule())
+                    .frame(maxWidth: .infinity)
                 }
 
-                // Podium
-                if results.drivers.count >= 3 {
-                    ResultPodiumView(top3: Array(results.drivers.prefix(3)))
-                        .padding(.horizontal, 16)
-                }
-
-                // Tab toggle
-                Picker("", selection: $vm.activeTab) {
-                    Text("Drivers").tag(0)
-                    Text("Constructors").tag(1)
+                // Session picker
+                Picker("", selection: Binding(
+                    get: { vm.selectedSession },
+                    set: { session in Task { await vm.selectSession(session) } }
+                )) {
+                    ForEach(vm.availableSessions, id: \.self) { s in
+                        Text(s.rawValue).tag(s)
+                    }
                 }
                 .pickerStyle(.segmented)
                 .padding(.horizontal, 16)
 
-                // Results list
-                if vm.activeTab == 0 {
-                    VStack(spacing: 0) {
-                        ForEach(Array(results.drivers.enumerated()), id: \.element.id) { i, entry in
-                            DriverResultRow(entry: entry)
-                            if i < results.drivers.count - 1 {
-                                Color.appBorder.frame(height: 0.5).padding(.leading, 56)
-                            }
-                        }
-                    }
-                    .background(Color.appCard)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
+                if vm.isLoadingSession {
+                    ProgressView().padding(40)
                 } else {
-                    VStack(spacing: 0) {
-                        ForEach(Array(results.constructors.enumerated()), id: \.element.id) { i, entry in
-                            ConstructorResultRow(position: i + 1, entry: entry)
-                            if i < results.constructors.count - 1 {
-                                Color.appBorder.frame(height: 0.5).padding(.leading, 56)
-                            }
-                        }
-                    }
-                    .background(Color.appCard)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 16)
+                    sessionContent
                 }
-
-                Spacer(minLength: 32)
             }
-            .padding(.top, 12)
+            .padding(.bottom, 32)
         }
     }
 
-    private var weekNavigator: some View {
-        HStack {
-            Button {
-                if vm.browseWeek > 1 {
-                    vm.browseWeek -= 1
-                    Task { await vm.loadWeek(vm.browseWeek) }
-                }
-            } label: {
-                Image(systemName: "chevron.left").font(.headline)
-                    .foregroundStyle(vm.browseWeek > 1 ? .appTextPrimary : .appTextFaint)
-            }
-            .disabled(vm.browseWeek <= 1)
-
-            Spacer()
-            VStack(spacing: 2) {
-                Text("ROUND").font(.system(size: 10, weight: .bold)).foregroundStyle(.appTextDim)
-                Text("\(vm.browseWeek)")
-                    .font(.system(size: 28, weight: .bold, design: .rounded))
-                    .foregroundStyle(.appTextPrimary)
-                if vm.isLoading { ProgressView().scaleEffect(0.6) }
-            }
-            Spacer()
-
-            Button {
-                if let latest = vm.latestWeek, vm.browseWeek < latest {
-                    vm.browseWeek += 1
-                    Task { await vm.loadWeek(vm.browseWeek) }
-                }
-            } label: {
-                Image(systemName: "chevron.right").font(.headline)
-                    .foregroundStyle((vm.latestWeek.map { vm.browseWeek < $0 } ?? false) ? .appTextPrimary : .appTextFaint)
-            }
-            .disabled(vm.latestWeek.map { vm.browseWeek >= $0 } ?? true)
+    @ViewBuilder
+    private var sessionContent: some View {
+        switch vm.selectedSession {
+        case .race:
+            raceContent(vm.raceResults)
+        case .sprint:
+            raceContent(vm.sprintResults)
+        case .qualifying:
+            qualifyingContent
         }
-        .padding(.horizontal, 32).padding(.vertical, 8)
-        .background(Color.appCard)
-        .clipShape(RoundedRectangle(cornerRadius: 12))
-        .padding(.horizontal, 16)
+    }
+
+    @ViewBuilder
+    private func raceContent(_ results: [JolpicaResult]) -> some View {
+        if results.isEmpty {
+            emptyState("Results not available yet")
+        } else {
+            // Podium
+            if results.count >= 3 {
+                JolpicaPodiumView(top3: Array(results.prefix(3)))
+                    .padding(.horizontal, 16)
+            }
+
+            // Full classified order
+            VStack(spacing: 0) {
+                ForEach(Array(results.enumerated()), id: \.element.id) { i, result in
+                    RaceResultRow(result: result)
+                    if i < results.count - 1 {
+                        Color.appBorder.frame(height: 0.5).padding(.leading, 56)
+                    }
+                }
+            }
+            .background(Color.appCard)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private var qualifyingContent: some View {
+        Group {
+            if vm.qualifyingResults.isEmpty {
+                emptyState("Qualifying results not available yet")
+            } else {
+                VStack(spacing: 0) {
+                    // Header
+                    HStack {
+                        Text("P").frame(width: 28)
+                        Text("Driver").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 15)
+                        Text("Q1").frame(width: 72, alignment: .trailing)
+                        Text("Q2").frame(width: 72, alignment: .trailing)
+                        Text("Q3").frame(width: 72, alignment: .trailing)
+                    }
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(.appTextFaint)
+                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .textCase(.uppercase)
+                    .tracking(0.5)
+
+                    Color.appBorder.frame(height: 0.5)
+
+                    ForEach(Array(vm.qualifyingResults.enumerated()), id: \.element.id) { i, result in
+                        QualifyingResultRow(result: result)
+                        if i < vm.qualifyingResults.count - 1 {
+                            Color.appBorder.frame(height: 0.5).padding(.leading, 56)
+                        }
+                    }
+                }
+                .background(Color.appCard)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func emptyState(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Text("🏁").font(.system(size: 40))
+            Text(message).font(.subheadline).foregroundStyle(.appTextDim)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(48)
+    }
+
+    private var roundPicker: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(vm.schedule) { race in
+                    Button {
+                        Task { await vm.selectRound(race.roundInt) }
+                    } label: {
+                        VStack(spacing: 2) {
+                            Text("R\(race.round)")
+                                .font(.system(size: 11, weight: .bold))
+                            Text(race.circuit.location.country)
+                                .font(.system(size: 9))
+                                .lineLimit(1)
+                        }
+                        .padding(.horizontal, 10).padding(.vertical, 6)
+                        .background(vm.selectedRound == race.roundInt ? Color.appRed : Color.appCard)
+                        .foregroundStyle(vm.selectedRound == race.roundInt ? .white : .appTextDim)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 4)
+        }
     }
 }
 
 // MARK: - Podium
 
-struct ResultPodiumView: View {
-    let top3: [DriverResult]
+struct JolpicaPodiumView: View {
+    let top3: [JolpicaResult]
 
     var body: some View {
         HStack(alignment: .bottom, spacing: 8) {
@@ -186,28 +337,31 @@ struct ResultPodiumView: View {
             podiumCard(top3[0], position: 1, height: 90)
             podiumCard(top3[2], position: 3, height: 55)
         }
+        .padding(.vertical, 8)
     }
 
-    private func podiumCard(_ entry: DriverResult, position: Int, height: CGFloat) -> some View {
-        VStack(spacing: 6) {
+    private func podiumCard(_ result: JolpicaResult, position: Int, height: CGFloat) -> some View {
+        VStack(spacing: 5) {
             if position == 1 {
                 Image(systemName: "crown.fill").foregroundStyle(.appGold).font(.caption)
             }
             Circle()
-                .fill(constructorColor(for: entry.driver.constructor?.name))
+                .fill(constructorColor(for: result.constructor.name))
                 .frame(width: position == 1 ? 44 : 36, height: position == 1 ? 44 : 36)
                 .overlay(
-                    Text(entry.driver.abbr ?? String(entry.driver.name.prefix(3)).uppercased())
+                    Text(result.driver.abbreviation)
                         .font(.system(size: position == 1 ? 11 : 9, weight: .bold))
                         .foregroundStyle(.white)
                 )
-            Text(entry.driver.name.components(separatedBy: " ").last ?? entry.driver.name)
+            Text(result.driver.familyName)
                 .font(.caption2).fontWeight(.semibold).foregroundStyle(.appTextPrimary).lineLimit(1)
-            Text(entry.driver.constructor?.name ?? "")
+            Text(result.constructor.name)
                 .font(.system(size: 9)).foregroundStyle(.appTextDim).lineLimit(1)
-            Text("+\(entry.points) pts").font(.system(size: 10, weight: .bold)).foregroundStyle(.appGold)
+            if let t = result.time?.time {
+                Text(t).font(.system(size: 9, weight: .medium)).foregroundStyle(.appGold).lineLimit(1)
+            }
             RoundedRectangle(cornerRadius: 6)
-                .fill(position == 1 ? Color.appGold.opacity(0.2) : Color.appCard)
+                .fill(position == 1 ? Color.appGold.opacity(0.2) : Color.appCardRaised)
                 .frame(height: height)
                 .overlay(
                     Text("P\(position)").font(.title3).fontWeight(.bold)
@@ -218,13 +372,13 @@ struct ResultPodiumView: View {
     }
 }
 
-// MARK: - Driver row
+// MARK: - Race Result Row
 
-struct DriverResultRow: View {
-    let entry: DriverResult
+struct RaceResultRow: View {
+    let result: JolpicaResult
 
     private var positionColor: Color {
-        switch entry.position {
+        switch result.positionInt {
         case 1: return .appGold
         case 2: return Color(hex: "C0C0C0")
         case 3: return Color(hex: "CD7F32")
@@ -233,76 +387,304 @@ struct DriverResultRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text("\(entry.position)")
-                .font(.system(size: 14, weight: .bold))
+        HStack(spacing: 10) {
+            Text(result.isFinished ? "\(result.position)" : result.positionText)
+                .font(.system(size: 13, weight: .bold))
                 .foregroundStyle(positionColor)
                 .frame(width: 28, alignment: .center)
 
             RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: entry.driver.constructor?.name))
-                .frame(width: 3, height: 36)
+                .fill(constructorColor(for: result.constructor.name))
+                .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.driver.name)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(result.driver.fullName)
                     .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(entry.driver.constructor?.name ?? "")
+                Text(result.constructor.name)
                     .font(.caption2).foregroundStyle(.appTextDim)
             }
 
             Spacer()
 
-            // Grid position delta
-            if let delta = entry.positionDelta, delta != 0 {
+            // Grid delta
+            if let delta = result.positionDelta, result.isFinished, delta != 0 {
                 HStack(spacing: 2) {
                     Image(systemName: delta > 0 ? "arrow.up" : "arrow.down")
-                        .font(.system(size: 9, weight: .bold))
-                    Text("\(abs(delta))").font(.system(size: 10, weight: .bold))
+                        .font(.system(size: 8, weight: .bold))
+                    Text("\(abs(delta))").font(.system(size: 9, weight: .bold))
                 }
                 .foregroundStyle(delta > 0 ? Color.appSuccess : Color.appError)
-                .padding(.horizontal, 5).padding(.vertical, 2)
+                .padding(.horizontal, 4).padding(.vertical, 2)
                 .background(delta > 0 ? Color.appSuccess.opacity(0.12) : Color.appError.opacity(0.12))
                 .clipShape(Capsule())
             }
 
-            Text(entry.points > 0 ? "+\(entry.points)" : "\(entry.points)")
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(entry.points > 0 ? .appTextPrimary : .appTextFaint)
-                .frame(width: 42, alignment: .trailing)
+            // Time or status
+            VStack(alignment: .trailing, spacing: 1) {
+                if result.isFinished, let t = result.time?.time {
+                    Text(t).font(.system(size: 11, weight: .medium)).foregroundStyle(.appTextDim)
+                } else {
+                    Text(result.status).font(.system(size: 10)).foregroundStyle(.appError).lineLimit(1)
+                }
+                Text("\(result.points) pts")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(result.pointsDouble > 0 ? .appTextPrimary : .appTextFaint)
+            }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
+        .padding(.horizontal, 12).padding(.vertical, 9)
     }
 }
 
-// MARK: - Constructor row
+// MARK: - Qualifying Row
 
-struct ConstructorResultRow: View {
-    let position: Int
-    let entry: ConstructorResult
+struct QualifyingResultRow: View {
+    let result: JolpicaQualifyingResult
+
+    private var positionColor: Color {
+        switch result.positionInt {
+        case 1: return .appGold
+        case 2: return Color(hex: "C0C0C0")
+        case 3: return Color(hex: "CD7F32")
+        default: return .appTextDim
+        }
+    }
 
     var body: some View {
-        HStack(spacing: 12) {
-            Text("\(position)")
-                .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextDim)
+        HStack(spacing: 10) {
+            Text("\(result.position)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(positionColor)
                 .frame(width: 28, alignment: .center)
 
             RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: entry.constructor.name))
-                .frame(width: 3, height: 36)
+                .fill(constructorColor(for: result.constructor.name))
+                .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 2) {
-                Text(entry.constructor.name)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(result.driver.familyName)
                     .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(entry.constructor.nationality ?? "")
+                Text(result.constructor.name)
                     .font(.caption2).foregroundStyle(.appTextDim)
             }
 
             Spacer()
 
-            Text("+\(entry.points)")
-                .font(.system(size: 15, weight: .bold, design: .rounded))
-                .foregroundStyle(.appTextPrimary)
+            HStack(spacing: 0) {
+                lapTime(result.q1, active: result.positionInt > 10)
+                lapTime(result.q2, active: result.positionInt > 5)
+                lapTime(result.q3, active: result.positionInt <= 10)
+            }
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
+        .padding(.horizontal, 12).padding(.vertical, 9)
+    }
+
+    private func lapTime(_ time: String?, active: Bool) -> some View {
+        Text(time ?? "—")
+            .font(.system(size: 10, weight: active ? .bold : .regular, design: .monospaced))
+            .foregroundStyle(active && time != nil ? .appTextPrimary : .appTextFaint)
+            .frame(width: 72, alignment: .trailing)
+    }
+}
+
+// MARK: - Championship View
+
+struct ChampionshipView: View {
+    let vm: RaceResultsViewModel
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                Picker("", selection: Binding(
+                    get: { vm.standingsTab },
+                    set: { vm.standingsTab = $0 }
+                )) {
+                    ForEach(RaceResultsViewModel.StandingsTab.allCases, id: \.self) { tab in
+                        Text(tab.rawValue).tag(tab)
+                    }
+                }
+                .pickerStyle(.segmented)
+                .padding(.horizontal, 16).padding(.top, 4)
+
+                if vm.isLoadingStandings {
+                    ProgressView().padding(40)
+                } else if vm.standingsTab == .drivers {
+                    driverStandings
+                } else {
+                    constructorStandings
+                }
+            }
+            .padding(.bottom, 32)
+        }
+    }
+
+    private var driverStandings: some View {
+        Group {
+            if vm.driverStandings.isEmpty {
+                emptyState("Standings not available yet")
+            } else {
+                // Podium top 3
+                if vm.driverStandings.count >= 3 {
+                    StandingsPodiumView(
+                        first: vm.driverStandings[0].driver.fullName,
+                        firstPts: vm.driverStandings[0].points,
+                        firstColor: constructorColor(for: vm.driverStandings[0].constructor?.name),
+                        second: vm.driverStandings[1].driver.fullName,
+                        secondPts: vm.driverStandings[1].points,
+                        secondColor: constructorColor(for: vm.driverStandings[1].constructor?.name),
+                        third: vm.driverStandings[2].driver.fullName,
+                        thirdPts: vm.driverStandings[2].points,
+                        thirdColor: constructorColor(for: vm.driverStandings[2].constructor?.name)
+                    )
+                    .padding(.horizontal, 16)
+                }
+
+                VStack(spacing: 0) {
+                    ForEach(Array(vm.driverStandings.enumerated()), id: \.element.id) { i, standing in
+                        DriverStandingRow(standing: standing)
+                        if i < vm.driverStandings.count - 1 {
+                            Color.appBorder.frame(height: 0.5).padding(.leading, 56)
+                        }
+                    }
+                }
+                .background(Color.appCard)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private var constructorStandings: some View {
+        Group {
+            if vm.constructorStandings.isEmpty {
+                emptyState("Standings not available yet")
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(Array(vm.constructorStandings.enumerated()), id: \.element.id) { i, standing in
+                        ConstructorStandingRow(standing: standing)
+                        if i < vm.constructorStandings.count - 1 {
+                            Color.appBorder.frame(height: 0.5).padding(.leading, 56)
+                        }
+                    }
+                }
+                .background(Color.appCard)
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func emptyState(_ message: String) -> some View {
+        VStack(spacing: 12) {
+            Text("🏆").font(.system(size: 40))
+            Text(message).font(.subheadline).foregroundStyle(.appTextDim)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(48)
+    }
+}
+
+struct StandingsPodiumView: View {
+    let first: String; let firstPts: String; let firstColor: Color
+    let second: String; let secondPts: String; let secondColor: Color
+    let third: String; let thirdPts: String; let thirdColor: Color
+
+    var body: some View {
+        HStack(alignment: .bottom, spacing: 8) {
+            podiumCard(name: second, pts: secondPts, color: secondColor, position: 2, height: 65)
+            podiumCard(name: first,  pts: firstPts,  color: firstColor,  position: 1, height: 85)
+            podiumCard(name: third,  pts: thirdPts,  color: thirdColor,  position: 3, height: 50)
+        }
+        .padding(.vertical, 8)
+    }
+
+    private func podiumCard(name: String, pts: String, color: Color, position: Int, height: CGFloat) -> some View {
+        VStack(spacing: 5) {
+            if position == 1 { Image(systemName: "crown.fill").foregroundStyle(.appGold).font(.caption) }
+            Circle().fill(color)
+                .frame(width: position == 1 ? 44 : 36, height: position == 1 ? 44 : 36)
+                .overlay(Text(String(name.split(separator: " ").last?.prefix(3) ?? "?").uppercased())
+                    .font(.system(size: 10, weight: .bold)).foregroundStyle(.white))
+            Text(name.components(separatedBy: " ").last ?? name)
+                .font(.caption2).fontWeight(.semibold).foregroundStyle(.appTextPrimary).lineLimit(1)
+            Text("\(pts) pts").font(.system(size: 10, weight: .bold)).foregroundStyle(.appGold)
+            RoundedRectangle(cornerRadius: 6)
+                .fill(position == 1 ? Color.appGold.opacity(0.2) : Color.appCardRaised)
+                .frame(height: height)
+                .overlay(Text("P\(position)").font(.title3).fontWeight(.bold)
+                    .foregroundStyle(position == 1 ? .appGold : position == 2 ? Color(hex: "C0C0C0") : Color(hex: "CD7F32")))
+        }
+        .frame(maxWidth: .infinity)
+    }
+}
+
+struct DriverStandingRow: View {
+    let standing: JolpicaDriverStanding
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("\(standing.position)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
+                .frame(width: 28, alignment: .center)
+
+            RoundedRectangle(cornerRadius: 2)
+                .fill(constructorColor(for: standing.constructor?.name))
+                .frame(width: 3, height: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(standing.driver.fullName)
+                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                Text(standing.constructor?.name ?? "")
+                    .font(.caption2).foregroundStyle(.appTextDim)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("\(standing.points) pts")
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
+                if standing.winsInt > 0 {
+                    Text("\(standing.wins) win\(standing.winsInt == 1 ? "" : "s")")
+                        .font(.caption2).foregroundStyle(.appGold)
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
+    }
+}
+
+struct ConstructorStandingRow: View {
+    let standing: JolpicaConstructorStanding
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Text("\(standing.position)")
+                .font(.system(size: 13, weight: .bold))
+                .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
+                .frame(width: 28, alignment: .center)
+
+            RoundedRectangle(cornerRadius: 2)
+                .fill(constructorColor(for: standing.constructor.name))
+                .frame(width: 3, height: 34)
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text(standing.constructor.name)
+                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                Text(standing.constructor.nationality ?? "")
+                    .font(.caption2).foregroundStyle(.appTextDim)
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: 1) {
+                Text("\(standing.points) pts")
+                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
+                if Int(standing.wins) ?? 0 > 0 {
+                    Text("\(standing.wins) win\(Int(standing.wins) == 1 ? "" : "s")")
+                        .font(.caption2).foregroundStyle(.appGold)
+                }
+            }
+        }
+        .padding(.horizontal, 12).padding(.vertical, 9)
     }
 }

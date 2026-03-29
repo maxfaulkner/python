@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		014C37E235F0F8F582FAEEAC /* F1FantasyApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6EDB54E655919344F5C42E31 /* F1FantasyApp.swift */; };
 		0316A9304EE9F636F5794E56 /* RegisterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 919929646EEA0DD33363437B /* RegisterView.swift */; };
-		055E87ACFFAF145BAABBCEB4 /* RaceResultEntry.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95972D2F60765235178ECBF3 /* RaceResultEntry.swift */; };
 		085AB22DE26B70BA13E5DFC4 /* LeaguesListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12C5CDD51115726F92403508 /* LeaguesListView.swift */; };
 		0E4468E2AFD478D50631DA08 /* RankDeltaBadge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 421FF11C1B470F2000D64DB5 /* RankDeltaBadge.swift */; };
 		0FDA833CC6E0CAB63FB09DF9 /* KeychainHelper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8E38F339E8590BACFFD4C31D /* KeychainHelper.swift */; };
@@ -26,6 +25,7 @@
 		5BF01D12462D4D04DE37711A /* NotificationsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC363926B96A94B50FA55729 /* NotificationsView.swift */; };
 		62780329FA9425830663235D /* APIEndpoints.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4853191B3AB95D5BBD4741AB /* APIEndpoints.swift */; };
 		6F4F44FE0DD4D8649CA1DE25 /* LeaderboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 10CB17C847C57EE7CD6C1DCA /* LeaderboardView.swift */; };
+		71D7B16764A5BC88E56231AE /* JolpicaModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BEF1A5A483E6E86EBD016514 /* JolpicaModels.swift */; };
 		72F5C34F4643EB9AE75672D2 /* StatsViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3D796D459E4EE3E649FCEF87 /* StatsViewModel.swift */; };
 		791A83AEDA0671231A7A8285 /* League.swift in Sources */ = {isa = PBXBuildFile; fileRef = D2CFE2074D1E4B3F4398CEB3 /* League.swift */; };
 		79C7A7931D463D31D2B5154F /* StatsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB8DF3F1BE16CA9254E81DB /* StatsView.swift */; };
@@ -85,9 +85,9 @@
 		8CEFCFAFC8A1673324CACABA /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		8E38F339E8590BACFFD4C31D /* KeychainHelper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = KeychainHelper.swift; sourceTree = "<group>"; };
 		919929646EEA0DD33363437B /* RegisterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegisterView.swift; sourceTree = "<group>"; };
-		95972D2F60765235178ECBF3 /* RaceResultEntry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceResultEntry.swift; sourceTree = "<group>"; };
 		A8761DF1C39E22EFEEF54A36 /* RaceResult.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RaceResult.swift; sourceTree = "<group>"; };
 		B38A5E624174E494890CD922 /* DiscoverLeaguesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiscoverLeaguesView.swift; sourceTree = "<group>"; };
+		BEF1A5A483E6E86EBD016514 /* JolpicaModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JolpicaModels.swift; sourceTree = "<group>"; };
 		C24C1E7E1281747B2792B0EC /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		CAB8DF3F1BE16CA9254E81DB /* StatsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StatsView.swift; sourceTree = "<group>"; };
 		CC93229516D6B4550C12296E /* TeamPickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamPickerViewModel.swift; sourceTree = "<group>"; };
@@ -306,11 +306,11 @@
 			isa = PBXGroup;
 			children = (
 				3ED9471E91B97CF29D2F133D /* Driver.swift */,
+				BEF1A5A483E6E86EBD016514 /* JolpicaModels.swift */,
 				D2CFE2074D1E4B3F4398CEB3 /* League.swift */,
 				7355E4909F88903AAD3FA18E /* Message.swift */,
 				0F28A86F770F840A03B2214A /* Notification.swift */,
 				A8761DF1C39E22EFEEF54A36 /* RaceResult.swift */,
-				95972D2F60765235178ECBF3 /* RaceResultEntry.swift */,
 				F8032B69F097A35812670E65 /* Team.swift */,
 				63DF8ECEBE12277DCFAE016E /* User.swift */,
 			);
@@ -393,6 +393,7 @@
 				5644D1D43EA31BB46442B98B /* ErrorView.swift in Sources */,
 				995D129877331E91916023DD /* Extensions.swift in Sources */,
 				014C37E235F0F8F582FAEEAC /* F1FantasyApp.swift in Sources */,
+				71D7B16764A5BC88E56231AE /* JolpicaModels.swift in Sources */,
 				0FDA833CC6E0CAB63FB09DF9 /* KeychainHelper.swift in Sources */,
 				6F4F44FE0DD4D8649CA1DE25 /* LeaderboardView.swift in Sources */,
 				20AA652585A88EF655A2CAF8 /* LeaderboardViewModel.swift in Sources */,
@@ -410,7 +411,6 @@
 				C83DCFFD27EBC986148EB04F /* PriceWatchView.swift in Sources */,
 				8E0E290B973EDCC60061616B /* ProfileView.swift in Sources */,
 				D28DFE9C244369C0D5A639BE /* RaceResult.swift in Sources */,
-				055E87ACFFAF145BAABBCEB4 /* RaceResultEntry.swift in Sources */,
 				4C8297CA884D60EC8A99252C /* RaceResultsView.swift in Sources */,
 				0E4468E2AFD478D50631DA08 /* RankDeltaBadge.swift in Sources */,
 				0316A9304EE9F636F5794E56 /* RegisterView.swift in Sources */,
