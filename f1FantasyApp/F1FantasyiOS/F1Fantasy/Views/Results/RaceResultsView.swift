@@ -262,16 +262,17 @@ struct SessionResultsView: View {
             } else {
                 VStack(spacing: 0) {
                     // Header
-                    HStack {
-                        Text("P").frame(width: 28)
-                        Text("Driver").frame(maxWidth: .infinity, alignment: .leading).padding(.leading, 15)
-                        Text("Q1").frame(width: 72, alignment: .trailing)
-                        Text("Q2").frame(width: 72, alignment: .trailing)
-                        Text("Q3").frame(width: 72, alignment: .trailing)
+                    HStack(spacing: 8) {
+                        Text("P").frame(width: 24)
+                        Text("").frame(width: 3)
+                        Text("Driver").frame(width: 90, alignment: .leading)
+                        Text("Q1").frame(maxWidth: .infinity, alignment: .trailing)
+                        Text("Q2").frame(maxWidth: .infinity, alignment: .trailing)
+                        Text("Q3").frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     .font(.system(size: 10, weight: .bold))
                     .foregroundStyle(.appTextFaint)
-                    .padding(.horizontal, 14).padding(.vertical, 8)
+                    .padding(.horizontal, 12).padding(.vertical, 8)
                     .textCase(.uppercase)
                     .tracking(0.5)
 
@@ -387,51 +388,55 @@ struct RaceResultRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text(result.isFinished ? "\(result.position)" : result.positionText)
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(positionColor)
-                .frame(width: 28, alignment: .center)
+        NavigationLink(destination: DriverSeasonView(driver: result.driver, constructorName: result.constructor.name)) {
+            HStack(spacing: 10) {
+                Text(result.isFinished ? "\(result.position)" : result.positionText)
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(positionColor)
+                    .frame(width: 28, alignment: .center)
 
-            RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: result.constructor.name))
-                .frame(width: 3, height: 34)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(constructorColor(for: result.constructor.name))
+                    .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(result.driver.fullName)
-                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(result.constructor.name)
-                    .font(.caption2).foregroundStyle(.appTextDim)
-            }
-
-            Spacer()
-
-            // Grid delta
-            if let delta = result.positionDelta, result.isFinished, delta != 0 {
-                HStack(spacing: 2) {
-                    Image(systemName: delta > 0 ? "arrow.up" : "arrow.down")
-                        .font(.system(size: 8, weight: .bold))
-                    Text("\(abs(delta))").font(.system(size: 9, weight: .bold))
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(result.driver.fullName)
+                        .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                        .lineLimit(1)
+                    NavigationLink(destination: ConstructorSeasonView(constructor: result.constructor)) {
+                        Text(result.constructor.name)
+                            .font(.caption2).foregroundStyle(.appRed)
+                    }
                 }
-                .foregroundStyle(delta > 0 ? Color.appSuccess : Color.appError)
-                .padding(.horizontal, 4).padding(.vertical, 2)
-                .background(delta > 0 ? Color.appSuccess.opacity(0.12) : Color.appError.opacity(0.12))
-                .clipShape(Capsule())
-            }
 
-            // Time or status
-            VStack(alignment: .trailing, spacing: 1) {
-                if result.isFinished, let t = result.time?.time {
-                    Text(t).font(.system(size: 11, weight: .medium)).foregroundStyle(.appTextDim)
-                } else {
-                    Text(result.status).font(.system(size: 10)).foregroundStyle(.appError).lineLimit(1)
+                Spacer()
+
+                if let delta = result.positionDelta, result.isFinished, delta != 0 {
+                    HStack(spacing: 2) {
+                        Image(systemName: delta > 0 ? "arrow.up" : "arrow.down")
+                            .font(.system(size: 8, weight: .bold))
+                        Text("\(abs(delta))").font(.system(size: 9, weight: .bold))
+                    }
+                    .foregroundStyle(delta > 0 ? Color.appSuccess : Color.appError)
+                    .padding(.horizontal, 4).padding(.vertical, 2)
+                    .background(delta > 0 ? Color.appSuccess.opacity(0.12) : Color.appError.opacity(0.12))
+                    .clipShape(Capsule())
                 }
-                Text("\(result.points) pts")
-                    .font(.system(size: 10, weight: .bold))
-                    .foregroundStyle(result.pointsDouble > 0 ? .appTextPrimary : .appTextFaint)
+
+                VStack(alignment: .trailing, spacing: 1) {
+                    if result.isFinished, let t = result.time?.time {
+                        Text(t).font(.system(size: 11, weight: .medium)).foregroundStyle(.appTextDim)
+                    } else {
+                        Text(result.status).font(.system(size: 10)).foregroundStyle(.appError).lineLimit(1)
+                    }
+                    Text("\(result.points) pts")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(result.pointsDouble > 0 ? .appTextPrimary : .appTextFaint)
+                }
             }
+            .padding(.horizontal, 12).padding(.vertical, 9)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .buttonStyle(.plain)
     }
 }
 
@@ -450,39 +455,45 @@ struct QualifyingResultRow: View {
     }
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("\(result.position)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(positionColor)
-                .frame(width: 28, alignment: .center)
+        NavigationLink(destination: DriverSeasonView(driver: result.driver, constructorName: result.constructor.name)) {
+            HStack(spacing: 8) {
+                Text("\(result.position)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(positionColor)
+                    .frame(width: 24, alignment: .center)
 
-            RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: result.constructor.name))
-                .frame(width: 3, height: 34)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(constructorColor(for: result.constructor.name))
+                    .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(result.driver.familyName)
-                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(result.constructor.name)
-                    .font(.caption2).foregroundStyle(.appTextDim)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(result.driver.familyName)
+                        .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                        .lineLimit(1)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .environment(\.layoutDirection, .leftToRight)
+                    Text(result.constructor.name)
+                        .font(.caption2).foregroundStyle(.appTextDim)
+                        .lineLimit(1)
+                }
+                .frame(width: 90, alignment: .leading)
+
+                HStack(spacing: 0) {
+                    lapTime(result.q1, active: result.positionInt > 10)
+                    lapTime(result.q2, active: result.positionInt > 5)
+                    lapTime(result.q3, active: result.positionInt <= 10)
+                }
             }
-
-            Spacer()
-
-            HStack(spacing: 0) {
-                lapTime(result.q1, active: result.positionInt > 10)
-                lapTime(result.q2, active: result.positionInt > 5)
-                lapTime(result.q3, active: result.positionInt <= 10)
-            }
+            .padding(.horizontal, 12).padding(.vertical, 9)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .buttonStyle(.plain)
     }
 
     private func lapTime(_ time: String?, active: Bool) -> some View {
         Text(time ?? "—")
             .font(.system(size: 10, weight: active ? .bold : .regular, design: .monospaced))
             .foregroundStyle(active && time != nil ? .appTextPrimary : .appTextFaint)
-            .frame(width: 72, alignment: .trailing)
+            .frame(maxWidth: .infinity, alignment: .trailing)
     }
 }
 
@@ -621,35 +632,39 @@ struct DriverStandingRow: View {
     let standing: JolpicaDriverStanding
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("\(standing.position)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
-                .frame(width: 28, alignment: .center)
+        NavigationLink(destination: DriverSeasonView(driver: standing.driver, constructorName: standing.constructor?.name ?? "")) {
+            HStack(spacing: 10) {
+                Text("\(standing.position)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
+                    .frame(width: 28, alignment: .center)
 
-            RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: standing.constructor?.name))
-                .frame(width: 3, height: 34)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(constructorColor(for: standing.constructor?.name))
+                    .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(standing.driver.fullName)
-                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(standing.constructor?.name ?? "")
-                    .font(.caption2).foregroundStyle(.appTextDim)
-            }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(standing.driver.fullName)
+                        .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                        .lineLimit(1)
+                    Text(standing.constructor?.name ?? "")
+                        .font(.caption2).foregroundStyle(.appTextDim)
+                }
 
-            Spacer()
+                Spacer()
 
-            VStack(alignment: .trailing, spacing: 1) {
-                Text("\(standing.points) pts")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
-                if standing.winsInt > 0 {
-                    Text("\(standing.wins) win\(standing.winsInt == 1 ? "" : "s")")
-                        .font(.caption2).foregroundStyle(.appGold)
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("\(standing.points) pts")
+                        .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
+                    if standing.winsInt > 0 {
+                        Text("\(standing.wins) win\(standing.winsInt == 1 ? "" : "s")")
+                            .font(.caption2).foregroundStyle(.appGold)
+                    }
                 }
             }
+            .padding(.horizontal, 12).padding(.vertical, 9)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .buttonStyle(.plain)
     }
 }
 
@@ -657,34 +672,38 @@ struct ConstructorStandingRow: View {
     let standing: JolpicaConstructorStanding
 
     var body: some View {
-        HStack(spacing: 10) {
-            Text("\(standing.position)")
-                .font(.system(size: 13, weight: .bold))
-                .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
-                .frame(width: 28, alignment: .center)
+        NavigationLink(destination: ConstructorSeasonView(constructor: standing.constructor)) {
+            HStack(spacing: 10) {
+                Text("\(standing.position)")
+                    .font(.system(size: 13, weight: .bold))
+                    .foregroundStyle(standing.positionInt <= 3 ? .appGold : .appTextDim)
+                    .frame(width: 28, alignment: .center)
 
-            RoundedRectangle(cornerRadius: 2)
-                .fill(constructorColor(for: standing.constructor.name))
-                .frame(width: 3, height: 34)
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(constructorColor(for: standing.constructor.name))
+                    .frame(width: 3, height: 34)
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(standing.constructor.name)
-                    .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
-                Text(standing.constructor.nationality ?? "")
-                    .font(.caption2).foregroundStyle(.appTextDim)
-            }
+                VStack(alignment: .leading, spacing: 1) {
+                    Text(standing.constructor.name)
+                        .font(.subheadline).fontWeight(.semibold).foregroundStyle(.appTextPrimary)
+                        .lineLimit(1)
+                    Text(standing.constructor.nationality ?? "")
+                        .font(.caption2).foregroundStyle(.appTextDim)
+                }
 
-            Spacer()
+                Spacer()
 
-            VStack(alignment: .trailing, spacing: 1) {
-                Text("\(standing.points) pts")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
-                if Int(standing.wins) ?? 0 > 0 {
-                    Text("\(standing.wins) win\(Int(standing.wins) == 1 ? "" : "s")")
-                        .font(.caption2).foregroundStyle(.appGold)
+                VStack(alignment: .trailing, spacing: 1) {
+                    Text("\(standing.points) pts")
+                        .font(.system(size: 14, weight: .bold)).foregroundStyle(.appTextPrimary)
+                    if Int(standing.wins) ?? 0 > 0 {
+                        Text("\(standing.wins) win\(Int(standing.wins) == 1 ? "" : "s")")
+                            .font(.caption2).foregroundStyle(.appGold)
+                    }
                 }
             }
+            .padding(.horizontal, 12).padding(.vertical, 9)
         }
-        .padding(.horizontal, 12).padding(.vertical, 9)
+        .buttonStyle(.plain)
     }
 }
