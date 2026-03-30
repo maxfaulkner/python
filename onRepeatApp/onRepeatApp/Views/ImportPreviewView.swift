@@ -7,196 +7,336 @@ struct ImportPreviewView: View {
 
     let payload: SharedRecipePayload
 
-    @State private var imported = false
-    @State private var isImporting = false
+    @State private var didImport = false
+    @State private var alreadyExists = false
+
+    // MARK: - Body
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottom) {
+            ZStack {
                 Color.appBg.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(spacing: 20) {
-                        // Hero card
-                        heroCard
-
-                        if !payload.ingredients.isEmpty {
-                            ingredientsCard
-                        }
-
-                        if !payload.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                            instructionsCard
-                        }
-
-                        Spacer(minLength: 100)
+                    VStack(spacing: 0) {
+                        heroHeader
+                        contentArea
                     }
-                    .padding(.horizontal, 16)
-                    .padding(.top, 16)
                 }
+                .ignoresSafeArea(edges: .top)
 
-                // Bottom CTA
-                importButton
+                // Floating bottom bar
+                VStack {
+                    Spacer()
+                    bottomBar
+                }
             }
-            .navigationTitle("Shared Recipe")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarBackground(.clear, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancel") { dismiss() }
-                        .foregroundStyle(.secondary)
+                ToolbarItem(placement: .topBarLeading) {
+                    Button {
+                        dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 30, height: 30)
+                            .background(.black.opacity(0.25))
+                            .clipShape(Circle())
+                    }
                 }
             }
         }
     }
 
-    // MARK: - Subviews
+    // MARK: - Hero
 
-    private var heroCard: some View {
-        ZStack(alignment: .bottomLeading) {
+    private var heroHeader: some View {
+        ZStack(alignment: .bottom) {
             RecipeGradients.linearGradient(for: payload.name)
+                .frame(minHeight: 260)
 
-            VStack(alignment: .leading, spacing: 10) {
-                Text(emojiForPayload)
-                    .font(.system(size: 52))
+            LinearGradient(
+                colors: [.clear, .black.opacity(0.6)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+
+            VStack(alignment: .leading, spacing: 6) {
+                // "Shared with you" badge
+                HStack(spacing: 5) {
+                    Image(systemName: "person.fill.badge.plus")
+                        .font(.system(size: 11, weight: .semibold))
+                    Text("Recipe shared with you")
+                        .font(.system(size: 12, weight: .semibold))
+                }
+                .foregroundStyle(.white.opacity(0.9))
+                .padding(.horizontal, 10).padding(.vertical, 5)
+                .background(.white.opacity(0.2))
+                .clipShape(Capsule())
+                .padding(.bottom, 4)
+
+                Text(RecipeEmojiMapper.emoji(
+                    name: payload.name.lowercased(),
+                    tags: payload.tags.map { $0.lowercased() }
+                ))
+                .font(.system(size: 52))
 
                 Text(payload.name)
-                    .font(.system(size: 26, weight: .black, design: .rounded))
+                    .font(.system(size: 28, weight: .black, design: .rounded))
                     .foregroundStyle(.white)
+                    .lineLimit(3)
+                    .fixedSize(horizontal: false, vertical: true)
 
-                HStack(spacing: 12) {
-                    Label("\(payload.servings.cleanStr) servings", systemImage: "person.2.fill")
-                    if !payload.tags.isEmpty {
-                        Text("·")
-                        Text(payload.tags.joined(separator: ", "))
-                            .lineLimit(1)
-                    }
+                HStack(spacing: 8) {
+                    importPill(icon: "person.2.fill", text: "\(payload.servings.displayString) servings")
+                    importPill(icon: "list.bullet", text: "\(payload.ingredients.count) ingredients")
                 }
-                .font(.system(size: 14, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
             }
-            .padding(20)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 28)
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .frame(maxWidth: .infinity)
-        .frame(height: 200)
-        .clipShape(RoundedRectangle(cornerRadius: 20))
-        .shadow(color: RecipeGradients.gradient(for: payload.name).first?.opacity(0.4) ?? .clear, radius: 16, x: 0, y: 8)
     }
+
+    private func importPill(icon: String, text: String) -> some View {
+        HStack(spacing: 5) {
+            Image(systemName: icon).font(.system(size: 11, weight: .semibold))
+            Text(text).font(.system(size: 13, weight: .semibold))
+        }
+        .foregroundStyle(.white)
+        .padding(.horizontal, 10).padding(.vertical, 5)
+        .background(.white.opacity(0.25))
+        .clipShape(Capsule())
+    }
+
+    // MARK: - Content
+
+    private var contentArea: some View {
+        VStack(spacing: 16) {
+            // Tags
+            if !payload.tags.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(payload.tags, id: \.self) { tag in
+                            Text(tag)
+                                .font(.system(size: 13, weight: .semibold))
+                                .padding(.horizontal, 12).padding(.vertical, 6)
+                                .background(Color.brandGreen.opacity(0.12))
+                                .foregroundStyle(Color.brandGreen)
+                                .clipShape(Capsule())
+                        }
+                    }
+                    .padding(.horizontal, 16)
+                }
+                .padding(.top, 16)
+            }
+
+            // Ingredients
+            if !payload.ingredients.isEmpty {
+                ingredientsCard
+            }
+
+            // Instructions
+            if !payload.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                instructionsCard
+            }
+
+            // Bottom padding for floating bar
+            Spacer().frame(height: 100)
+        }
+        .padding(.top, payload.tags.isEmpty ? 16 : 0)
+    }
+
+    // MARK: - Ingredients Card
 
     private var ingredientsCard: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
-                Label("Ingredients", systemImage: "list.bullet")
-                    .font(.system(size: 17, weight: .bold))
-                Spacer()
-                Text("\(payload.ingredients.count) items")
-                    .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
-            }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
+            cardHeader(title: "Ingredients", icon: "list.bullet",
+                       badge: "\(payload.ingredients.count)")
 
             ForEach(Array(payload.ingredients.enumerated()), id: \.offset) { idx, ing in
                 HStack(spacing: 0) {
-                    Text(ing.quantity.cleanStr)
-                        .font(.system(size: 15, weight: .medium))
+                    Text(ing.quantity.displayString)
+                        .font(.system(size: 15, weight: .semibold))
                         .monospacedDigit()
                         .foregroundStyle(Color.brandGreen)
                         .frame(width: 44, alignment: .trailing)
+
                     Text(ing.unit.isEmpty ? "" : " \(ing.unit)")
                         .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
-                        .frame(width: ing.unit.isEmpty ? 8 : 52, alignment: .leading)
+                        .foregroundStyle(Color(hex: "888888"))
+                        .frame(width: ing.unit.isEmpty ? 10 : 54, alignment: .leading)
+
                     Text(ing.name)
                         .font(.system(size: 15))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+
+                    Spacer()
                 }
                 .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.vertical, 11)
+
                 if idx < payload.ingredients.count - 1 {
                     Divider().padding(.leading, 16)
                 }
             }
             Spacer().frame(height: 8)
         }
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 3)
+        .cardSurface()
+        .padding(.horizontal, 16)
     }
+
+    // MARK: - Instructions Card
+
 
     private var instructionsCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Label("Instructions", systemImage: "text.alignleft")
-                .font(.system(size: 17, weight: .bold))
-                .padding(.horizontal, 16)
-                .padding(.top, 16)
+        let steps = payload.instructions
+            .components(separatedBy: "\n")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
 
-            Text(payload.instructions)
-                .font(.system(size: 15))
-                .lineSpacing(4)
-                .padding(.horizontal, 16)
-                .padding(.bottom, 16)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 10, x: 0, y: 3)
-    }
+        return VStack(alignment: .leading, spacing: 0) {
+            cardHeader(title: "Instructions", icon: "text.alignleft",
+                       badge: steps.count > 1 ? "\(steps.count) steps" : nil)
 
-    private var importButton: some View {
-        Button {
-            guard !imported && !isImporting else { return }
-            importRecipe()
-        } label: {
-            HStack(spacing: 10) {
-                if isImporting {
-                    ProgressView()
-                        .tint(.white)
-                        .scaleEffect(0.85)
-                } else {
-                    Image(systemName: imported ? "checkmark.circle.fill" : "plus.circle.fill")
-                        .font(.system(size: 18, weight: .semibold))
+            if steps.count > 1 {
+                ForEach(Array(steps.enumerated()), id: \.offset) { idx, step in
+                    HStack(alignment: .top, spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(RecipeGradients.linearGradient(for: payload.name))
+                                .frame(width: 28, height: 28)
+                            Text("\(idx + 1)")
+                                .font(.system(size: 12, weight: .black))
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.top, 1)
+
+                        Text(step)
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .lineSpacing(3)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 12)
+
+                    if idx < steps.count - 1 {
+                        Divider().padding(.leading, 58)
+                    }
                 }
-                Text(imported ? "Added to Your Library!" : "Add to My Library")
-                    .font(.system(size: 17, weight: .semibold))
+            } else {
+                Text(payload.instructions)
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .lineSpacing(4)
+                    .padding(.horizontal, 16)
+                    .padding(.bottom, 16)
             }
-            .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(imported ? Color.green : Color.brandGreen)
-            .foregroundStyle(.white)
-            .clipShape(RoundedRectangle(cornerRadius: 16))
+            Spacer().frame(height: 8)
         }
-        .disabled(imported || isImporting)
+        .cardSurface()
         .padding(.horizontal, 16)
-        .padding(.bottom, 8)
-        .background(.ultraThinMaterial)
-        .animation(.easeInOut(duration: 0.2), value: imported)
     }
 
-    // MARK: - Logic
-
-    private var emojiForPayload: String {
-        let name = payload.name.lowercased()
-        let tags = payload.tags.map { $0.lowercased() }
-        return RecipeEmojiMapper.emoji(name: name, tags: tags)
+    private func cardHeader(title: String, icon: String, badge: String?) -> some View {
+        HStack {
+            Label(title, systemImage: icon)
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Color(hex: "1A1A1A"))
+            Spacer()
+            if let badge {
+                Text(badge)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color(hex: "888888"))
+            }
+        }
+        .padding(.horizontal, 16)
+        .padding(.top, 16)
+        .padding(.bottom, 10)
     }
+
+    // MARK: - Bottom Bar
+
+    private var bottomBar: some View {
+        VStack(spacing: 0) {
+            Divider()
+            HStack(spacing: 12) {
+                if didImport {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.brandGreen)
+                        Text("Added to your library!")
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
+                    }
+                    Spacer()
+                    Button("Done") { dismiss() }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.brandGreen)
+                } else if alreadyExists {
+                    HStack(spacing: 8) {
+                        Image(systemName: "info.circle")
+                            .foregroundStyle(Color(hex: "888888"))
+                        Text("Already in your library")
+                            .font(.system(size: 15))
+                            .foregroundStyle(Color(hex: "555555"))
+                    }
+                    Spacer()
+                    Button("Dismiss") { dismiss() }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(Color.brandGreen)
+                } else {
+                    Button(action: importRecipe) {
+                        Text("Add to My Recipes")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 15)
+                            .background(
+                                LinearGradient(
+                                    colors: [Color.brandGreen, Color.brandMid],
+                                    startPoint: .leading,
+                                    endPoint: .trailing
+                                )
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.vertical, 14)
+            .background(Color.white)
+        }
+        .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: -4)
+    }
+
+    // MARK: - Import Logic
 
     private func importRecipe() {
-        isImporting = true
-        let recipe = Recipe(name: payload.name, servings: payload.servings, instructions: payload.instructions)
-        modelContext.insert(recipe)
-
-        for ing in payload.ingredients {
-            let ingredient = Ingredient(quantity: ing.quantity, unit: ing.unit, name: ing.name)
-            modelContext.insert(ingredient)
-            recipe.ingredients.append(ingredient)
+        // Check if recipe with same name already exists
+        let name = payload.name
+        let descriptor = FetchDescriptor<Recipe>(predicate: #Predicate { $0.name == name })
+        if let existing = try? modelContext.fetch(descriptor), !existing.isEmpty {
+            withAnimation { alreadyExists = true }
+            return
         }
 
-        for rawTag in payload.tags {
-            let tagName = rawTag.lowercased().trimmingCharacters(in: .whitespaces)
-            guard !tagName.isEmpty else { continue }
-            let name = tagName
-            let descriptor = FetchDescriptor<Tag>(predicate: #Predicate { $0.name == name })
-            if let existing = try? modelContext.fetch(descriptor).first {
-                recipe.tags.append(existing)
+        let recipe = Recipe(
+            name: payload.name,
+            servings: payload.servings,
+            instructions: payload.instructions
+        )
+        modelContext.insert(recipe)
+
+        for tagName in payload.tags {
+            let tName = tagName
+            let tagDescriptor = FetchDescriptor<Tag>(predicate: #Predicate { $0.name == tName })
+            if let found = try? modelContext.fetch(tagDescriptor).first {
+                recipe.tags.append(found)
             } else {
                 let tag = Tag(name: tagName)
                 modelContext.insert(tag)
@@ -204,17 +344,13 @@ struct ImportPreviewView: View {
             }
         }
 
-        try? modelContext.save()
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7)) {
-            isImporting = false
-            imported = true
+        for ing in payload.ingredients {
+            let ingredient = Ingredient(quantity: ing.quantity, unit: ing.unit, name: ing.name)
+            modelContext.insert(ingredient)
+            recipe.ingredients.append(ingredient)
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.6) { dismiss() }
-    }
-}
 
-private extension Double {
-    var cleanStr: String {
-        truncatingRemainder(dividingBy: 1) == 0 ? String(Int(self)) : String(format: "%.2g", self)
+        try? modelContext.save()
+        withAnimation(.spring(response: 0.4)) { didImport = true }
     }
 }

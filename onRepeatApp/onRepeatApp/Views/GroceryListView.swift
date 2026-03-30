@@ -60,15 +60,17 @@ struct GroceryListView: View {
             }
             .navigationTitle("Grocery List")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(hex: "555555"))
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: shareText, subject: Text("Grocery List")) {
                         Image(systemName: "square.and.arrow.up")
                             .font(.system(size: 15, weight: .medium))
+                            .foregroundStyle(Color.brandGreen)
                     }
                 }
             }
@@ -80,13 +82,9 @@ struct GroceryListView: View {
     private var mainContent: some View {
         ScrollView {
             VStack(spacing: 16) {
-                // Recipe strip
                 recipeStrip
-
-                // Progress bar
                 progressBar
 
-                // Grouped sections
                 ForEach(groupedItems, id: \.category) { group in
                     categorySection(group.category, items: group.items)
                 }
@@ -117,6 +115,7 @@ struct GroceryListView: View {
                         }
                         Text(sel.recipe.name)
                             .font(.system(size: 13, weight: .medium))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
                             .lineLimit(1)
                         if sel.targetServings != sel.recipe.servings {
                             Text("×\(sel.targetServings.displayString)")
@@ -127,7 +126,7 @@ struct GroceryListView: View {
                     .padding(.horizontal, 12).padding(.vertical, 6)
                     .background(Color.white)
                     .clipShape(Capsule())
-                    .shadow(color: .black.opacity(0.05), radius: 4, x: 0, y: 2)
+                    .shadow(color: .black.opacity(0.07), radius: 4, x: 0, y: 2)
                 }
             }
             .padding(.horizontal, 2).padding(.vertical, 2)
@@ -141,14 +140,14 @@ struct GroceryListView: View {
             HStack {
                 Text("\(checkedCount) of \(totalCount) items")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "555555"))
                 Spacer()
                 if checkedCount > 0 {
                     Button("Reset") {
                         withAnimation { checkedKeys.removeAll() }
                     }
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "888888"))
                 }
             }
 
@@ -158,10 +157,8 @@ struct GroceryListView: View {
                         .fill(Color.brandGreen.opacity(0.12))
                         .frame(height: 8)
                     Capsule()
-                        .fill(
-                            LinearGradient(colors: [Color.brandGreen, Color.brandMid],
-                                           startPoint: .leading, endPoint: .trailing)
-                        )
+                        .fill(LinearGradient(colors: [Color.brandGreen, Color.brandMid],
+                                             startPoint: .leading, endPoint: .trailing))
                         .frame(width: geo.size.width * progress, height: 8)
                         .animation(.spring(response: 0.4, dampingFraction: 0.75), value: progress)
                 }
@@ -176,7 +173,7 @@ struct GroceryListView: View {
 
     private func categorySection(_ category: GroceryCategory, items: [CombinedIngredient]) -> some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Section header
+            // Header
             HStack(spacing: 8) {
                 ZStack {
                     Circle()
@@ -192,11 +189,11 @@ struct GroceryListView: View {
                 Spacer()
                 Text("\(items.filter { !checkedKeys.contains($0.itemKey) }.count) left")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "888888"))
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(category.color.opacity(0.06))
+            .background(category.color.opacity(0.07))
 
             // Items
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
@@ -209,11 +206,10 @@ struct GroceryListView: View {
                     }
                 } label: {
                     HStack(spacing: 12) {
-                        // Checkmark
                         ZStack {
                             Circle()
                                 .strokeBorder(
-                                    isChecked ? category.color : Color.secondary.opacity(0.3),
+                                    isChecked ? category.color : Color(hex: "CCCCCC"),
                                     lineWidth: 2
                                 )
                                 .frame(width: 24, height: 24)
@@ -227,31 +223,29 @@ struct GroceryListView: View {
                             }
                         }
 
-                        // Quantity + unit
                         HStack(spacing: 2) {
                             Text(item.formattedQuantity)
                                 .font(.system(size: 15, weight: .semibold))
                                 .monospacedDigit()
-                                .foregroundStyle(isChecked ? Color.secondary : category.color)
+                                .foregroundStyle(isChecked ? Color(hex: "AAAAAA") : category.color)
                             if !item.unit.isEmpty {
                                 Text(item.unit)
                                     .font(.system(size: 15))
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(Color(hex: "888888"))
                             }
                         }
                         .frame(width: 72, alignment: .trailing)
 
-                        // Name
                         Text(item.name)
                             .font(.system(size: 15))
-                            .foregroundStyle(isChecked ? Color.secondary : .primary)
-                            .strikethrough(isChecked, color: Color.secondary.opacity(0.5))
+                            .foregroundStyle(isChecked ? Color(hex: "AAAAAA") : Color(hex: "1A1A1A"))
+                            .strikethrough(isChecked, color: Color(hex: "AAAAAA"))
 
                         Spacer()
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 11)
-                    .background(isChecked ? Color.secondary.opacity(0.04) : Color.white)
+                    .background(isChecked ? Color(hex: "F8F8F8") : Color.white)
                 }
                 .buttonStyle(.plain)
                 .animation(.easeInOut(duration: 0.2), value: isChecked)
@@ -283,9 +277,10 @@ struct GroceryListView: View {
             VStack(spacing: 8) {
                 Text("You're all set!")
                     .font(.system(size: 28, weight: .black, design: .rounded))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
                 Text("All \(totalCount) items checked off.\nEnjoy cooking this week.")
                     .font(.system(size: 16))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "666666"))
                     .multilineTextAlignment(.center)
             }
 
@@ -310,4 +305,3 @@ struct GroceryListView: View {
 private extension CombinedIngredient {
     var itemKey: String { "\(unit)|\(name)" }
 }
-

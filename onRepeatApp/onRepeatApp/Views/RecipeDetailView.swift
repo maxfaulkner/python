@@ -26,18 +26,17 @@ struct RecipeDetailView: View {
             .ignoresSafeArea(edges: .top)
         }
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarBackground(.clear, for: .navigationBar)
         .toolbar {
             ToolbarItemGroup(placement: .topBarTrailing) {
-                Button { showingShare = true } label: {
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 15, weight: .medium))
-                }
                 Button("Edit") { showingEdit = true }
                     .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
                 Button(role: .destructive) { showingDeleteAlert = true } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 15))
+                        .foregroundStyle(.white)
                 }
             }
         }
@@ -59,18 +58,15 @@ struct RecipeDetailView: View {
 
     private var heroHeader: some View {
         ZStack(alignment: .bottom) {
-            // Gradient fill
             RecipeGradients.linearGradient(for: recipe.name)
-                .frame(minHeight: 280)
+                .frame(minHeight: 300)
 
-            // Scrim for text legibility at the bottom
             LinearGradient(
-                colors: [.clear, .black.opacity(0.55)],
+                colors: [.clear, .black.opacity(0.6)],
                 startPoint: .top,
                 endPoint: .bottom
             )
 
-            // Content overlay
             VStack(alignment: .leading, spacing: 10) {
                 Text(RecipeEmojiMapper.emoji(
                     name: recipe.name.lowercased(),
@@ -84,7 +80,6 @@ struct RecipeDetailView: View {
                     .lineLimit(3)
                     .fixedSize(horizontal: false, vertical: true)
 
-                // Meta pills
                 HStack(spacing: 8) {
                     metaPill(icon: "person.2.fill", text: "\(recipe.servings.displayString) servings")
                     if !recipe.ingredients.isEmpty {
@@ -93,7 +88,7 @@ struct RecipeDetailView: View {
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 24)
+            .padding(.bottom, 28)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -105,7 +100,7 @@ struct RecipeDetailView: View {
         }
         .foregroundStyle(.white)
         .padding(.horizontal, 10).padding(.vertical, 5)
-        .background(.white.opacity(0.2))
+        .background(.white.opacity(0.25))
         .clipShape(Capsule())
     }
 
@@ -113,22 +108,18 @@ struct RecipeDetailView: View {
 
     private var contentStack: some View {
         VStack(spacing: 16) {
-            // Tags row
             if !recipe.tags.isEmpty {
                 tagsRow.padding(.top, 16)
             }
 
-            // Ingredients
             if !recipe.ingredients.isEmpty {
                 ingredientsCard
             }
 
-            // Instructions
             if !recipe.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 instructionsCard
             }
 
-            // Share card
             shareCard
 
             Spacer(minLength: 40)
@@ -136,6 +127,8 @@ struct RecipeDetailView: View {
         .padding(.horizontal, 16)
         .padding(.top, recipe.tags.isEmpty ? 16 : 0)
     }
+
+    // MARK: - Share Card
 
     private var shareCard: some View {
         Button { showingShare = true } label: {
@@ -151,15 +144,15 @@ struct RecipeDetailView: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Share Recipe")
                         .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(.primary)
-                    Text("Send a link or show a QR code")
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                    Text("Send a link, QR code, or plain text")
                         .font(.system(size: 13))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(hex: "666666"))
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.secondary.opacity(0.5))
+                    .foregroundStyle(Color(hex: "BBBBBB"))
             }
             .padding(14)
             .cardSurface()
@@ -176,7 +169,7 @@ struct RecipeDetailView: View {
                     Text(tag.name)
                         .font(.system(size: 13, weight: .semibold))
                         .padding(.horizontal, 12).padding(.vertical, 6)
-                        .background(Color.brandGreen.opacity(0.1))
+                        .background(Color.brandGreen.opacity(0.12))
                         .foregroundStyle(Color.brandGreen)
                         .clipShape(Capsule())
                 }
@@ -203,11 +196,12 @@ struct RecipeDetailView: View {
 
                     Text(ing.unit.isEmpty ? "" : " \(ing.unit)")
                         .font(.system(size: 15))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(hex: "888888"))
                         .frame(width: ing.unit.isEmpty ? 10 : 54, alignment: .leading)
 
                     Text(ing.name)
                         .font(.system(size: 15))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
 
                     Spacer()
                 }
@@ -250,6 +244,7 @@ struct RecipeDetailView: View {
 
                         Text(step)
                             .font(.system(size: 15))
+                            .foregroundStyle(Color(hex: "1A1A1A"))
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -263,6 +258,7 @@ struct RecipeDetailView: View {
             } else {
                 Text(recipe.instructions)
                     .font(.system(size: 15))
+                    .foregroundStyle(Color(hex: "1A1A1A"))
                     .lineSpacing(4)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
@@ -278,11 +274,12 @@ struct RecipeDetailView: View {
         HStack {
             Label(title, systemImage: icon)
                 .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(Color(hex: "1A1A1A"))
             Spacer()
             if let badge {
                 Text(badge)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "888888"))
             }
         }
         .padding(.horizontal, 16)

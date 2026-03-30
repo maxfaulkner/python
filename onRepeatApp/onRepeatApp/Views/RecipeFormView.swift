@@ -47,16 +47,17 @@ struct RecipeFormView: View {
             }
             .navigationTitle(mode.isNew ? "New Recipe" : "Edit Recipe")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(hex: "666666"))
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty
-                                         ? Color.secondary : Color.brandGreen)
+                                         ? Color(hex: "BBBBBB") : Color.brandGreen)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
