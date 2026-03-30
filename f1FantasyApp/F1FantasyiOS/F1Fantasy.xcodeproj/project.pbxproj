@@ -87,7 +87,7 @@
 		4BF5D9255A52E4AE92B47FC1 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		56793A6E990E8D22B83EEE72 /* LeaderboardViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeaderboardViewModel.swift; sourceTree = "<group>"; };
 		574CD64280AAF811448FB04F /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
-		5C6863F14785B5FE050FDCA9 /* F1Fantasy.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = F1Fantasy.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		5C6863F14785B5FE050FDCA9 /* F1Fantasy.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = F1Fantasy.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		5E130FB29C50F68885091B42 /* LeagueContainerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LeagueContainerView.swift; sourceTree = "<group>"; };
 		63DF8ECEBE12277DCFAE016E /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
 		6B8AFC510F862776E6F0CF08 /* ChatViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatViewModel.swift; sourceTree = "<group>"; };
@@ -388,7 +388,6 @@
 				LastUpgradeCheck = 1600;
 				TargetAttributes = {
 					DD644005383ED791EE31F63F = {
-						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
 				};
@@ -485,6 +484,7 @@
 				CODE_SIGN_ENTITLEMENTS = F1Fantasy/F1Fantasy.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 22JPP4N3C6;
 				INFOPLIST_FILE = F1Fantasy/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -631,6 +631,7 @@
 				CODE_SIGN_ENTITLEMENTS = F1Fantasy/F1Fantasy.entitlements;
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 22JPP4N3C6;
 				INFOPLIST_FILE = F1Fantasy/Info.plist;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
