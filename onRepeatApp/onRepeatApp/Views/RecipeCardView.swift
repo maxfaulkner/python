@@ -9,33 +9,45 @@ struct RecipeCardView: View {
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            NavigationLink(value: recipe) {
-                cardBody
+            // Main tap = select
+            Button {
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                    onToggleSelect()
+                }
+            } label: {
+                cardContent
             }
             .buttonStyle(.plain)
 
-            // Selection toggle — floats above NavigationLink hit area
-            selectionCircle
-                .padding(14)
+            // Detail chevron — top-right, doesn't interfere with select
+            NavigationLink(value: recipe) {
+                Image(systemName: "ellipsis")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(isSelected ? Color.brandGreen : Color(hex: "BBBBBB"))
+                    .frame(width: 32, height: 32)
+                    .background(isSelected ? Color.brandGreen.opacity(0.1) : Color(hex: "F2F2F2"))
+                    .clipShape(Circle())
+            }
+            .padding(12)
         }
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(isSelected ? Color.brandGreen.opacity(0.05) : Color.cardSurface)
+                .fill(isSelected ? Color.brandGreen.opacity(0.06) : Color.white)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
-                .stroke(isSelected ? Color.brandGreen.opacity(0.45) : Color.clear, lineWidth: 2)
+                .stroke(isSelected ? Color.brandGreen : Color.clear, lineWidth: 2)
         )
-        .shadow(color: isSelected
-            ? Color.brandGreen.opacity(0.18)
-            : Color.black.opacity(0.055),
-                radius: isSelected ? 14 : 10, x: 0, y: 3)
+        .shadow(
+            color: isSelected ? Color.brandGreen.opacity(0.2) : Color.black.opacity(0.06),
+            radius: isSelected ? 12 : 8, x: 0, y: 3
+        )
         .animation(.spring(response: 0.3, dampingFraction: 0.75), value: isSelected)
     }
 
-    // MARK: - Card Body
+    // MARK: - Card Content
 
-    private var cardBody: some View {
+    private var cardContent: some View {
         VStack(alignment: .leading, spacing: 0) {
             mainRow
             if isSelected {
@@ -47,7 +59,27 @@ struct RecipeCardView: View {
 
     private var mainRow: some View {
         HStack(spacing: 14) {
-            thumbnail
+            // Checkmark / thumbnail
+            ZStack {
+                if isSelected {
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(RecipeGradients.linearGradient(for: recipe.name))
+                        .frame(width: 58, height: 58)
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 22, weight: .black))
+                        .foregroundStyle(.white)
+                } else {
+                    RoundedRectangle(cornerRadius: 13)
+                        .fill(RecipeGradients.linearGradient(for: recipe.name))
+                        .frame(width: 58, height: 58)
+                    Text(RecipeEmojiMapper.emoji(
+                        name: recipe.name.lowercased(),
+                        tags: recipe.tags.map { $0.name.lowercased() }
+                    ))
+                    .font(.system(size: 26))
+                }
+            }
+            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: isSelected)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(recipe.name)
@@ -66,7 +98,7 @@ struct RecipeCardView: View {
 
                     if !recipe.tags.isEmpty {
                         Circle()
-                            .fill(Color(hex: "BBBBBB"))
+                            .fill(Color(hex: "CCCCCC"))
                             .frame(width: 3, height: 3)
                         Text(recipe.tags.prefix(2).map(\.name).joined(separator: ", "))
                             .font(.system(size: 13))
@@ -76,26 +108,13 @@ struct RecipeCardView: View {
                 }
             }
 
-            // Spacer so selection circle doesn't overlap text
             Spacer()
+            // Space so text doesn't run under the ellipsis button
             Color.clear.frame(width: 36)
         }
         .padding(.horizontal, 14)
         .padding(.top, 14)
         .padding(.bottom, isSelected ? 10 : 14)
-    }
-
-    private var thumbnail: some View {
-        ZStack {
-            RecipeGradients.linearGradient(for: recipe.name)
-            Text(RecipeEmojiMapper.emoji(
-                name: recipe.name.lowercased(),
-                tags: recipe.tags.map { $0.name.lowercased() }
-            ))
-            .font(.system(size: 26))
-        }
-        .frame(width: 58, height: 58)
-        .clipShape(RoundedRectangle(cornerRadius: 13))
     }
 
     private var servingsRow: some View {
@@ -106,7 +125,7 @@ struct RecipeCardView: View {
                 .padding(.leading, 14)
 
             HStack {
-                Text("For this run:")
+                Text("Servings for this run:")
                     .font(.system(size: 13))
                     .foregroundStyle(Color(hex: "555555"))
 
@@ -120,8 +139,8 @@ struct RecipeCardView: View {
                     in: 0.5...100,
                     step: 0.5
                 ) {
-                    Text("\(targetServings.displayString) servings")
-                        .font(.system(size: 13, weight: .semibold))
+                    Text("\(targetServings.displayString)")
+                        .font(.system(size: 14, weight: .bold))
                         .foregroundStyle(Color.brandGreen)
                         .monospacedDigit()
                 }
@@ -136,31 +155,5 @@ struct RecipeCardView: View {
                 bottomTrailingRadius: 14, topTrailingRadius: 0
             )
         )
-    }
-
-    // MARK: - Selection Circle
-
-    private var selectionCircle: some View {
-        Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.68)) {
-                onToggleSelect()
-            }
-        } label: {
-            ZStack {
-                if isSelected {
-                    Circle()
-                        .fill(Color.brandGreen)
-                        .frame(width: 26, height: 26)
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 11, weight: .black))
-                        .foregroundStyle(.white)
-                } else {
-                    Circle()
-                        .strokeBorder(Color.secondary.opacity(0.35), lineWidth: 2)
-                        .frame(width: 26, height: 26)
-                }
-            }
-        }
-        .buttonStyle(.plain)
     }
 }

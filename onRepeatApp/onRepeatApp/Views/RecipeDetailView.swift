@@ -120,44 +120,10 @@ struct RecipeDetailView: View {
                 instructionsCard
             }
 
-            shareCard
-
             Spacer(minLength: 40)
         }
         .padding(.horizontal, 16)
         .padding(.top, recipe.tags.isEmpty ? 16 : 0)
-    }
-
-    // MARK: - Share Card
-
-    private var shareCard: some View {
-        Button { showingShare = true } label: {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 12)
-                        .fill(RecipeGradients.linearGradient(for: recipe.name))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: "square.and.arrow.up")
-                        .font(.system(size: 17, weight: .semibold))
-                        .foregroundStyle(.white)
-                }
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Share Recipe")
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
-                    Text("Send a link, QR code, or plain text")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color(hex: "666666"))
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(hex: "BBBBBB"))
-            }
-            .padding(14)
-            .cardSurface()
-        }
-        .buttonStyle(.plain)
     }
 
     // MARK: - Tags
