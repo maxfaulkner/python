@@ -65,8 +65,8 @@ struct RecipeDetailView: View {
 
             // Scrim for text legibility at the bottom
             LinearGradient(
-                colors: [.clear, .black.opacity(0.35)],
-                startPoint: .center,
+                colors: [.clear, .black.opacity(0.55)],
+                startPoint: .top,
                 endPoint: .bottom
             )
 
@@ -128,10 +128,43 @@ struct RecipeDetailView: View {
                 instructionsCard
             }
 
+            // Share card
+            shareCard
+
             Spacer(minLength: 40)
         }
         .padding(.horizontal, 16)
         .padding(.top, recipe.tags.isEmpty ? 16 : 0)
+    }
+
+    private var shareCard: some View {
+        Button { showingShare = true } label: {
+            HStack(spacing: 14) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 12)
+                        .fill(RecipeGradients.linearGradient(for: recipe.name))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: "square.and.arrow.up")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(.white)
+                }
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Share Recipe")
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(.primary)
+                    Text("Send a link or show a QR code")
+                        .font(.system(size: 13))
+                        .foregroundStyle(.secondary)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.secondary.opacity(0.5))
+            }
+            .padding(14)
+            .cardSurface()
+        }
+        .buttonStyle(.plain)
     }
 
     // MARK: - Tags

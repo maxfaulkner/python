@@ -37,18 +37,18 @@ extension Color {
 
 enum RecipeGradients {
     static let palettes: [[Color]] = [
-        [Color(hex: "FF6B6B"), Color(hex: "E8425A")],  // coral-rose
-        [Color(hex: "4FACFE"), Color(hex: "0090F5")],  // sky-blue
-        [Color(hex: "11998E"), Color(hex: "38EF7D")],  // teal-mint
-        [Color(hex: "FA8231"), Color(hex: "F7B731")],  // sunset-gold
-        [Color(hex: "8E54E9"), Color(hex: "4776E6")],  // violet-indigo
-        [Color(hex: "2A5C45"), Color(hex: "4A9268")],  // forest-sage (brand)
-        [Color(hex: "F953C6"), Color(hex: "B91D73")],  // fuchsia-magenta
-        [Color(hex: "56AB2F"), Color(hex: "A8E063")],  // lime-grass
-        [Color(hex: "FF7043"), Color(hex: "FF8F00")],  // ember-amber
-        [Color(hex: "1A237E"), Color(hex: "4776E6")],  // navy-blue
-        [Color(hex: "AD1457"), Color(hex: "F06292")],  // raspberry-rose
-        [Color(hex: "00695C"), Color(hex: "26C6DA")],  // deep-teal-cyan
+        [Color(hex: "E8425A"), Color(hex: "C0224A")],  // coral-rose
+        [Color(hex: "0090F5"), Color(hex: "0061B8")],  // sky-blue
+        [Color(hex: "11998E"), Color(hex: "0B6E65")],  // deep-teal
+        [Color(hex: "E06C1F"), Color(hex: "B84D00")],  // burnt-orange
+        [Color(hex: "7B3FE4"), Color(hex: "4530A8")],  // violet-indigo
+        [Color(hex: "2A5C45"), Color(hex: "1A3D2E")],  // forest-sage (brand)
+        [Color(hex: "C2185B"), Color(hex: "880E4F")],  // magenta-rose
+        [Color(hex: "388E3C"), Color(hex: "1B5E20")],  // deep-green
+        [Color(hex: "E64A19"), Color(hex: "BF360C")],  // deep-ember
+        [Color(hex: "283593"), Color(hex: "1A1F6B")],  // deep-navy
+        [Color(hex: "AD1457"), Color(hex: "7B0038")],  // raspberry
+        [Color(hex: "00695C"), Color(hex: "004D40")],  // deep-teal-dark
     ]
 
     static func gradient(for name: String) -> [Color] {
