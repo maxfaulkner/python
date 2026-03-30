@@ -311,8 +311,3 @@ private extension CombinedIngredient {
     var itemKey: String { "\(unit)|\(name)" }
 }
 
-private extension Double {
-    var displayString: String {
-        truncatingRemainder(dividingBy: 1) == 0 ? String(Int(self)) : String(format: "%.1f", self)
-    }
-}
