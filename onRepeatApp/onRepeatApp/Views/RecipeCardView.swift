@@ -52,25 +52,25 @@ struct RecipeCardView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(recipe.name)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(Color(hex: "1A1A1A"))
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
                 HStack(spacing: 5) {
                     Image(systemName: "person.2.fill")
                         .font(.system(size: 10))
-                        .foregroundStyle(Color.brandGreen.opacity(0.8))
+                        .foregroundStyle(Color.brandGreen)
                     Text(recipe.servings.displayString)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(Color(hex: "555555"))
 
                     if !recipe.tags.isEmpty {
                         Circle()
-                            .fill(Color.secondary.opacity(0.4))
+                            .fill(Color(hex: "BBBBBB"))
                             .frame(width: 3, height: 3)
                         Text(recipe.tags.prefix(2).map(\.name).joined(separator: ", "))
                             .font(.system(size: 13))
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(Color(hex: "555555"))
                             .lineLimit(1)
                     }
                 }
@@ -108,7 +108,7 @@ struct RecipeCardView: View {
             HStack {
                 Text("For this run:")
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color(hex: "555555"))
 
                 Spacer()
 

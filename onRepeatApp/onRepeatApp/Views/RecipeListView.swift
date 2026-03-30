@@ -83,6 +83,7 @@ struct RecipeListView: View {
             }
             .navigationTitle("onRepeat")
             .navigationBarTitleDisplayMode(.large)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .onAppear { SeedData.seedIfNeeded(context: modelContext) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -139,7 +140,7 @@ struct RecipeListView: View {
                 .font(.system(size: 13, weight: active ? .semibold : .regular))
                 .padding(.horizontal, 14).padding(.vertical, 7)
                 .background(active ? Color.brandGreen : Color.white)
-                .foregroundStyle(active ? .white : Color.secondary)
+                .foregroundStyle(active ? .white : Color(hex: "444444"))
                 .clipShape(Capsule())
                 .shadow(color: active ? Color.brandGreen.opacity(0.3) : Color.black.opacity(0.06),
                         radius: active ? 6 : 4, x: 0, y: 2)
