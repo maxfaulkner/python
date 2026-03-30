@@ -18,6 +18,11 @@
 		AA000900000000000000002A /* IngredientCombiner.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000900000000000000001A /* IngredientCombiner.swift */; };
 		AA000A00000000000000002A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA000A00000000000000001A /* Assets.xcassets */; };
 		AA000B00000000000000002A /* Preview Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = AA000B00000000000000001A /* Preview Assets.xcassets */; };
+		AA000D00000000000000002A /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000D00000000000000001A /* DesignSystem.swift */; };
+		AA000E00000000000000002A /* RecipeCardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000E00000000000000001A /* RecipeCardView.swift */; };
+		AA000F00000000000000002A /* RecipeShareManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000F00000000000000001A /* RecipeShareManager.swift */; };
+		AA001000000000000000002A /* ImportPreviewView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001000000000000000001A /* ImportPreviewView.swift */; };
+		AA001100000000000000002A /* RecipeShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001100000000000000001A /* RecipeShareSheet.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -33,6 +38,12 @@
 		AA000A00000000000000001A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		AA000B00000000000000001A /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
 		AA000C00000000000000001A /* onRepeatApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = onRepeatApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		AA000D00000000000000001A /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		AA000E00000000000000001A /* RecipeCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeCardView.swift; sourceTree = "<group>"; };
+		AA000F00000000000000001A /* RecipeShareManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeShareManager.swift; sourceTree = "<group>"; };
+		AA001000000000000000001A /* ImportPreviewView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ImportPreviewView.swift; sourceTree = "<group>"; };
+		AA001100000000000000001A /* RecipeShareSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecipeShareSheet.swift; sourceTree = "<group>"; };
+		AA001200000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -58,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				AA000900000000000000001A /* IngredientCombiner.swift */,
+				AA000F00000000000000001A /* RecipeShareManager.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -69,6 +81,9 @@
 				AA000600000000000000001A /* RecipeFormView.swift */,
 				AA000700000000000000001A /* RecipeDetailView.swift */,
 				AA000800000000000000001A /* GroceryListView.swift */,
+				AA000E00000000000000001A /* RecipeCardView.swift */,
+				AA001000000000000000001A /* ImportPreviewView.swift */,
+				AA001100000000000000001A /* RecipeShareSheet.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -87,6 +102,8 @@
 			isa = PBXGroup;
 			children = (
 				AA000100000000000000001A /* onRepeatAppApp.swift */,
+				AA000D00000000000000001A /* DesignSystem.swift */,
+				AA001200000000000000001A /* Info.plist */,
 				AA00FC00000000000000001A /* Models */,
 				AA00FB00000000000000001A /* Views */,
 				AA00FA00000000000000001A /* Utilities */,
@@ -191,6 +208,11 @@
 				AA000300000000000000002A /* Ingredient.swift in Sources */,
 				AA000400000000000000002A /* Tag.swift in Sources */,
 				AA000100000000000000002A /* onRepeatAppApp.swift in Sources */,
+				AA000D00000000000000002A /* DesignSystem.swift in Sources */,
+				AA000E00000000000000002A /* RecipeCardView.swift in Sources */,
+				AA000F00000000000000002A /* RecipeShareManager.swift in Sources */,
+				AA001000000000000000002A /* ImportPreviewView.swift in Sources */,
+				AA001100000000000000002A /* RecipeShareSheet.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -205,11 +227,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 22JPP4N3C6;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = onRepeat;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_FILE = onRepeatApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
@@ -231,11 +249,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 22JPP4N3C6;
-				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleDisplayName = onRepeat;
-				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
-				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
+				INFOPLIST_FILE = onRepeatApp/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/Frameworks",
