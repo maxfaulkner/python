@@ -83,6 +83,7 @@ struct RecipeListView: View {
             }
             .navigationTitle("onRepeat")
             .navigationBarTitleDisplayMode(.large)
+            .onAppear { SeedData.seedIfNeeded(context: modelContext) }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAddRecipe = true } label: {
