@@ -3,12 +3,14 @@ import SwiftData
 
 @main
 struct onRepeatAppApp: App {
+    @State private var weeklyPlan = WeeklyPlanStore()
     @State private var pendingImport: SharedRecipePayload? = nil
     @State private var showingImport = false
 
     var body: some Scene {
         WindowGroup {
-            RecipeListView()
+            HomeView()
+                .environment(weeklyPlan)
                 .onOpenURL { url in
                     if let payload = RecipeShareManager.decode(url: url) {
                         pendingImport = payload

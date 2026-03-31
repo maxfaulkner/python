@@ -25,6 +25,8 @@
 		AA001100000000000000002A /* RecipeShareSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001100000000000000001A /* RecipeShareSheet.swift */; };
 		AA001300000000000000002A /* SeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001300000000000000001A /* SeedData.swift */; };
 		AA001400000000000000002A /* CookModeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001400000000000000001A /* CookModeView.swift */; };
+		AA001500000000000000002A /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001500000000000000001A /* HomeView.swift */; };
+		AA001600000000000000002A /* WeeklyPlanStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA001600000000000000001A /* WeeklyPlanStore.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,6 +50,8 @@
 		AA001200000000000000001A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		AA001300000000000000001A /* SeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedData.swift; sourceTree = "<group>"; };
 		AA001400000000000000001A /* CookModeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CookModeView.swift; sourceTree = "<group>"; };
+		AA001500000000000000001A /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		AA001600000000000000001A /* WeeklyPlanStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WeeklyPlanStore.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -75,6 +79,7 @@
 				AA000900000000000000001A /* IngredientCombiner.swift */,
 				AA000F00000000000000001A /* RecipeShareManager.swift */,
 				AA001300000000000000001A /* SeedData.swift */,
+				AA001600000000000000001A /* WeeklyPlanStore.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -90,6 +95,7 @@
 				AA001000000000000000001A /* ImportPreviewView.swift */,
 				AA001100000000000000001A /* RecipeShareSheet.swift */,
 				AA001400000000000000001A /* CookModeView.swift */,
+				AA001500000000000000001A /* HomeView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -221,6 +227,8 @@
 				AA001100000000000000002A /* RecipeShareSheet.swift in Sources */,
 				AA001300000000000000002A /* SeedData.swift in Sources */,
 				AA001400000000000000002A /* CookModeView.swift in Sources */,
+				AA001500000000000000002A /* HomeView.swift in Sources */,
+				AA001600000000000000002A /* WeeklyPlanStore.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -13,9 +13,9 @@ enum RecipeSortOrder: String, CaseIterable {
 
 struct RecipeListView: View {
     @Environment(\.modelContext) private var modelContext
+    @Environment(WeeklyPlanStore.self) private var plan
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
 
-    @State private var selectedRecipes: [UUID: Double] = [:]
     @State private var showingAddRecipe = false
     @State private var showingGroceryList = false
     @State private var searchText = ""
@@ -23,8 +23,6 @@ struct RecipeListView: View {
     @State private var sortOrder: RecipeSortOrder = .newest
     @State private var editingRecipe: Recipe? = nil
     @State private var deletingRecipe: Recipe? = nil
-
-    private let selectionStoreKey = "weeklySelection"
 
     // MARK: - Computed
 
@@ -54,113 +52,109 @@ struct RecipeListView: View {
 
     private var grocerySelections: [(recipe: Recipe, targetServings: Double)] {
         recipes.compactMap { r in
-            guard let s = selectedRecipes[r.id] else { return nil }
+            guard let s = plan.selectedRecipes[r.id] else { return nil }
             return (recipe: r, targetServings: s)
         }
     }
 
-    private var selectionCount: Int { selectedRecipes.count }
+    private var selectionCount: Int { plan.selectedRecipes.count }
 
     // MARK: - Body
 
     var body: some View {
-        NavigationStack {
-            ZStack(alignment: .bottom) {
-                Color.appBg.ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            Color.appBg.ignoresSafeArea()
 
-                VStack(spacing: 0) {
-                    if selectionCount > 0 {
-                        selectionBanner
-                            .transition(.move(edge: .top).combined(with: .opacity))
-                    }
-
-                    ScrollView {
-                        LazyVStack(spacing: 10) {
-                            if !allTags.isEmpty {
-                                tagFilterRow.padding(.top, 4)
-                            }
-
-                            if filteredRecipes.isEmpty {
-                                emptyState.padding(.top, 60)
-                            } else {
-                                if selectionCount == 0 && searchText.isEmpty && activeTagFilter == nil {
-                                    hintBanner
-                                }
-                                ForEach(filteredRecipes) { recipe in
-                                    RecipeCardView(
-                                        recipe: recipe,
-                                        isSelected: selectedRecipes[recipe.id] != nil,
-                                        targetServings: selectedRecipes[recipe.id] ?? recipe.servings,
-                                        onToggleSelect: { toggleSelect(recipe) },
-                                        onServingsChange: { v in
-                                            selectedRecipes[recipe.id] = v
-                                            saveSelection()
-                                        }
-                                    )
-                                    .padding(.horizontal, 16)
-                                    .contextMenu {
-                                        contextMenuItems(for: recipe)
-                                    }
-                                }
-                            }
-
-                            Spacer(minLength: selectionCount > 0 ? 120 : 24)
-                        }
-                    }
-                    .searchable(
-                        text: $searchText,
-                        placement: .navigationBarDrawer(displayMode: .automatic),
-                        prompt: "Search recipes, ingredients, tags…"
-                    )
-                }
-
+            VStack(spacing: 0) {
                 if selectionCount > 0 {
-                    groceryCTA
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                    selectionBanner
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-            }
-            .navigationTitle("onRepeat")
-            .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.light, for: .navigationBar) // adaptive in dark mode via semantic colors
-            .onAppear {
-                SeedData.seedIfNeeded(context: modelContext)
-                loadSelection()
-            }
-            .onChange(of: selectedRecipes) { saveSelection() }
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    sortMenu
-                }
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showingAddRecipe = true } label: {
-                        ZStack {
-                            Circle().fill(Color.brandGreen).frame(width: 32, height: 32)
-                            Image(systemName: "plus")
-                                .font(.system(size: 15, weight: .bold))
-                                .foregroundStyle(.white)
+
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        if !allTags.isEmpty {
+                            tagFilterRow.padding(.top, 4)
                         }
+
+                        if filteredRecipes.isEmpty {
+                            emptyState.padding(.top, 60)
+                        } else {
+                            if selectionCount == 0 && searchText.isEmpty && activeTagFilter == nil {
+                                hintBanner
+                            }
+                            ForEach(filteredRecipes) { recipe in
+                                RecipeCardView(
+                                    recipe: recipe,
+                                    isSelected: plan.isSelected(recipe.id),
+                                    targetServings: plan.targetServings(for: recipe.id, defaultServings: recipe.servings),
+                                    onToggleSelect: {
+                                        withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                                            plan.toggle(recipe)
+                                        }
+                                    },
+                                    onServingsChange: { v in
+                                        plan.setServings(v, for: recipe.id)
+                                    }
+                                )
+                                .padding(.horizontal, 16)
+                                .contextMenu {
+                                    contextMenuItems(for: recipe)
+                                }
+                            }
+                        }
+
+                        Spacer(minLength: selectionCount > 0 ? 120 : 24)
+                    }
+                }
+                .searchable(
+                    text: $searchText,
+                    placement: .navigationBarDrawer(displayMode: .automatic),
+                    prompt: "Search recipes, ingredients, tags…"
+                )
+            }
+
+            if selectionCount > 0 {
+                groceryCTA
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .navigationTitle("All Recipes")
+        .navigationBarTitleDisplayMode(.large)
+        .toolbarColorScheme(.light, for: .navigationBar) // adaptive in dark mode via semantic colors
+        .toolbar {
+            ToolbarItem(placement: .topBarLeading) {
+                sortMenu
+            }
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showingAddRecipe = true } label: {
+                    ZStack {
+                        Circle().fill(Color.brandGreen).frame(width: 32, height: 32)
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
                     }
                 }
             }
-            .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
-            .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
-            .sheet(isPresented: $showingGroceryList) { GroceryListView(selections: grocerySelections) }
-            .sheet(item: $editingRecipe) { RecipeFormView(mode: .edit($0)) }
-            .alert("Delete Recipe?", isPresented: Binding(
-                get: { deletingRecipe != nil },
-                set: { if !$0 { deletingRecipe = nil } }
-            )) {
-                Button("Delete", role: .destructive) {
-                    if let r = deletingRecipe { deleteRecipe(r) }
-                }
-                Button("Cancel", role: .cancel) { deletingRecipe = nil }
-            } message: {
-                if let r = deletingRecipe {
-                    Text("\"\(r.name)\" will be permanently deleted.")
-                }
-            }
-            .animation(.spring(response: 0.3), value: selectionCount)
         }
+        .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
+        .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
+        .sheet(isPresented: $showingGroceryList) { GroceryListView(selections: grocerySelections) }
+        .sheet(item: $editingRecipe) { RecipeFormView(mode: .edit($0)) }
+        .alert("Delete Recipe?", isPresented: Binding(
+            get: { deletingRecipe != nil },
+            set: { if !$0 { deletingRecipe = nil } }
+        )) {
+            Button("Delete", role: .destructive) {
+                if let r = deletingRecipe { deleteRecipe(r) }
+            }
+            Button("Cancel", role: .cancel) { deletingRecipe = nil }
+        } message: {
+            if let r = deletingRecipe {
+                Text("\"\(r.name)\" will be permanently deleted.")
+            }
+        }
+        .animation(.spring(response: 0.3), value: selectionCount)
     }
 
     // MARK: - Sort Menu
@@ -198,11 +192,11 @@ struct RecipeListView: View {
 
     @ViewBuilder
     private func contextMenuItems(for recipe: Recipe) -> some View {
-        let isSelected = selectedRecipes[recipe.id] != nil
+        let isSelected = plan.isSelected(recipe.id)
 
         Button {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
-                toggleSelect(recipe)
+                plan.toggle(recipe)
             }
         } label: {
             Label(
@@ -242,7 +236,7 @@ struct RecipeListView: View {
                 .foregroundStyle(Color.textPrimary)
             Spacer()
             Button("Clear all") {
-                withAnimation(.spring(response: 0.3)) { selectedRecipes.removeAll() }
+                withAnimation(.spring(response: 0.3)) { plan.clearAll() }
             }
             .font(.system(size: 13))
             .foregroundStyle(Color.textTertiary)
@@ -378,14 +372,6 @@ struct RecipeListView: View {
 
     // MARK: - Actions
 
-    private func toggleSelect(_ recipe: Recipe) {
-        if selectedRecipes[recipe.id] != nil {
-            selectedRecipes.removeValue(forKey: recipe.id)
-        } else {
-            selectedRecipes[recipe.id] = recipe.servings
-        }
-    }
-
     private func duplicateRecipe(_ recipe: Recipe) {
         let copy = Recipe(name: "\(recipe.name) (Copy)",
                           servings: recipe.servings,
@@ -401,32 +387,8 @@ struct RecipeListView: View {
     }
 
     private func deleteRecipe(_ recipe: Recipe) {
-        selectedRecipes.removeValue(forKey: recipe.id)
+        plan.remove(id: recipe.id)
         modelContext.delete(recipe)
         try? modelContext.save()
-        saveSelection()
-    }
-
-    // MARK: - Persist Selection
-
-    private func saveSelection() {
-        let dict = selectedRecipes.reduce(into: [String: Double]()) {
-            $0[$1.key.uuidString] = $1.value
-        }
-        if let data = try? JSONEncoder().encode(dict) {
-            UserDefaults.standard.set(data, forKey: selectionStoreKey)
-        }
-    }
-
-    private func loadSelection() {
-        guard let data = UserDefaults.standard.data(forKey: selectionStoreKey),
-              let dict = try? JSONDecoder().decode([String: Double].self, from: data)
-        else { return }
-        let validIDs = Set(recipes.map(\.id))
-        selectedRecipes = dict.reduce(into: [:]) { result, pair in
-            if let uuid = UUID(uuidString: pair.key), validIDs.contains(uuid) {
-                result[uuid] = pair.value
-            }
-        }
     }
 }
