@@ -56,11 +56,12 @@ struct CombinedIngredient: Identifiable {
     let unit: String
     let name: String
     let category: GroceryCategory
+    let sources: [String]       // recipe names that contribute to this item
+    var manualID: UUID? = nil   // set when this item was added manually (not from a recipe)
 
     var formattedQuantity: String {
         if quantity.truncatingRemainder(dividingBy: 1) == 0 { return String(Int(quantity)) }
         let s = String(format: "%.2f", quantity)
-        // Remove trailing zeros after decimal point
         var result = s
         while result.hasSuffix("0") { result.removeLast() }
         if result.hasSuffix(".") { result.removeLast() }
@@ -97,6 +98,7 @@ enum IngredientCombiner {
     static func combine(_ selections: [(recipe: Recipe, targetServings: Double)]) -> [CombinedIngredient] {
         var totals: [String: Double] = [:]
         var meta: [String: (unit: String, name: String, category: GroceryCategory)] = [:]
+        var sources: [String: [String]] = [:]  // key -> ordered unique recipe names
 
         for (recipe, targetServings) in selections {
             guard recipe.servings > 0 else { continue }
@@ -109,12 +111,16 @@ enum IngredientCombiner {
                 if meta[key] == nil {
                     meta[key] = (unit: unit, name: name, category: GroceryCategory.categorize(name))
                 }
+                if sources[key] == nil || !sources[key]!.contains(recipe.name) {
+                    sources[key, default: []].append(recipe.name)
+                }
             }
         }
 
         return totals.compactMap { key, qty in
             guard let m = meta[key] else { return nil }
-            return CombinedIngredient(quantity: qty, unit: m.unit, name: m.name, category: m.category)
+            return CombinedIngredient(quantity: qty, unit: m.unit, name: m.name,
+                                     category: m.category, sources: sources[key] ?? [])
         }
         .sorted {
             if $0.category != $1.category { return $0.category < $1.category }

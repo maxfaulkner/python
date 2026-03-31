@@ -74,6 +74,7 @@ onRepeatApp/
     │   ├── RecipeFormView.swift               ← Add/Edit recipe (sheet)
     │   ├── RecipeDetailView.swift             ← Read-only recipe detail (pushed)
     │   ├── GroceryListView.swift              ← Generated grocery list (sheet)
+    │   ├── CookModeView.swift                 ← Full-screen step-by-step cook mode (fullScreenCover)
     │   ├── RecipeShareSheet.swift             ← Share options sheet (URL / QR / text)
     │   └── ImportPreviewView.swift            ← Preview + import a shared recipe
     └── Utilities/
@@ -275,10 +276,27 @@ Presented as a sheet. Receives `selections: [(recipe: Recipe, targetServings: Do
 - **Recipe strip**: horizontal scroll of recipe pills with emoji thumbnail and optional serving multiplier badge
 - **Progress bar**: animated linear fill, "X of Y items" label, Reset button
 - **Category sections**: grouped by `GroceryCategory`, each with colored header (icon + category color), per-item check-off rows with animated strikethrough + circle fill
-- **Completion view**: shown when all items checked — green checkmark, "You're all set!" message, "Start Over" button
+- **Recipe attribution**: when multiple recipes selected, each item shows which recipes need it (below the ingredient name)
+- **Manual items**: "Add item manually" button at bottom reveals inline text field to add custom grocery items (e.g. paper towels). Manual items appear in the "Other" category with a delete button and "added manually" label. Persisted per-session.
+- **Completed state**: shown when all items checked — green checkmark, "You're all set!" message, "Start Over" button
 - ShareLink in toolbar exports plain text list
 
-Checked state is `@State var checkedKeys: Set<String>` keyed on `"\(unit)|\(name)"`. Checked items sort to the bottom of their category.
+Checked state is persisted to `UserDefaults` via a key derived from the sorted recipe IDs (`groceryChecked_<hashValue>`). Manual items are also persisted under `groceryManual_<hashValue>`. Both load in `.onAppear`. Manual items use `ManualItem: Identifiable, Codable` (id: UUID, name: String) stored as a private struct in the file.
+
+`CombinedIngredient` has a `manualID: UUID?` field — `nil` for recipe items, set for manual items. `itemKey` for manual items is `"manual_<uuid>"` to avoid collisions.
+
+### CookModeView — Step-by-Step Cook Mode
+**File**: `onRepeatApp/Views/CookModeView.swift`
+
+Presented as a `fullScreenCover` from `RecipeDetailView`. Full-screen dark UI using the recipe's gradient palette overlaid with a dark scrim. Contains:
+- **Top bar**: recipe name, "Step X of Y" subtitle, animated progress bar, X dismiss button (asks for exit confirmation if progress has been made)
+- **Step content**: large step number badge (circle with gradient border), step text centered in a ScrollView, "Done" chip if step already completed
+- **Navigation**: "Done, Next Step" button + left chevron for going back. On the last step: "Finish Cooking" button that auto-dismisses after 0.4s.
+- **Step dots**: dot indicator row (shown when ≤12 steps), filled dots = completed steps, larger dot = current step
+- **Single block mode**: when instructions can't be split into multiple lines, shows all text at once without step navigation
+- **Exit confirmation alert**: shown when dismissing mid-cook after making progress
+
+Steps are parsed identically to `RecipeDetailView.instructionsCard` — split on `\n`, trimmed, filter empty.
 
 ### RecipeShareSheet — Share Options
 **File**: `onRepeatApp/Views/RecipeShareSheet.swift`
@@ -391,6 +409,8 @@ struct CombinedIngredient: Identifiable {
     let unit: String
     let name: String
     let category: GroceryCategory
+    let sources: [String]       // recipe names that contribute to this item
+    var manualID: UUID? = nil   // non-nil for manually added items
     var formattedQuantity: String  // "3" for 3.0, "2.5" for 2.5
 }
 ```
@@ -460,7 +480,7 @@ Social sharing works entirely via URL schemes — no server required. The full r
 - **Tags are shared across recipes**: Deleting a recipe does *not* delete its tags. Orphaned tags (no recipes) are harmless but accumulate. No cleanup done currently.
 - **Unit normalization happens at combine-time, not at save-time**: Ingredients are stored as entered. Normalization only runs inside `IngredientCombiner`.
 - **Servings must be > 0**: Required to avoid divide-by-zero in scale calculation.
-- **`selectedRecipes` is transient**: Home screen selection state (`@State`) resets every app launch. Intentional.
+- **`selectedRecipes` persists across launches**: Saved to UserDefaults under key `weeklySelection` as JSON `[String: Double]` (UUID string → target servings). Loaded in `.onAppear`, validated against current recipe IDs. Selection automatically rehydrates when app is relaunched mid-week.
 - **Info.plist is manual**: `GENERATE_INFOPLIST_FILE` is NOT set. Build setting `INFOPLIST_FILE = onRepeatApp/Info.plist`. The manual plist registers the `onrepeat://` URL scheme for deep linking.
 - **GroceryCategory `< ` uses allCases index**: Order is produce → dairy → meat → bakery → grains → canned → spices → condiments → beverages → frozen → other.
 - **Share URL uses base64url (no padding)**: `Data.base64EncodedString()` output has `+` and `/` replaced with `-` and `_`, and `=` padding stripped, to be URL-safe.

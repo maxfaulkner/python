@@ -1,6 +1,16 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Sort Order
+
+enum RecipeSortOrder: String, CaseIterable {
+    case newest        = "Newest First"
+    case alphabetical  = "A to Z"
+    case ingredients   = "Most Ingredients"
+}
+
+// MARK: - RecipeListView
+
 struct RecipeListView: View {
     @Environment(\.modelContext) private var modelContext
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
@@ -10,6 +20,11 @@ struct RecipeListView: View {
     @State private var showingGroceryList = false
     @State private var searchText = ""
     @State private var activeTagFilter: String? = nil
+    @State private var sortOrder: RecipeSortOrder = .newest
+    @State private var editingRecipe: Recipe? = nil
+    @State private var deletingRecipe: Recipe? = nil
+
+    private let selectionStoreKey = "weeklySelection"
 
     // MARK: - Computed
 
@@ -28,6 +43,11 @@ struct RecipeListView: View {
         }
         if let tag = activeTagFilter {
             result = result.filter { $0.tags.contains { $0.name == tag } }
+        }
+        switch sortOrder {
+        case .newest:       break  // already sorted by @Query
+        case .alphabetical: result.sort { $0.name.localizedCompare($1.name) == .orderedAscending }
+        case .ingredients:  result.sort { $0.ingredients.count > $1.ingredients.count }
         }
         return result
     }
@@ -49,7 +69,6 @@ struct RecipeListView: View {
                 Color.appBg.ignoresSafeArea()
 
                 VStack(spacing: 0) {
-                    // Selection banner — only shown when recipes are selected
                     if selectionCount > 0 {
                         selectionBanner
                             .transition(.move(edge: .top).combined(with: .opacity))
@@ -64,24 +83,28 @@ struct RecipeListView: View {
                             if filteredRecipes.isEmpty {
                                 emptyState.padding(.top, 60)
                             } else {
-                                // Hint text on first load
                                 if selectionCount == 0 && searchText.isEmpty && activeTagFilter == nil {
                                     hintBanner
                                 }
-
                                 ForEach(filteredRecipes) { recipe in
                                     RecipeCardView(
                                         recipe: recipe,
                                         isSelected: selectedRecipes[recipe.id] != nil,
                                         targetServings: selectedRecipes[recipe.id] ?? recipe.servings,
                                         onToggleSelect: { toggleSelect(recipe) },
-                                        onServingsChange: { selectedRecipes[recipe.id] = $0 }
+                                        onServingsChange: { v in
+                                            selectedRecipes[recipe.id] = v
+                                            saveSelection()
+                                        }
                                     )
                                     .padding(.horizontal, 16)
+                                    .contextMenu {
+                                        contextMenuItems(for: recipe)
+                                    }
                                 }
                             }
 
-                            Spacer(minLength: selectionCount > 0 ? 110 : 24)
+                            Spacer(minLength: selectionCount > 0 ? 120 : 24)
                         }
                     }
                     .searchable(
@@ -91,7 +114,6 @@ struct RecipeListView: View {
                     )
                 }
 
-                // Grocery list CTA
                 if selectionCount > 0 {
                     groceryCTA
                         .transition(.move(edge: .bottom).combined(with: .opacity))
@@ -100,8 +122,15 @@ struct RecipeListView: View {
             .navigationTitle("onRepeat")
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.light, for: .navigationBar)
-            .onAppear { SeedData.seedIfNeeded(context: modelContext) }
+            .onAppear {
+                SeedData.seedIfNeeded(context: modelContext)
+                loadSelection()
+            }
+            .onChange(of: selectedRecipes) { saveSelection() }
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    sortMenu
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAddRecipe = true } label: {
                         ZStack {
@@ -116,7 +145,88 @@ struct RecipeListView: View {
             .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
             .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
             .sheet(isPresented: $showingGroceryList) { GroceryListView(selections: grocerySelections) }
+            .sheet(item: $editingRecipe) { RecipeFormView(mode: .edit($0)) }
+            .alert("Delete Recipe?", isPresented: Binding(
+                get: { deletingRecipe != nil },
+                set: { if !$0 { deletingRecipe = nil } }
+            )) {
+                Button("Delete", role: .destructive) {
+                    if let r = deletingRecipe { deleteRecipe(r) }
+                }
+                Button("Cancel", role: .cancel) { deletingRecipe = nil }
+            } message: {
+                if let r = deletingRecipe {
+                    Text("\"\(r.name)\" will be permanently deleted.")
+                }
+            }
             .animation(.spring(response: 0.3), value: selectionCount)
+        }
+    }
+
+    // MARK: - Sort Menu
+
+    private var sortMenu: some View {
+        Menu {
+            ForEach(RecipeSortOrder.allCases, id: \.self) { order in
+                Button {
+                    withAnimation { sortOrder = order }
+                } label: {
+                    HStack {
+                        Text(order.rawValue)
+                        if sortOrder == order {
+                            Image(systemName: "checkmark")
+                        }
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Image(systemName: "arrow.up.arrow.down")
+                    .font(.system(size: 13, weight: .semibold))
+                Text(sortOrder.rawValue)
+                    .font(.system(size: 13, weight: .medium))
+            }
+            .foregroundStyle(Color(hex: "555555"))
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
+        }
+    }
+
+    // MARK: - Context Menu
+
+    @ViewBuilder
+    private func contextMenuItems(for recipe: Recipe) -> some View {
+        let isSelected = selectedRecipes[recipe.id] != nil
+
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                toggleSelect(recipe)
+            }
+        } label: {
+            Label(
+                isSelected ? "Remove from List" : "Add to Grocery List",
+                systemImage: isSelected ? "cart.badge.minus" : "cart.badge.plus"
+            )
+        }
+
+        Divider()
+
+        Button { editingRecipe = recipe } label: {
+            Label("Edit Recipe", systemImage: "pencil")
+        }
+
+        Button { duplicateRecipe(recipe) } label: {
+            Label("Duplicate", systemImage: "plus.square.on.square")
+        }
+
+        Divider()
+
+        Button(role: .destructive) {
+            deletingRecipe = recipe
+        } label: {
+            Label("Delete", systemImage: "trash")
         }
     }
 
@@ -149,7 +259,7 @@ struct RecipeListView: View {
             Image(systemName: "hand.tap.fill")
                 .font(.system(size: 13))
                 .foregroundStyle(Color.brandGreen)
-            Text("Tap recipes to add them to your grocery list")
+            Text("Tap a recipe to add it to your grocery list")
                 .font(.system(size: 13))
                 .foregroundStyle(Color(hex: "666666"))
         }
@@ -235,23 +345,20 @@ struct RecipeListView: View {
         Button { showingGroceryList = true } label: {
             HStack(spacing: 14) {
                 ZStack {
-                    Circle().fill(.white.opacity(0.25)).frame(width: 38, height: 38)
+                    Circle().fill(.white.opacity(0.25)).frame(width: 40, height: 40)
                     Image(systemName: "cart.fill")
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.white)
                 }
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Get Grocery List")
                         .font(.system(size: 17, weight: .bold))
                         .foregroundStyle(.white)
-                    Text("\(selectionCount) recipe\(selectionCount == 1 ? "" : "s") · tap to combine ingredients")
+                    Text("\(selectionCount) recipe\(selectionCount == 1 ? "" : "s") selected")
                         .font(.system(size: 12, weight: .medium))
                         .foregroundStyle(.white.opacity(0.85))
                 }
-
                 Spacer()
-
                 Image(systemName: "arrow.right")
                     .font(.system(size: 15, weight: .bold))
                     .foregroundStyle(.white)
@@ -259,11 +366,8 @@ struct RecipeListView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 16)
             .background(
-                LinearGradient(
-                    colors: [Color.brandGreen, Color.brandMid],
-                    startPoint: .leading,
-                    endPoint: .trailing
-                )
+                LinearGradient(colors: [Color.brandGreen, Color.brandMid],
+                               startPoint: .leading, endPoint: .trailing)
             )
             .clipShape(RoundedRectangle(cornerRadius: 20))
             .shadow(color: Color.brandGreen.opacity(0.45), radius: 18, x: 0, y: 6)
@@ -279,6 +383,50 @@ struct RecipeListView: View {
             selectedRecipes.removeValue(forKey: recipe.id)
         } else {
             selectedRecipes[recipe.id] = recipe.servings
+        }
+    }
+
+    private func duplicateRecipe(_ recipe: Recipe) {
+        let copy = Recipe(name: "\(recipe.name) (Copy)",
+                          servings: recipe.servings,
+                          instructions: recipe.instructions)
+        modelContext.insert(copy)
+        for tag in recipe.tags { copy.tags.append(tag) }
+        for ing in recipe.ingredients {
+            let newIng = Ingredient(quantity: ing.quantity, unit: ing.unit, name: ing.name)
+            modelContext.insert(newIng)
+            copy.ingredients.append(newIng)
+        }
+        try? modelContext.save()
+    }
+
+    private func deleteRecipe(_ recipe: Recipe) {
+        selectedRecipes.removeValue(forKey: recipe.id)
+        modelContext.delete(recipe)
+        try? modelContext.save()
+        saveSelection()
+    }
+
+    // MARK: - Persist Selection
+
+    private func saveSelection() {
+        let dict = selectedRecipes.reduce(into: [String: Double]()) {
+            $0[$1.key.uuidString] = $1.value
+        }
+        if let data = try? JSONEncoder().encode(dict) {
+            UserDefaults.standard.set(data, forKey: selectionStoreKey)
+        }
+    }
+
+    private func loadSelection() {
+        guard let data = UserDefaults.standard.data(forKey: selectionStoreKey),
+              let dict = try? JSONDecoder().decode([String: Double].self, from: data)
+        else { return }
+        let validIDs = Set(recipes.map(\.id))
+        selectedRecipes = dict.reduce(into: [:]) { result, pair in
+            if let uuid = UUID(uuidString: pair.key), validIDs.contains(uuid) {
+                result[uuid] = pair.value
+            }
         }
     }
 }

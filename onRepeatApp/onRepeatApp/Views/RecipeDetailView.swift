@@ -10,6 +10,7 @@ struct RecipeDetailView: View {
     @State private var showingEdit = false
     @State private var showingDeleteAlert = false
     @State private var showingShare = false
+    @State private var showingCookMode = false
 
     // MARK: - Body
 
@@ -29,19 +30,32 @@ struct RecipeDetailView: View {
         .toolbarColorScheme(.dark, for: .navigationBar)
         .toolbarBackground(.clear, for: .navigationBar)
         .toolbar {
-            ToolbarItemGroup(placement: .topBarTrailing) {
-                Button("Edit") { showingEdit = true }
-                    .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(.white)
-                Button(role: .destructive) { showingDeleteAlert = true } label: {
-                    Image(systemName: "trash")
-                        .font(.system(size: 15))
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button { showingEdit = true } label: {
+                        Label("Edit Recipe", systemImage: "pencil")
+                    }
+                    Button { duplicateRecipe() } label: {
+                        Label("Duplicate", systemImage: "plus.square.on.square")
+                    }
+                    Button { showingShare = true } label: {
+                        Label("Share Recipe", systemImage: "square.and.arrow.up")
+                    }
+                    Divider()
+                    Button(role: .destructive) { showingDeleteAlert = true } label: {
+                        Label("Delete Recipe", systemImage: "trash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis.circle.fill")
+                        .font(.system(size: 20))
                         .foregroundStyle(.white)
+                        .shadow(color: .black.opacity(0.2), radius: 4, x: 0, y: 2)
                 }
             }
         }
         .sheet(isPresented: $showingEdit) { RecipeFormView(mode: .edit(recipe)) }
         .sheet(isPresented: $showingShare) { RecipeShareSheet(recipe: recipe) }
+        .fullScreenCover(isPresented: $showingCookMode) { CookModeView(recipe: recipe) }
         .alert("Delete Recipe?", isPresented: $showingDeleteAlert) {
             Button("Delete", role: .destructive) {
                 modelContext.delete(recipe)
@@ -118,12 +132,37 @@ struct RecipeDetailView: View {
 
             if !recipe.instructions.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 instructionsCard
+
+                // Cook mode CTA — only shown when there are instructions
+                cookButton
             }
 
             Spacer(minLength: 40)
         }
         .padding(.horizontal, 16)
         .padding(.top, recipe.tags.isEmpty ? 16 : 0)
+    }
+
+    // MARK: - Cook Button
+
+    private var cookButton: some View {
+        Button { showingCookMode = true } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "flame.fill")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Start Cooking")
+                    .font(.system(size: 16, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 16)
+            .background(
+                LinearGradient(colors: [Color.brandGreen, Color.brandMid],
+                               startPoint: .leading, endPoint: .trailing)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color.brandGreen.opacity(0.35), radius: 10, x: 0, y: 4)
+        }
     }
 
     // MARK: - Tags
@@ -251,5 +290,22 @@ struct RecipeDetailView: View {
         .padding(.horizontal, 16)
         .padding(.top, 16)
         .padding(.bottom, 10)
+    }
+
+    // MARK: - Duplicate
+
+    private func duplicateRecipe() {
+        let copy = Recipe(name: "\(recipe.name) (Copy)",
+                          servings: recipe.servings,
+                          instructions: recipe.instructions)
+        modelContext.insert(copy)
+        for tag in recipe.tags { copy.tags.append(tag) }
+        for ing in recipe.ingredients {
+            let newIng = Ingredient(quantity: ing.quantity, unit: ing.unit, name: ing.name)
+            modelContext.insert(newIng)
+            copy.ingredients.append(newIng)
+        }
+        try? modelContext.save()
+        dismiss()
     }
 }

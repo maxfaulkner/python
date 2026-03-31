@@ -1,21 +1,59 @@
 import SwiftUI
 
+// MARK: - Manual Item
+
+private struct ManualItem: Identifiable, Codable {
+    let id: UUID
+    var name: String
+}
+
+// MARK: - GroceryListView
+
 struct GroceryListView: View {
     @Environment(\.dismiss) private var dismiss
 
     let selections: [(recipe: Recipe, targetServings: Double)]
 
+    // Persistent state keys are derived from the sorted recipe IDs so the
+    // same selection always maps to the same UserDefaults key.
+    private var persistKey: String {
+        let ids = selections.map { $0.recipe.id.uuidString }.sorted().joined(separator: ",")
+        return "groceryChecked_\(ids.hashValue)"
+    }
+    private var manualKey: String {
+        let ids = selections.map { $0.recipe.id.uuidString }.sorted().joined(separator: ",")
+        return "groceryManual_\(ids.hashValue)"
+    }
+
     @State private var checkedKeys: Set<String> = []
+    @State private var manualItems: [ManualItem] = []
+    @State private var newItemText = ""
+    @State private var showingAddField = false
+    @FocusState private var addFieldFocused: Bool
 
     // MARK: - Computed
 
-    private var allItems: [CombinedIngredient] {
+    private var recipeItems: [CombinedIngredient] {
         IngredientCombiner.combine(selections)
     }
 
+    private var allItems: [CombinedIngredient] {
+        let manualCombined = manualItems.map { item in
+            CombinedIngredient(
+                quantity: 0,
+                unit: "",
+                name: item.name,
+                category: .other,
+                sources: ["Manual"],
+                manualID: item.id
+            )
+        }
+        return recipeItems + manualCombined
+    }
+
     private var groupedItems: [(category: GroceryCategory, items: [CombinedIngredient])] {
-        let unchecked = allItems.filter { !checkedKeys.contains($0.itemKey) }
-        let checked   = allItems.filter {  checkedKeys.contains($0.itemKey) }
+        var unchecked = allItems.filter { !checkedKeys.contains($0.itemKey) }
+        var checked   = allItems.filter {  checkedKeys.contains($0.itemKey) }
         let combined  = unchecked + checked
 
         var dict: [GroceryCategory: [CombinedIngredient]] = [:]
@@ -26,7 +64,7 @@ struct GroceryListView: View {
     private var totalCount: Int { allItems.count }
     private var checkedCount: Int { checkedKeys.count }
     private var progress: Double { totalCount == 0 ? 0 : Double(checkedCount) / Double(totalCount) }
-    private var isComplete: Bool { totalCount > 0 && checkedCount == totalCount }
+    private var isComplete: Bool { totalCount > 0 && checkedCount >= totalCount }
 
     private var recipeNames: String {
         selections.map { $0.recipe.name }.joined(separator: " · ")
@@ -37,8 +75,9 @@ struct GroceryListView: View {
         for (cat, items) in groupedItems {
             lines.append("[\(cat.rawValue)]")
             for item in items {
-                let unit = item.unit.isEmpty ? "" : " \(item.unit)"
-                lines.append("  • \(item.formattedQuantity)\(unit) \(item.name)")
+                let qty = item.quantity > 0 ? "\(item.formattedQuantity) " : ""
+                let unit = item.unit.isEmpty ? "" : "\(item.unit) "
+                lines.append("  • \(qty)\(unit)\(item.name)")
             }
             lines.append("")
         }
@@ -52,7 +91,7 @@ struct GroceryListView: View {
             ZStack {
                 Color.appBg.ignoresSafeArea()
 
-                if isComplete {
+                if isComplete && manualItems.isEmpty {
                     completionView
                 } else {
                     mainContent
@@ -74,6 +113,9 @@ struct GroceryListView: View {
                     }
                 }
             }
+            .onAppear {
+                loadPersisted()
+            }
         }
     }
 
@@ -88,6 +130,8 @@ struct GroceryListView: View {
                 ForEach(groupedItems, id: \.category) { group in
                     categorySection(group.category, items: group.items)
                 }
+
+                addItemSection
 
                 Spacer(minLength: 30)
             }
@@ -145,6 +189,7 @@ struct GroceryListView: View {
                 if checkedCount > 0 {
                     Button("Reset") {
                         withAnimation { checkedKeys.removeAll() }
+                        saveChecked()
                     }
                     .font(.system(size: 13))
                     .foregroundStyle(Color(hex: "888888"))
@@ -187,9 +232,12 @@ struct GroceryListView: View {
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(category.color)
                 Spacer()
-                Text("\(items.filter { !checkedKeys.contains($0.itemKey) }.count) left")
-                    .font(.system(size: 12))
-                    .foregroundStyle(Color(hex: "888888"))
+                let remaining = items.filter { !checkedKeys.contains($0.itemKey) }.count
+                if remaining > 0 {
+                    Text("\(remaining) left")
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color(hex: "888888"))
+                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -197,32 +245,48 @@ struct GroceryListView: View {
 
             // Items
             ForEach(Array(items.enumerated()), id: \.element.id) { idx, item in
-                let isChecked = checkedKeys.contains(item.itemKey)
+                itemRow(item: item, category: category, isLast: idx == items.count - 1)
+            }
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
 
-                Button {
-                    withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
-                        if isChecked { checkedKeys.remove(item.itemKey) }
-                        else { checkedKeys.insert(item.itemKey) }
-                    }
-                } label: {
-                    HStack(spacing: 12) {
-                        ZStack {
+    // MARK: - Item Row
+
+    private func itemRow(item: CombinedIngredient, category: GroceryCategory, isLast: Bool) -> some View {
+        let isChecked = checkedKeys.contains(item.itemKey)
+        let isManual = item.manualID != nil
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.spring(response: 0.25, dampingFraction: 0.7)) {
+                    if isChecked { checkedKeys.remove(item.itemKey) }
+                    else { checkedKeys.insert(item.itemKey) }
+                }
+                saveChecked()
+            } label: {
+                HStack(spacing: 12) {
+                    // Checkmark circle
+                    ZStack {
+                        Circle()
+                            .strokeBorder(
+                                isChecked ? category.color : Color(hex: "CCCCCC"),
+                                lineWidth: 2
+                            )
+                            .frame(width: 24, height: 24)
+                        if isChecked {
                             Circle()
-                                .strokeBorder(
-                                    isChecked ? category.color : Color(hex: "CCCCCC"),
-                                    lineWidth: 2
-                                )
+                                .fill(category.color)
                                 .frame(width: 24, height: 24)
-                            if isChecked {
-                                Circle()
-                                    .fill(category.color)
-                                    .frame(width: 24, height: 24)
-                                Image(systemName: "checkmark")
-                                    .font(.system(size: 10, weight: .black))
-                                    .foregroundStyle(.white)
-                            }
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .black))
+                                .foregroundStyle(.white)
                         }
+                    }
 
+                    // Quantity + unit
+                    if item.quantity > 0 {
                         HStack(spacing: 2) {
                             Text(item.formattedQuantity)
                                 .font(.system(size: 15, weight: .semibold))
@@ -235,28 +299,104 @@ struct GroceryListView: View {
                             }
                         }
                         .frame(width: 72, alignment: .trailing)
+                    }
 
+                    // Name + source attribution
+                    VStack(alignment: .leading, spacing: 2) {
                         Text(item.name)
                             .font(.system(size: 15))
                             .foregroundStyle(isChecked ? Color(hex: "AAAAAA") : Color(hex: "1A1A1A"))
                             .strikethrough(isChecked, color: Color(hex: "AAAAAA"))
 
-                        Spacer()
+                        // Attribution — show when more than one recipe or when manual
+                        if !isManual && item.sources.count > 0 && selections.count > 1 {
+                            Text(item.sources.joined(separator: ", "))
+                                .font(.system(size: 11))
+                                .foregroundStyle(isChecked ? Color(hex: "BBBBBB") : Color(hex: "999999"))
+                                .lineLimit(1)
+                        } else if isManual {
+                            Text("added manually")
+                                .font(.system(size: 11))
+                                .foregroundStyle(isChecked ? Color(hex: "BBBBBB") : Color(hex: "BBBBBB"))
+                        }
                     }
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 11)
-                    .background(isChecked ? Color(hex: "F8F8F8") : Color.white)
-                }
-                .buttonStyle(.plain)
-                .animation(.easeInOut(duration: 0.2), value: isChecked)
 
-                if idx < items.count - 1 {
-                    Divider().padding(.leading, 50)
+                    Spacer()
+
+                    // Delete button for manual items
+                    if isManual, let mid = item.manualID {
+                        Button {
+                            withAnimation {
+                                manualItems.removeAll { $0.id == mid }
+                                checkedKeys.remove(item.itemKey)
+                            }
+                            saveManual()
+                            saveChecked()
+                        } label: {
+                            Image(systemName: "minus.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(Color(hex: "CCCCCC"))
+                        }
+                        .buttonStyle(.plain)
+                    }
                 }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 11)
+                .background(isChecked ? Color(hex: "F8F8F8") : Color.white)
+            }
+            .buttonStyle(.plain)
+            .animation(.easeInOut(duration: 0.2), value: isChecked)
+
+            if !isLast {
+                Divider().padding(.leading, 50)
             }
         }
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 2)
+    }
+
+    // MARK: - Add Item Section
+
+    private var addItemSection: some View {
+        VStack(spacing: 0) {
+            if showingAddField {
+                HStack(spacing: 10) {
+                    TextField("e.g. paper towels", text: $newItemText)
+                        .font(.system(size: 15))
+                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .focused($addFieldFocused)
+                        .onSubmit { commitNewItem() }
+
+                    Button("Add") { commitNewItem() }
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(newItemText.trimmingCharacters(in: .whitespaces).isEmpty
+                                         ? Color(hex: "BBBBBB")
+                                         : Color.brandGreen)
+                        .disabled(newItemText.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .background(Color.white)
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
+                .transition(.move(edge: .top).combined(with: .opacity))
+            }
+
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                    showingAddField.toggle()
+                    if showingAddField { addFieldFocused = true }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Image(systemName: showingAddField ? "minus.circle" : "plus.circle")
+                        .font(.system(size: 14, weight: .semibold))
+                    Text(showingAddField ? "Cancel" : "Add item manually")
+                        .font(.system(size: 14, weight: .semibold))
+                }
+                .foregroundStyle(showingAddField ? Color(hex: "888888") : Color.brandGreen)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 14)
+            }
+        }
     }
 
     // MARK: - Completion View
@@ -286,6 +426,7 @@ struct GroceryListView: View {
 
             Button {
                 withAnimation { checkedKeys.removeAll() }
+                saveChecked()
             } label: {
                 Label("Start Over", systemImage: "arrow.counterclockwise")
                     .font(.system(size: 16, weight: .semibold))
@@ -298,10 +439,51 @@ struct GroceryListView: View {
             Spacer()
         }
     }
+
+    // MARK: - Actions
+
+    private func commitNewItem() {
+        let trimmed = newItemText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return }
+        withAnimation {
+            manualItems.append(ManualItem(id: UUID(), name: trimmed.lowercased()))
+            newItemText = ""
+        }
+        saveManual()
+    }
+
+    // MARK: - Persistence
+
+    private func saveChecked() {
+        let arr = Array(checkedKeys)
+        if let data = try? JSONEncoder().encode(arr) {
+            UserDefaults.standard.set(data, forKey: persistKey)
+        }
+    }
+
+    private func saveManual() {
+        if let data = try? JSONEncoder().encode(manualItems) {
+            UserDefaults.standard.set(data, forKey: manualKey)
+        }
+    }
+
+    private func loadPersisted() {
+        if let data = UserDefaults.standard.data(forKey: persistKey),
+           let arr = try? JSONDecoder().decode([String].self, from: data) {
+            checkedKeys = Set(arr)
+        }
+        if let data = UserDefaults.standard.data(forKey: manualKey),
+           let items = try? JSONDecoder().decode([ManualItem].self, from: data) {
+            manualItems = items
+        }
+    }
 }
 
 // MARK: - Item Key
 
 private extension CombinedIngredient {
-    var itemKey: String { "\(unit)|\(name)" }
+    var itemKey: String {
+        if let mid = manualID { return "manual_\(mid.uuidString)" }
+        return "\(unit)|\(name)"
+    }
 }
