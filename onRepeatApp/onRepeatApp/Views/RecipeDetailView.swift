@@ -201,12 +201,12 @@ struct RecipeDetailView: View {
 
                     Text(ing.unit.isEmpty ? "" : " \(ing.unit)")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .foregroundStyle(Color.textTertiary)
                         .frame(width: ing.unit.isEmpty ? 10 : 54, alignment: .leading)
 
                     Text(ing.name)
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .foregroundStyle(Color.textPrimary)
 
                     Spacer()
                 }
@@ -249,7 +249,7 @@ struct RecipeDetailView: View {
 
                         Text(step)
                             .font(.system(size: 15))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(Color.textPrimary)
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -263,7 +263,7 @@ struct RecipeDetailView: View {
             } else {
                 Text(recipe.instructions)
                     .font(.system(size: 15))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                     .lineSpacing(4)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
@@ -279,12 +279,12 @@ struct RecipeDetailView: View {
         HStack {
             Label(title, systemImage: icon)
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color(hex: "1A1A1A"))
+                .foregroundStyle(Color.textPrimary)
             Spacer()
             if let badge {
                 Text(badge)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .padding(.horizontal, 16)

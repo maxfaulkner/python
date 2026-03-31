@@ -18,19 +18,73 @@ extension Color {
     }
 }
 
+// MARK: - Adaptive Color Helper
+
+private extension Color {
+    static func adaptive(light: UIColor, dark: UIColor) -> Color {
+        Color(uiColor: UIColor(dynamicProvider: { $0.userInterfaceStyle == .dark ? dark : light }))
+    }
+}
+
 // MARK: - Brand Colors
 
 extension Color {
-    /// Deep forest green — primary brand color
+    /// Deep forest green — primary brand color (same in both modes)
     static let brandGreen  = Color(hex: "2A5C45")
-    /// Lighter sage — used for accents and highlights
+    /// Lighter sage — gradient partner
     static let brandMid    = Color(hex: "4A9268")
-    /// Warm cream — app background
-    static let appBg       = Color(hex: "F7F6F3")
-    /// Pure white — card backgrounds
-    static let cardSurface = Color.white
     /// Warm amber — secondary accent
     static let brandAmber  = Color(hex: "E8A838")
+
+    /// App-wide background — warm cream (light) / near-black (dark)
+    static let appBg = adaptive(
+        light: UIColor(red: 0.969, green: 0.965, blue: 0.953, alpha: 1),  // #F7F6F3
+        dark:  UIColor(red: 0.071, green: 0.071, blue: 0.075, alpha: 1)   // #121213
+    )
+
+    /// Card surface — white (light) / dark charcoal (dark)
+    static let cardSurface = adaptive(
+        light: .white,
+        dark:  UIColor(red: 0.110, green: 0.110, blue: 0.118, alpha: 1)   // #1C1C1E
+    )
+
+    /// Subtle elevated surface — checked rows, section fills
+    static let surfaceSecondary = adaptive(
+        light: UIColor(red: 0.949, green: 0.949, blue: 0.949, alpha: 1),  // #F2F2F2
+        dark:  UIColor(red: 0.165, green: 0.165, blue: 0.165, alpha: 1)   // #2A2A2A
+    )
+
+    // MARK: - Semantic Text Colors
+
+    /// Primary body text — near-black (light) / near-white (dark)
+    static let textPrimary = adaptive(
+        light: UIColor(red: 0.102, green: 0.102, blue: 0.102, alpha: 1),  // #1A1A1A
+        dark:  UIColor(red: 0.941, green: 0.941, blue: 0.941, alpha: 1)   // #F0F0F0
+    )
+
+    /// Secondary supporting text — dark gray (light) / medium gray (dark)
+    static let textSecondary = adaptive(
+        light: UIColor(red: 0.333, green: 0.333, blue: 0.333, alpha: 1),  // #555555
+        dark:  UIColor(red: 0.667, green: 0.667, blue: 0.667, alpha: 1)   // #AAAAAA
+    )
+
+    /// Tertiary hint/label text — medium gray (light) / subdued gray (dark)
+    static let textTertiary = adaptive(
+        light: UIColor(red: 0.533, green: 0.533, blue: 0.533, alpha: 1),  // #888888
+        dark:  UIColor(red: 0.467, green: 0.467, blue: 0.467, alpha: 1)   // #777777
+    )
+
+    /// Disabled / very muted text
+    static let textDisabled = adaptive(
+        light: UIColor(red: 0.733, green: 0.733, blue: 0.733, alpha: 1),  // #BBBBBB
+        dark:  UIColor(red: 0.267, green: 0.267, blue: 0.267, alpha: 1)   // #444444
+    )
+
+    /// Borders and separators
+    static let borderColor = adaptive(
+        light: UIColor(red: 0.800, green: 0.800, blue: 0.800, alpha: 1),  // #CCCCCC
+        dark:  UIColor(red: 0.227, green: 0.227, blue: 0.227, alpha: 1)   // #3A3A3A
+    )
 }
 
 // MARK: - Recipe Card Gradients

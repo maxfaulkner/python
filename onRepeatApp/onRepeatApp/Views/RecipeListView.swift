@@ -121,7 +121,7 @@ struct RecipeListView: View {
             }
             .navigationTitle("onRepeat")
             .navigationBarTitleDisplayMode(.large)
-            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar) // adaptive in dark mode via semantic colors
             .onAppear {
                 SeedData.seedIfNeeded(context: modelContext)
                 loadSelection()
@@ -186,9 +186,9 @@ struct RecipeListView: View {
                 Text(sortOrder.rawValue)
                     .font(.system(size: 13, weight: .medium))
             }
-            .foregroundStyle(Color(hex: "555555"))
+            .foregroundStyle(Color.textSecondary)
             .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(Color.white)
+            .background(Color.cardSurface)
             .clipShape(Capsule())
             .shadow(color: .black.opacity(0.06), radius: 4, x: 0, y: 1)
         }
@@ -239,13 +239,13 @@ struct RecipeListView: View {
                 .foregroundStyle(Color.brandGreen)
             Text("\(selectionCount) recipe\(selectionCount == 1 ? "" : "s") selected")
                 .font(.system(size: 14, weight: .semibold))
-                .foregroundStyle(Color(hex: "1A1A1A"))
+                .foregroundStyle(Color.textPrimary)
             Spacer()
             Button("Clear all") {
                 withAnimation(.spring(response: 0.3)) { selectedRecipes.removeAll() }
             }
             .font(.system(size: 13))
-            .foregroundStyle(Color(hex: "888888"))
+            .foregroundStyle(Color.textTertiary)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 10)
@@ -261,7 +261,7 @@ struct RecipeListView: View {
                 .foregroundStyle(Color.brandGreen)
             Text("Tap a recipe to add it to your grocery list")
                 .font(.system(size: 13))
-                .foregroundStyle(Color(hex: "666666"))
+                .foregroundStyle(Color.textSecondary)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
@@ -294,8 +294,8 @@ struct RecipeListView: View {
             Text(label)
                 .font(.system(size: 13, weight: active ? .semibold : .regular))
                 .padding(.horizontal, 14).padding(.vertical, 7)
-                .background(active ? Color.brandGreen : Color.white)
-                .foregroundStyle(active ? .white : Color(hex: "444444"))
+                .background(active ? Color.brandGreen : Color.cardSurface)
+                .foregroundStyle(active ? .white : Color.textSecondary)
                 .clipShape(Capsule())
                 .shadow(color: active ? Color.brandGreen.opacity(0.3) : Color.black.opacity(0.06),
                         radius: active ? 6 : 4, x: 0, y: 2)
@@ -316,12 +316,12 @@ struct RecipeListView: View {
                      ? "No recipes yet"
                      : "No matches found")
                     .font(.system(size: 20, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                 Text(searchText.isEmpty && activeTagFilter == nil
                      ? "Tap + to add your first recipe."
                      : "Try a different search or filter.")
                     .font(.system(size: 15))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(Color.textTertiary)
                     .multilineTextAlignment(.center)
             }
             if searchText.isEmpty && activeTagFilter == nil {

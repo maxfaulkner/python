@@ -28,7 +28,7 @@ struct RecipeShareSheet: View {
             }
             .navigationTitle("Share Recipe")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar) // system adapts in dark mode
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -93,7 +93,7 @@ struct RecipeShareSheet: View {
                     .padding(.horizontal, 16)
                     .padding(.vertical, 12)
                 }
-                .background(Color.white)
+                .background(Color.cardSurface)
                 .clipShape(UnevenRoundedRectangle(
                     topLeadingRadius: 0, bottomLeadingRadius: 16,
                     bottomTrailingRadius: 16, topTrailingRadius: 0
@@ -140,7 +140,7 @@ struct RecipeShareSheet: View {
 
             actionRow(
                 icon: "qrcode",
-                iconColor: Color(hex: "1A1A1A"),
+                iconColor: Color.textPrimary,
                 title: "Show QR Code",
                 subtitle: "Let someone scan to get the recipe",
                 tinted: false
@@ -153,7 +153,7 @@ struct RecipeShareSheet: View {
             ShareLink(item: shareText, subject: Text(recipe.name)) {
                 actionRowLabel(
                     icon: "doc.text",
-                    iconColor: Color(hex: "888888"),
+                    iconColor: Color.textTertiary,
                     title: "Share as Plain Text",
                     subtitle: "Paste into messages, notes, or email"
                 )
@@ -175,7 +175,7 @@ struct RecipeShareSheet: View {
     ) -> some View {
         Button(action: action) {
             actionRowLabel(icon: icon, iconColor: iconColor, title: title, subtitle: subtitle)
-                .background(tinted ? Color.brandGreen.opacity(0.04) : Color.white)
+                .background(tinted ? Color.brandGreen.opacity(0.04) : Color.cardSurface)
         }
         .buttonStyle(.plain)
     }
@@ -198,19 +198,19 @@ struct RecipeShareSheet: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .font(.system(size: 15, weight: .semibold))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                 Text(subtitle)
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(Color.textTertiary)
             }
             Spacer()
             Image(systemName: "chevron.right")
                 .font(.system(size: 12, weight: .semibold))
-                .foregroundStyle(Color(hex: "CCCCCC"))
+                .foregroundStyle(Color.borderColor)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
-        .background(Color.white)
+        .background(Color.cardSurface)
     }
 }
 
@@ -235,7 +235,7 @@ struct QRCodeView: View {
 
                         Text(recipe.name)
                             .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(Color.textPrimary)
                             .multilineTextAlignment(.center)
                     }
 
@@ -255,13 +255,13 @@ struct QRCodeView: View {
                             .frame(width: 260, height: 260)
                             .overlay(
                                 Text("Could not generate QR")
-                                    .foregroundStyle(Color(hex: "888888"))
+                                    .foregroundStyle(Color.textTertiary)
                             )
                     }
 
                     Text("Point the camera at this code\nto import the recipe")
                         .font(.system(size: 14))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .foregroundStyle(Color.textTertiary)
                         .multilineTextAlignment(.center)
 
                     Spacer()
@@ -271,7 +271,7 @@ struct QRCodeView: View {
             }
             .navigationTitle("Scan to Import")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar) // system adapts in dark mode
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }

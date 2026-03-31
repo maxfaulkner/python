@@ -99,11 +99,11 @@ struct GroceryListView: View {
             }
             .navigationTitle("Grocery List")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar) // system adapts in dark mode
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }
-                        .foregroundStyle(Color(hex: "555555"))
+                        .foregroundStyle(Color.textSecondary)
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     ShareLink(item: shareText, subject: Text("Grocery List")) {
@@ -159,7 +159,7 @@ struct GroceryListView: View {
                         }
                         Text(sel.recipe.name)
                             .font(.system(size: 13, weight: .medium))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(Color.textPrimary)
                             .lineLimit(1)
                         if sel.targetServings != sel.recipe.servings {
                             Text("×\(sel.targetServings.displayString)")
@@ -168,7 +168,7 @@ struct GroceryListView: View {
                         }
                     }
                     .padding(.horizontal, 12).padding(.vertical, 6)
-                    .background(Color.white)
+                    .background(Color.cardSurface)
                     .clipShape(Capsule())
                     .shadow(color: .black.opacity(0.07), radius: 4, x: 0, y: 2)
                 }
@@ -184,7 +184,7 @@ struct GroceryListView: View {
             HStack {
                 Text("\(checkedCount) of \(totalCount) items")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color(hex: "555555"))
+                    .foregroundStyle(Color.textSecondary)
                 Spacer()
                 if checkedCount > 0 {
                     Button("Reset") {
@@ -192,7 +192,7 @@ struct GroceryListView: View {
                         saveChecked()
                     }
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(Color.textTertiary)
                 }
             }
 
@@ -236,7 +236,7 @@ struct GroceryListView: View {
                 if remaining > 0 {
                     Text("\(remaining) left")
                         .font(.system(size: 12))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .foregroundStyle(Color.textTertiary)
                 }
             }
             .padding(.horizontal, 14)
@@ -271,7 +271,7 @@ struct GroceryListView: View {
                     ZStack {
                         Circle()
                             .strokeBorder(
-                                isChecked ? category.color : Color(hex: "CCCCCC"),
+                                isChecked ? category.color : Color.borderColor,
                                 lineWidth: 2
                             )
                             .frame(width: 24, height: 24)
@@ -291,11 +291,11 @@ struct GroceryListView: View {
                             Text(item.formattedQuantity)
                                 .font(.system(size: 15, weight: .semibold))
                                 .monospacedDigit()
-                                .foregroundStyle(isChecked ? Color(hex: "AAAAAA") : category.color)
+                                .foregroundStyle(isChecked ? Color.textDisabled : category.color)
                             if !item.unit.isEmpty {
                                 Text(item.unit)
                                     .font(.system(size: 15))
-                                    .foregroundStyle(Color(hex: "888888"))
+                                    .foregroundStyle(Color.textTertiary)
                             }
                         }
                         .frame(width: 72, alignment: .trailing)
@@ -305,19 +305,19 @@ struct GroceryListView: View {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(item.name)
                             .font(.system(size: 15))
-                            .foregroundStyle(isChecked ? Color(hex: "AAAAAA") : Color(hex: "1A1A1A"))
-                            .strikethrough(isChecked, color: Color(hex: "AAAAAA"))
+                            .foregroundStyle(isChecked ? Color.textDisabled : Color.textPrimary)
+                            .strikethrough(isChecked, color: Color.textDisabled)
 
                         // Attribution — show when more than one recipe or when manual
                         if !isManual && item.sources.count > 0 && selections.count > 1 {
                             Text(item.sources.joined(separator: ", "))
                                 .font(.system(size: 11))
-                                .foregroundStyle(isChecked ? Color(hex: "BBBBBB") : Color(hex: "999999"))
+                                .foregroundStyle(isChecked ? Color.textDisabled : Color.textTertiary)
                                 .lineLimit(1)
                         } else if isManual {
                             Text("added manually")
                                 .font(.system(size: 11))
-                                .foregroundStyle(isChecked ? Color(hex: "BBBBBB") : Color(hex: "BBBBBB"))
+                                .foregroundStyle(isChecked ? Color.textDisabled : Color.textDisabled)
                         }
                     }
 
@@ -335,14 +335,14 @@ struct GroceryListView: View {
                         } label: {
                             Image(systemName: "minus.circle.fill")
                                 .font(.system(size: 18))
-                                .foregroundStyle(Color(hex: "CCCCCC"))
+                                .foregroundStyle(Color.borderColor)
                         }
                         .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 11)
-                .background(isChecked ? Color(hex: "F8F8F8") : Color.white)
+                .background(isChecked ? Color.surfaceSecondary : Color.cardSurface)
             }
             .buttonStyle(.plain)
             .animation(.easeInOut(duration: 0.2), value: isChecked)
@@ -361,14 +361,14 @@ struct GroceryListView: View {
                 HStack(spacing: 10) {
                     TextField("e.g. paper towels", text: $newItemText)
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .foregroundStyle(Color.textPrimary)
                         .focused($addFieldFocused)
                         .onSubmit { commitNewItem() }
 
                     Button("Add") { commitNewItem() }
                         .font(.system(size: 15, weight: .semibold))
                         .foregroundStyle(newItemText.trimmingCharacters(in: .whitespaces).isEmpty
-                                         ? Color(hex: "BBBBBB")
+                                         ? Color.textDisabled
                                          : Color.brandGreen)
                         .disabled(newItemText.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
@@ -392,7 +392,7 @@ struct GroceryListView: View {
                     Text(showingAddField ? "Cancel" : "Add item manually")
                         .font(.system(size: 14, weight: .semibold))
                 }
-                .foregroundStyle(showingAddField ? Color(hex: "888888") : Color.brandGreen)
+                .foregroundStyle(showingAddField ? Color.textTertiary : Color.brandGreen)
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 14)
             }
@@ -417,10 +417,10 @@ struct GroceryListView: View {
             VStack(spacing: 8) {
                 Text("You're all set!")
                     .font(.system(size: 28, weight: .black, design: .rounded))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                 Text("All \(totalCount) items checked off.\nEnjoy cooking this week.")
                     .font(.system(size: 16))
-                    .foregroundStyle(Color(hex: "666666"))
+                    .foregroundStyle(Color.textSecondary)
                     .multilineTextAlignment(.center)
             }
 

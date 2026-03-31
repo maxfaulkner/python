@@ -23,16 +23,16 @@ struct RecipeCardView: View {
             NavigationLink(value: recipe) {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(isSelected ? Color.brandGreen : Color(hex: "BBBBBB"))
+                    .foregroundStyle(isSelected ? Color.brandGreen : Color.textDisabled)
                     .frame(width: 32, height: 32)
-                    .background(isSelected ? Color.brandGreen.opacity(0.1) : Color(hex: "F2F2F2"))
+                    .background(isSelected ? Color.brandGreen.opacity(0.1) : Color.surfaceSecondary)
                     .clipShape(Circle())
             }
             .padding(12)
         }
         .background(
             RoundedRectangle(cornerRadius: 18)
-                .fill(isSelected ? Color.brandGreen.opacity(0.06) : Color.white)
+                .fill(isSelected ? Color.brandGreen.opacity(0.06) : Color.cardSurface)
         )
         .overlay(
             RoundedRectangle(cornerRadius: 18)
@@ -84,7 +84,7 @@ struct RecipeCardView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(recipe.name)
                     .font(.system(size: 16, weight: .semibold))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                     .lineLimit(2)
                     .fixedSize(horizontal: false, vertical: true)
 
@@ -94,15 +94,15 @@ struct RecipeCardView: View {
                         .foregroundStyle(Color.brandGreen)
                     Text(recipe.servings.displayString)
                         .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color(hex: "555555"))
+                        .foregroundStyle(Color.textSecondary)
 
                     if !recipe.tags.isEmpty {
                         Circle()
-                            .fill(Color(hex: "CCCCCC"))
+                            .fill(Color.borderColor)
                             .frame(width: 3, height: 3)
                         Text(recipe.tags.prefix(2).map(\.name).joined(separator: ", "))
                             .font(.system(size: 13))
-                            .foregroundStyle(Color(hex: "555555"))
+                            .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
                     }
                 }
@@ -127,7 +127,7 @@ struct RecipeCardView: View {
             HStack {
                 Text("Servings for this run:")
                     .font(.system(size: 13))
-                    .foregroundStyle(Color(hex: "555555"))
+                    .foregroundStyle(Color.textSecondary)
 
                 Spacer()
 

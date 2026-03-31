@@ -167,12 +167,12 @@ struct ImportPreviewView: View {
 
                     Text(ing.unit.isEmpty ? "" : " \(ing.unit)")
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "888888"))
+                        .foregroundStyle(Color.textTertiary)
                         .frame(width: ing.unit.isEmpty ? 10 : 54, alignment: .leading)
 
                     Text(ing.name)
                         .font(.system(size: 15))
-                        .foregroundStyle(Color(hex: "1A1A1A"))
+                        .foregroundStyle(Color.textPrimary)
 
                     Spacer()
                 }
@@ -217,7 +217,7 @@ struct ImportPreviewView: View {
 
                         Text(step)
                             .font(.system(size: 15))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(Color.textPrimary)
                             .lineSpacing(3)
                             .fixedSize(horizontal: false, vertical: true)
                     }
@@ -231,7 +231,7 @@ struct ImportPreviewView: View {
             } else {
                 Text(payload.instructions)
                     .font(.system(size: 15))
-                    .foregroundStyle(Color(hex: "1A1A1A"))
+                    .foregroundStyle(Color.textPrimary)
                     .lineSpacing(4)
                     .padding(.horizontal, 16)
                     .padding(.bottom, 16)
@@ -246,12 +246,12 @@ struct ImportPreviewView: View {
         HStack {
             Label(title, systemImage: icon)
                 .font(.system(size: 16, weight: .bold))
-                .foregroundStyle(Color(hex: "1A1A1A"))
+                .foregroundStyle(Color.textPrimary)
             Spacer()
             if let badge {
                 Text(badge)
                     .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color(hex: "888888"))
+                    .foregroundStyle(Color.textTertiary)
             }
         }
         .padding(.horizontal, 16)
@@ -271,7 +271,7 @@ struct ImportPreviewView: View {
                             .foregroundStyle(Color.brandGreen)
                         Text("Added to your library!")
                             .font(.system(size: 15, weight: .semibold))
-                            .foregroundStyle(Color(hex: "1A1A1A"))
+                            .foregroundStyle(Color.textPrimary)
                     }
                     Spacer()
                     Button("Done") { dismiss() }
@@ -280,10 +280,10 @@ struct ImportPreviewView: View {
                 } else if alreadyExists {
                     HStack(spacing: 8) {
                         Image(systemName: "info.circle")
-                            .foregroundStyle(Color(hex: "888888"))
+                            .foregroundStyle(Color.textTertiary)
                         Text("Already in your library")
                             .font(.system(size: 15))
-                            .foregroundStyle(Color(hex: "555555"))
+                            .foregroundStyle(Color.textSecondary)
                     }
                     Spacer()
                     Button("Dismiss") { dismiss() }
@@ -309,7 +309,7 @@ struct ImportPreviewView: View {
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
-            .background(Color.white)
+            .background(Color.cardSurface)
         }
         .shadow(color: .black.opacity(0.06), radius: 12, x: 0, y: -4)
     }

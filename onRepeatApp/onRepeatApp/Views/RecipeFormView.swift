@@ -47,17 +47,16 @@ struct RecipeFormView: View {
             }
             .navigationTitle(mode.isNew ? "New Recipe" : "Edit Recipe")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
-                        .foregroundStyle(Color(hex: "666666"))
+                        .foregroundStyle(Color.textSecondary)
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save", action: save)
                         .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(name.trimmingCharacters(in: .whitespaces).isEmpty
-                                         ? Color(hex: "BBBBBB") : Color.brandGreen)
+                                         ? Color.textDisabled : Color.brandGreen)
                         .disabled(name.trimmingCharacters(in: .whitespaces).isEmpty)
                 }
             }
@@ -79,10 +78,11 @@ struct RecipeFormView: View {
                     Text("NAME").formLabel()
                     TextField("e.g. Pasta Bolognese", text: $name)
                         .font(.system(size: 17))
+                        .foregroundStyle(Color.textPrimary)
                 }
                 .padding(16)
 
-                Divider().padding(.horizontal, 16)
+                Divider()
 
                 // Servings
                 HStack {
@@ -98,7 +98,7 @@ struct RecipeFormView: View {
                 }
                 .padding(16)
 
-                Divider().padding(.horizontal, 16)
+                Divider()
 
                 // Tags
                 VStack(alignment: .leading, spacing: 8) {
@@ -106,6 +106,7 @@ struct RecipeFormView: View {
                     HStack {
                         TextField("Add a tag…", text: $tagsText)
                             .font(.system(size: 15))
+                            .foregroundStyle(Color.textPrimary)
                             .autocorrectionDisabled()
                             .textInputAutocapitalization(.never)
                             .onSubmit { addTag() }
@@ -164,7 +165,7 @@ struct RecipeFormView: View {
                     Spacer()
                 }
                 .font(.system(size: 10, weight: .semibold))
-                .foregroundStyle(Color.secondary)
+                .foregroundStyle(Color.textTertiary)
                 .padding(.horizontal, 16).padding(.vertical, 8)
                 .background(Color.brandGreen.opacity(0.04))
 
@@ -174,8 +175,8 @@ struct RecipeFormView: View {
                     ForEach($ingredientRows) { $row in
                         IngredientRowView(row: $row)
                             .listRowInsets(EdgeInsets(top: 0, leading: 16, bottom: 0, trailing: 16))
-                            .listRowBackground(Color.white)
-                            .listRowSeparatorTint(Color.secondary.opacity(0.2))
+                            .listRowBackground(Color.cardSurface)
+                            .listRowSeparatorTint(Color.borderColor.opacity(0.5))
                     }
                     .onDelete { ingredientRows.count > 1 ? ingredientRows.remove(atOffsets: $0) : () }
 
@@ -186,11 +187,12 @@ struct RecipeFormView: View {
                             .font(.system(size: 15, weight: .medium))
                             .foregroundStyle(Color.brandGreen)
                     }
-                    .listRowBackground(Color.white)
+                    .listRowBackground(Color.cardSurface)
                     .listRowSeparator(.hidden)
                     .padding(.vertical, 4)
                 }
                 .listStyle(.plain)
+                .scrollContentBackground(.hidden)
                 .frame(height: CGFloat(ingredientRows.count) * 52 + 52)
                 .scrollDisabled(true)
             }
@@ -205,12 +207,13 @@ struct RecipeFormView: View {
             VStack(alignment: .leading, spacing: 6) {
                 Text("One step per line — the app will number them automatically.")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color.textTertiary)
                     .padding(.horizontal, 16)
                     .padding(.top, 4)
 
                 TextEditor(text: $instructions)
                     .font(.system(size: 15))
+                    .foregroundStyle(Color.textPrimary)
                     .lineSpacing(3)
                     .frame(minHeight: 160)
                     .padding(.horizontal, 12)
@@ -226,7 +229,7 @@ struct RecipeFormView: View {
     private func formSectionHeader(_ title: String, icon: String) -> some View {
         Label(title, systemImage: icon)
             .font(.system(size: 13, weight: .semibold))
-            .foregroundStyle(.secondary)
+            .foregroundStyle(Color.textTertiary)
             .textCase(.uppercase)
             .padding(.leading, 4)
             .padding(.bottom, 6)
@@ -307,17 +310,20 @@ private struct IngredientRowView: View {
             TextField("0", text: $row.quantityText)
                 .keyboardType(.decimalPad)
                 .font(.system(size: 15, weight: .medium))
+                .foregroundStyle(Color.textPrimary)
                 .multilineTextAlignment(.center)
                 .frame(width: 56)
 
             TextField("unit", text: $row.unit)
                 .font(.system(size: 15))
+                .foregroundStyle(Color.textPrimary)
                 .frame(width: 64)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.never)
 
             TextField("ingredient name", text: $row.name)
                 .font(.system(size: 15))
+                .foregroundStyle(Color.textPrimary)
                 .autocorrectionDisabled()
                 .textInputAutocapitalization(.words)
         }
@@ -375,7 +381,7 @@ private extension Text {
     func formLabel() -> some View {
         self
             .font(.system(size: 10, weight: .semibold))
-            .foregroundStyle(Color.secondary)
+            .foregroundStyle(Color.textTertiary)
             .textCase(.uppercase)
     }
 }
