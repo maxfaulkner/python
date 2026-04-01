@@ -1,16 +1,33 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Meal Type Filter
+
+private enum MealType: String, CaseIterable {
+    case all       = "All"
+    case breakfast = "Breakfast"
+    case lunch     = "Lunch"
+    case dinner    = "Dinner"
+}
+
+// MARK: - HomeView
+
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(WeeklyPlanStore.self) private var plan
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
+    @Query(sort: \GroceryList.createdAt, order: .reverse) private var groceryLists: [GroceryList]
 
     @State private var showingAddRecipe = false
-    @State private var showingGroceryList = false
     @State private var showingAllRecipes = false
+    @State private var activeGroceryList: GroceryList? = nil
+    @State private var mealFilter: MealType = .all
+    @State private var deletingList: GroceryList? = nil
 
     // MARK: - Computed
+
+    private var activeLists: [GroceryList] { groceryLists.filter { !$0.isCompleted } }
+    private var completedLists: [GroceryList] { groceryLists.filter { $0.isCompleted } }
 
     private var grocerySelections: [(recipe: Recipe, targetServings: Double)] {
         recipes.compactMap { r in
@@ -21,6 +38,14 @@ struct HomeView: View {
 
     private var selectionCount: Int { plan.selectedRecipes.count }
 
+    private var filteredPickerRecipes: [Recipe] {
+        guard mealFilter != .all else { return recipes }
+        let keyword = mealFilter.rawValue.lowercased()
+        return recipes.filter { r in
+            r.tags.contains { $0.name.localizedCaseInsensitiveContains(keyword) }
+        }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -29,12 +54,13 @@ struct HomeView: View {
                 Color.appBg.ignoresSafeArea()
 
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
-                        thisWeekSection
-                        quickPickSection
-                        if !plan.pastRuns.isEmpty {
-                            pastRunsSection
+                    VStack(alignment: .leading, spacing: 28) {
+                        if !activeLists.isEmpty || !completedLists.isEmpty {
+                            yourListsSection
                         }
+
+                        buildListSection
+
                         Spacer(minLength: 40)
                     }
                     .padding(.horizontal, 16)
@@ -62,168 +88,132 @@ struct HomeView: View {
             .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
             .navigationDestination(isPresented: $showingAllRecipes) { RecipeListView() }
             .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
-            .sheet(isPresented: $showingGroceryList) {
-                GroceryListView(selections: grocerySelections)
+            .sheet(item: $activeGroceryList) { list in
+                GroceryListView(groceryList: list)
             }
-        }
-    }
-
-    // MARK: - This Week
-
-    private var thisWeekSection: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            if selectionCount == 0 {
-                emptyWeekCard
-            } else {
-                filledWeekCard
-            }
-        }
-    }
-
-    private var emptyWeekCard: some View {
-        VStack(spacing: 20) {
-            VStack(spacing: 8) {
-                Text("🛒")
-                    .font(.system(size: 48))
-                Text("Plan your week")
-                    .font(.system(size: 22, weight: .black, design: .rounded))
-                    .foregroundStyle(Color.textPrimary)
-                Text("Pick recipes below to build\nyour grocery list in seconds.")
-                    .font(.system(size: 15))
-                    .foregroundStyle(Color.textSecondary)
-                    .multilineTextAlignment(.center)
-            }
-
-            Button { showingAllRecipes = true } label: {
-                HStack(spacing: 8) {
-                    Image(systemName: "fork.knife")
-                        .font(.system(size: 14, weight: .semibold))
-                    Text("Browse Recipes")
-                        .font(.system(size: 15, weight: .semibold))
-                }
-                .foregroundStyle(Color.brandGreen)
-                .padding(.horizontal, 20).padding(.vertical, 11)
-                .background(Color.brandGreen.opacity(0.1))
-                .clipShape(Capsule())
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .cardSurface()
-    }
-
-    private var filledWeekCard: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Header row
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("THIS WEEK")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Color.brandGreen)
-                        .tracking(1)
-                    Text("\(selectionCount) recipe\(selectionCount == 1 ? "" : "s") planned")
-                        .font(.system(size: 18, weight: .black, design: .rounded))
-                        .foregroundStyle(Color.textPrimary)
-                }
-                Spacer()
-                Button {
-                    withAnimation(.spring(response: 0.3)) {
-                        plan.clearAll()
+            .alert("Delete List?", isPresented: Binding(
+                get: { deletingList != nil },
+                set: { if !$0 { deletingList = nil } }
+            )) {
+                Button("Delete", role: .destructive) {
+                    if let l = deletingList {
+                        modelContext.delete(l)
+                        try? modelContext.save()
                     }
-                } label: {
-                    Text("Clear")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundStyle(Color.textTertiary)
+                    deletingList = nil
                 }
+                Button("Cancel", role: .cancel) { deletingList = nil }
+            } message: {
+                if let l = deletingList { Text("\"\(l.name)\" will be permanently deleted.") }
             }
-            .padding(.horizontal, 16)
-            .padding(.top, 16)
-            .padding(.bottom, 12)
+        }
+    }
 
-            // Recipe chips
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 8) {
-                    ForEach(grocerySelections, id: \.recipe.id) { sel in
-                        weekRecipeChip(sel.recipe)
+    // MARK: - Your Lists Section
+
+    private var yourListsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("YOUR LISTS")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.textTertiary)
+                .tracking(0.8)
+
+            VStack(spacing: 10) {
+                ForEach(activeLists) { list in
+                    groceryListCard(list, completed: false)
+                }
+
+                if !completedLists.isEmpty {
+                    if !activeLists.isEmpty {
+                        HStack {
+                            Text("COMPLETED")
+                                .font(.system(size: 10, weight: .semibold))
+                                .foregroundStyle(Color.textDisabled)
+                                .tracking(0.6)
+                            Spacer()
+                        }
+                        .padding(.top, 4)
+                    }
+                    ForEach(completedLists.prefix(3)) { list in
+                        groceryListCard(list, completed: true)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.bottom, 4)
             }
-
-            Divider()
-                .padding(.vertical, 12)
-                .padding(.horizontal, 16)
-
-            // Grocery CTA
-            Button {
-                recordAndOpenGroceryList()
-            } label: {
-                HStack(spacing: 10) {
-                    Image(systemName: "cart.fill")
-                        .font(.system(size: 15, weight: .semibold))
-                    Text("Get Grocery List")
-                        .font(.system(size: 17, weight: .bold))
-                    Spacer()
-                    Image(systemName: "arrow.right")
-                        .font(.system(size: 14, weight: .bold))
-                }
-                .foregroundStyle(.white)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 15)
-                .background(
-                    LinearGradient(colors: [Color.brandGreen, Color.brandMid],
-                                   startPoint: .leading, endPoint: .trailing)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color.brandGreen.opacity(0.3), radius: 8, x: 0, y: 3)
-            }
-            .padding(.horizontal, 16)
-            .padding(.bottom, 16)
         }
-        .cardSurface()
-        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectionCount)
     }
 
-    private func weekRecipeChip(_ recipe: Recipe) -> some View {
+    private func groceryListCard(_ list: GroceryList, completed: Bool) -> some View {
         Button {
-            withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
-                plan.toggle(recipe)
-            }
+            activeGroceryList = list
         } label: {
-            HStack(spacing: 7) {
+            HStack(spacing: 14) {
+                // Icon
                 ZStack {
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(RecipeGradients.linearGradient(for: recipe.name))
-                        .frame(width: 26, height: 26)
-                    Text(RecipeEmojiMapper.emoji(
-                        name: recipe.name.lowercased(),
-                        tags: recipe.tags.map { $0.name.lowercased() }
-                    ))
-                    .font(.system(size: 13))
+                    RoundedRectangle(cornerRadius: 10)
+                        .fill(completed
+                              ? Color.textDisabled.opacity(0.15)
+                              : Color.brandGreen.opacity(0.12))
+                        .frame(width: 44, height: 44)
+                    Image(systemName: completed ? "checkmark.circle.fill" : "cart.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(completed ? Color.textDisabled : Color.brandGreen)
                 }
-                Text(recipe.name)
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(Color.textPrimary)
-                    .lineLimit(1)
-                Image(systemName: "xmark")
-                    .font(.system(size: 9, weight: .bold))
-                    .foregroundStyle(Color.textTertiary)
+
+                // Text
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(list.name)
+                        .font(.system(size: 15, weight: .semibold))
+                        .foregroundStyle(completed ? Color.textTertiary : Color.textPrimary)
+
+                    Text(list.recipeNames.prefix(3).joined(separator: " · "))
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.textTertiary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                // Progress ring or chevron
+                if !completed {
+                    ZStack {
+                        Circle()
+                            .stroke(Color.borderColor.opacity(0.5), lineWidth: 3)
+                            .frame(width: 32, height: 32)
+                        Circle()
+                            .trim(from: 0, to: list.progress)
+                            .stroke(Color.brandGreen, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .rotationEffect(.degrees(-90))
+                            .frame(width: 32, height: 32)
+                        Text("\(list.snapshotItemCount - list.checkedCount)")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                } else {
+                    Text(list.createdAt.shortDateString)
+                        .font(.system(size: 12))
+                        .foregroundStyle(Color.textDisabled)
+                }
             }
-            .padding(.horizontal, 10).padding(.vertical, 6)
-            .background(Color.surfaceSecondary)
-            .clipShape(Capsule())
+            .padding(14)
+            .background(Color.cardSurface)
+            .clipShape(RoundedRectangle(cornerRadius: 14))
+            .shadow(color: .black.opacity(0.05), radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
+        .contextMenu {
+            Button(role: .destructive) { deletingList = list } label: {
+                Label("Delete List", systemImage: "trash")
+            }
+        }
     }
 
-    // MARK: - Quick Pick
+    // MARK: - Build List Section
 
-    private var quickPickSection: some View {
+    private var buildListSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             // Section header
             HStack {
-                Text("RECIPES")
+                Text("BUILD A LIST")
                     .font(.system(size: 12, weight: .bold))
                     .foregroundStyle(Color.textTertiary)
                     .tracking(0.8)
@@ -239,14 +229,17 @@ struct HomeView: View {
                 }
             }
 
+            // Meal type filter
+            if hasMealTypeTags {
+                mealTypeFilter
+            }
+
+            // Recipe picker cards
             if recipes.isEmpty {
-                // Empty library state
                 Button { showingAddRecipe = true } label: {
                     HStack(spacing: 10) {
-                        Image(systemName: "plus.circle.fill")
-                            .font(.system(size: 20))
-                        Text("Add your first recipe")
-                            .font(.system(size: 15, weight: .medium))
+                        Image(systemName: "plus.circle.fill").font(.system(size: 20))
+                        Text("Add your first recipe").font(.system(size: 15, weight: .medium))
                     }
                     .foregroundStyle(Color.brandGreen)
                     .frame(maxWidth: .infinity)
@@ -254,10 +247,22 @@ struct HomeView: View {
                     .cardSurface()
                 }
                 .buttonStyle(.plain)
+            } else if filteredPickerRecipes.isEmpty {
+                VStack(spacing: 6) {
+                    Text("No \(mealFilter.rawValue.lowercased()) recipes yet")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundStyle(Color.textTertiary)
+                    Text("Add the "\(mealFilter.rawValue.lowercased())" tag to a recipe.")
+                        .font(.system(size: 13))
+                        .foregroundStyle(Color.textDisabled)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 24)
+                .cardSurface()
             } else {
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 10) {
-                        ForEach(recipes) { recipe in
+                        ForEach(filteredPickerRecipes) { recipe in
                             RecipePickCard(
                                 recipe: recipe,
                                 isSelected: plan.isSelected(recipe.id),
@@ -269,93 +274,167 @@ struct HomeView: View {
                             )
                         }
                     }
-                    .padding(.horizontal, 2)
-                    .padding(.vertical, 2)
+                    .padding(.horizontal, 2).padding(.vertical, 2)
                 }
             }
+
+            // Selected recipes strip + Create button
+            if selectionCount > 0 {
+                selectedStrip
+                createListButton
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.spring(response: 0.35, dampingFraction: 0.8), value: selectionCount)
+    }
+
+    // MARK: - Meal Type Filter
+
+    private var hasMealTypeTags: Bool {
+        let allTagNames = Set(recipes.flatMap { $0.tags.map { $0.name.lowercased() } })
+        return MealType.allCases.dropFirst().contains { allTagNames.contains($0.rawValue.lowercased()) }
+    }
+
+    private var mealTypeFilter: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(MealType.allCases, id: \.self) { type in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { mealFilter = type }
+                    } label: {
+                        Text(type.rawValue)
+                            .font(.system(size: 13, weight: mealFilter == type ? .semibold : .regular))
+                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .background(mealFilter == type ? Color.brandGreen : Color.cardSurface)
+                            .foregroundStyle(mealFilter == type ? .white : Color.textSecondary)
+                            .clipShape(Capsule())
+                            .shadow(
+                                color: mealFilter == type
+                                    ? Color.brandGreen.opacity(0.3)
+                                    : Color.black.opacity(0.06),
+                                radius: mealFilter == type ? 6 : 4, x: 0, y: 2
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 2).padding(.vertical, 2)
         }
     }
 
-    // MARK: - Past Runs
+    // MARK: - Selected Strip
 
-    private var pastRunsSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("PAST RUNS")
-                .font(.system(size: 12, weight: .bold))
+    private var selectedStrip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack {
+                Text("\(selectionCount) recipe\(selectionCount == 1 ? "" : "s") selected")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundStyle(Color.textSecondary)
+                Spacer()
+                Button("Clear all") {
+                    withAnimation { plan.clearAll() }
+                }
+                .font(.system(size: 13))
                 .foregroundStyle(Color.textTertiary)
-                .tracking(0.8)
+            }
 
-            VStack(spacing: 0) {
-                ForEach(Array(plan.pastRuns.prefix(5).enumerated()), id: \.element.id) { idx, run in
-                    pastRunRow(run)
-                    if idx < min(plan.pastRuns.count, 5) - 1 {
-                        Divider().padding(.leading, 16)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    ForEach(grocerySelections, id: \.recipe.id) { sel in
+                        weekRecipeChip(sel.recipe)
                     }
                 }
+                .padding(.vertical, 2)
             }
-            .cardSurface()
         }
+        .padding(14)
+        .background(Color.brandGreen.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private func pastRunRow(_ run: PastRun) -> some View {
-        HStack(spacing: 12) {
-            ZStack {
-                Circle()
-                    .fill(Color.brandGreen.opacity(0.1))
-                    .frame(width: 36, height: 36)
-                Image(systemName: "cart.fill")
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(Color.brandGreen)
+    private func weekRecipeChip(_ recipe: Recipe) -> some View {
+        Button {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
+                plan.toggle(recipe)
             }
-
-            VStack(alignment: .leading, spacing: 2) {
-                Text(run.recipeNames.prefix(3).joined(separator: ", "))
-                    .font(.system(size: 14, weight: .semibold))
+        } label: {
+            HStack(spacing: 6) {
+                ZStack {
+                    RoundedRectangle(cornerRadius: 5)
+                        .fill(RecipeGradients.linearGradient(for: recipe.name))
+                        .frame(width: 22, height: 22)
+                    Text(RecipeEmojiMapper.emoji(
+                        name: recipe.name.lowercased(),
+                        tags: recipe.tags.map { $0.name.lowercased() }
+                    ))
+                    .font(.system(size: 11))
+                }
+                Text(recipe.name)
+                    .font(.system(size: 13, weight: .medium))
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
-                Text("\(run.recipeNames.count) recipe\(run.recipeNames.count == 1 ? "" : "s") · \(run.itemCount) items · \(run.date.relativeString)")
-                    .font(.system(size: 12))
+                Image(systemName: "xmark")
+                    .font(.system(size: 9, weight: .bold))
                     .foregroundStyle(Color.textTertiary)
             }
-
-            Spacer()
-
-            // Re-apply this run
-            Button {
-                reapplyRun(run)
-            } label: {
-                Image(systemName: "arrow.counterclockwise")
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.textDisabled)
-            }
-            .buttonStyle(.plain)
+            .padding(.horizontal, 10).padding(.vertical, 6)
+            .background(Color.cardSurface)
+            .clipShape(Capsule())
+            .shadow(color: .black.opacity(0.05), radius: 3, x: 0, y: 1)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - Create List Button
+
+    private var createListButton: some View {
+        Button {
+            createList()
+        } label: {
+            HStack(spacing: 10) {
+                Image(systemName: "cart.badge.plus")
+                    .font(.system(size: 15, weight: .semibold))
+                Text("Create Grocery List")
+                    .font(.system(size: 17, weight: .bold))
+                Spacer()
+                Image(systemName: "arrow.right")
+                    .font(.system(size: 14, weight: .bold))
+            }
+            .foregroundStyle(.white)
+            .padding(.horizontal, 18).padding(.vertical, 16)
+            .background(
+                LinearGradient(colors: [Color.brandGreen, Color.brandMid],
+                               startPoint: .leading, endPoint: .trailing)
+            )
+            .clipShape(RoundedRectangle(cornerRadius: 16))
+            .shadow(color: Color.brandGreen.opacity(0.35), radius: 10, x: 0, y: 4)
+        }
     }
 
     // MARK: - Actions
 
-    private func recordAndOpenGroceryList() {
-        let itemCount = IngredientCombiner.combine(grocerySelections).count
-        plan.recordRun(
-            recipeNames: grocerySelections.map(\.recipe.name),
-            itemCount: itemCount
-        )
-        showingGroceryList = true
-    }
+    private func createList() {
+        guard !grocerySelections.isEmpty else { return }
 
-    private func reapplyRun(_ run: PastRun) {
-        // Find recipes by name and select them
-        let nameSet = Set(run.recipeNames)
-        let matching = recipes.filter { nameSet.contains($0.name) }
-        guard !matching.isEmpty else { return }
-        withAnimation(.spring(response: 0.3)) {
-            plan.clearAll()
-            for recipe in matching {
-                plan.toggle(recipe)
-            }
+        // Auto-name: recipe names if 1-2, else "N Recipes · Date"
+        let name: String
+        if grocerySelections.count == 1 {
+            name = grocerySelections[0].recipe.name
+        } else if grocerySelections.count == 2 {
+            name = "\(grocerySelections[0].recipe.name) + \(grocerySelections[1].recipe.name)"
+        } else {
+            let fmt = DateFormatter()
+            fmt.dateFormat = "MMM d"
+            name = "\(grocerySelections.count) Recipes · \(fmt.string(from: Date()))"
         }
+
+        let list = GroceryList.create(name: name, from: grocerySelections, in: modelContext)
+
+        // Clear the builder selection — the list now owns these recipes
+        plan.clearAll()
+
+        // Open the freshly created list
+        activeGroceryList = list
     }
 }
 
@@ -377,20 +456,16 @@ struct RecipePickCard: View {
         Button(action: onToggle) {
             ZStack(alignment: .topTrailing) {
                 ZStack(alignment: .bottomLeading) {
-                    // Gradient background
                     RecipeGradients.linearGradient(for: recipe.name)
 
-                    // Scrim for legibility
                     LinearGradient(
                         colors: [.clear, .black.opacity(0.55)],
                         startPoint: UnitPoint(x: 0.5, y: 0.35),
                         endPoint: .bottom
                     )
 
-                    // Emoji + name
                     VStack(alignment: .leading, spacing: 3) {
-                        Text(emoji)
-                            .font(.system(size: 30))
+                        Text(emoji).font(.system(size: 30))
                         Text(recipe.name)
                             .font(.system(size: 12, weight: .bold))
                             .foregroundStyle(.white)
@@ -433,18 +508,12 @@ struct RecipePickCard: View {
 // MARK: - Date Helper
 
 private extension Date {
-    var relativeString: String {
+    var shortDateString: String {
         let cal = Calendar.current
         if cal.isDateInToday(self) { return "Today" }
         if cal.isDateInYesterday(self) { return "Yesterday" }
-        let diff = cal.dateComponents([.day], from: self, to: Date()).day ?? 0
-        if diff < 7 {
-            let fmt = DateFormatter()
-            fmt.dateFormat = "EEEE"
-            return fmt.string(from: self)
-        }
         let fmt = DateFormatter()
-        fmt.dateStyle = .medium
+        fmt.dateStyle = .short
         fmt.timeStyle = .none
         return fmt.string(from: self)
     }

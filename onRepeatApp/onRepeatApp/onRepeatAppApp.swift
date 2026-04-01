@@ -23,6 +23,6 @@ struct onRepeatAppApp: App {
                     }
                 }
         }
-        .modelContainer(for: [Recipe.self, Ingredient.self, Tag.self])
+        .modelContainer(for: [Recipe.self, Ingredient.self, Tag.self, GroceryList.self])
     }
 }

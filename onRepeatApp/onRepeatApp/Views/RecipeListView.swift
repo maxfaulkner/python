@@ -17,7 +17,7 @@ struct RecipeListView: View {
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
 
     @State private var showingAddRecipe = false
-    @State private var showingGroceryList = false
+    @State private var activeGroceryList: GroceryList? = nil
     @State private var searchText = ""
     @State private var activeTagFilter: String? = nil
     @State private var sortOrder: RecipeSortOrder = .newest
@@ -58,6 +58,21 @@ struct RecipeListView: View {
     }
 
     private var selectionCount: Int { plan.selectedRecipes.count }
+
+    private func createAndOpenGroceryList() {
+        guard !grocerySelections.isEmpty else { return }
+        let names = grocerySelections.map(\.recipe.name)
+        let name: String
+        if names.count == 1 { name = names[0] }
+        else if names.count == 2 { name = "\(names[0]) + \(names[1])" }
+        else {
+            let fmt = DateFormatter(); fmt.dateFormat = "MMM d"
+            name = "\(names.count) Recipes · \(fmt.string(from: Date()))"
+        }
+        let list = GroceryList.create(name: name, from: grocerySelections, in: modelContext)
+        plan.clearAll()
+        activeGroceryList = list
+    }
 
     // MARK: - Body
 
@@ -139,7 +154,7 @@ struct RecipeListView: View {
         }
         .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
         .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
-        .sheet(isPresented: $showingGroceryList) { GroceryListView(selections: grocerySelections) }
+        .sheet(item: $activeGroceryList) { GroceryListView(groceryList: $0) }
         .sheet(item: $editingRecipe) { RecipeFormView(mode: .edit($0)) }
         .alert("Delete Recipe?", isPresented: Binding(
             get: { deletingRecipe != nil },
@@ -336,7 +351,7 @@ struct RecipeListView: View {
     // MARK: - Grocery CTA
 
     private var groceryCTA: some View {
-        Button { showingGroceryList = true } label: {
+        Button { createAndOpenGroceryList() } label: {
             HStack(spacing: 14) {
                 ZStack {
                     Circle().fill(.white.opacity(0.25)).frame(width: 40, height: 40)
