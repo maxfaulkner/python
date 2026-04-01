@@ -388,7 +388,10 @@ struct GroceryListView: View {
 
     private func persist() {
         groceryList.checkedKeys = Array(checkedKeys)
-        groceryList.manualItemsJSON = (try? JSONEncoder().encode(manualItems)) ?? Data()
+        if let data = try? JSONEncoder().encode(manualItems),
+           let str = String(data: data, encoding: .utf8) {
+            groceryList.manualItemsJSONString = str
+        }
         try? modelContext.save()
     }
 }

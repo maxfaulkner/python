@@ -252,7 +252,7 @@ struct HomeView: View {
                     Text("No \(mealFilter.rawValue.lowercased()) recipes yet")
                         .font(.system(size: 14, weight: .medium))
                         .foregroundStyle(Color.textTertiary)
-                    Text("Add the "\(mealFilter.rawValue.lowercased())" tag to a recipe.")
+                    Text("Add the \"\(mealFilter.rawValue.lowercased())\" tag to a recipe.")
                         .font(.system(size: 13))
                         .foregroundStyle(Color.textDisabled)
                 }

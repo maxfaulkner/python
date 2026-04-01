@@ -3,15 +3,12 @@ import SwiftData
 
 // MARK: - Saved Grocery Item (snapshot)
 
-/// A point-in-time snapshot of one combined ingredient row.
-/// Stored as JSON in GroceryList so the list is self-contained even if
-/// the underlying recipes are later edited or deleted.
 struct SavedGroceryItem: Codable, Identifiable {
     let id: UUID
     let quantity: Double
     let unit: String
     let name: String
-    let categoryRaw: String         // GroceryCategory.rawValue
+    let categoryRaw: String
     let sources: [String]
 
     var category: GroceryCategory { GroceryCategory(rawValue: categoryRaw) ?? .other }
@@ -34,64 +31,59 @@ struct GroceryManualItem: Codable, Identifiable {
     var name: String
 }
 
+// MARK: - Codable JSON helpers
+
+private func encodeJSON<T: Encodable>(_ value: T) -> String {
+    guard let data = try? JSONEncoder().encode(value),
+          let str = String(data: data, encoding: .utf8) else { return "[]" }
+    return str
+}
+
+private func decodeJSON<T: Decodable>(_ string: String) -> [T] {
+    guard let data = string.data(using: .utf8) else { return [] }
+    return (try? JSONDecoder().decode([T].self, from: data)) ?? []
+}
+
 // MARK: - GroceryList Model
 
 @Model
 class GroceryList {
 
-    // MARK: Stored
-
     var id: UUID
     var name: String
     var createdAt: Date
-    var recipeNames: [String]       // display; cached at creation
-    var snapshotItemCount: Int      // count of recipe-derived items at creation
-    var itemsJSON: Data             // JSON [SavedGroceryItem]
-    var checkedKeys: [String]       // toggled item keys
-    var manualItemsJSON: Data       // JSON [GroceryManualItem]
+    var recipeNames: [String]
+    var snapshotItemCount: Int
+    var itemsJSONString: String      // JSON string — @Model handles String fine
+    var checkedKeys: [String]
+    var manualItemsJSONString: String
     var isCompleted: Bool
 
-    // MARK: Init
-
     init(name: String, recipeNames: [String], items: [SavedGroceryItem]) {
-        self.id                = UUID()
-        self.name              = name
-        self.createdAt         = Date()
-        self.recipeNames       = recipeNames
-        self.snapshotItemCount = items.count
-        self.itemsJSON         = (try? JSONEncoder().encode(items)) ?? Data()
-        self.checkedKeys       = []
-        self.manualItemsJSON   = Data()
-        self.isCompleted       = false
+        self.id                    = UUID()
+        self.name                  = name
+        self.createdAt             = Date()
+        self.recipeNames           = recipeNames
+        self.snapshotItemCount     = items.count
+        self.itemsJSONString       = encodeJSON(items)
+        self.checkedKeys           = []
+        self.manualItemsJSONString = "[]"
+        self.isCompleted           = false
     }
 
-    // MARK: Computed helpers
+    // MARK: - Decoded views (not persisted by SwiftData)
 
-    var items: [SavedGroceryItem] {
-        (try? JSONDecoder().decode([SavedGroceryItem].self, from: itemsJSON)) ?? []
-    }
-
-    var manualItems: [GroceryManualItem] {
-        (try? JSONDecoder().decode([GroceryManualItem].self, from: manualItemsJSON)) ?? []
-    }
+    var items: [SavedGroceryItem] { decodeJSON(itemsJSONString) }
+    var manualItems: [GroceryManualItem] { decodeJSON(manualItemsJSONString) }
 
     var totalItemCount: Int { snapshotItemCount + manualItems.count }
     var checkedCount: Int { checkedKeys.count }
     var progress: Double { totalItemCount == 0 ? 0 : Double(checkedCount) / Double(totalItemCount) }
-
-    // MARK: Mutation helpers called from the view
-
-    func saveManualItems(_ items: [GroceryManualItem]) {
-        manualItemsJSON = (try? JSONEncoder().encode(items)) ?? Data()
-        snapshotItemCount = self.items.count   // recipe items stay the same
-    }
 }
 
 // MARK: - Factory
 
 extension GroceryList {
-    /// Creates, inserts, and returns a GroceryList from a live selection,
-    /// snapshotting the combined ingredient list at this moment in time.
     static func create(
         name: String,
         from selections: [(recipe: Recipe, targetServings: Double)],
@@ -108,11 +100,7 @@ extension GroceryList {
                 sources: ci.sources
             )
         }
-        let list = GroceryList(
-            name: name,
-            recipeNames: selections.map(\.recipe.name),
-            items: items
-        )
+        let list = GroceryList(name: name, recipeNames: selections.map(\.recipe.name), items: items)
         context.insert(list)
         try? context.save()
         return list
