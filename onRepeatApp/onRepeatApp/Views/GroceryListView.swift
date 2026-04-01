@@ -63,7 +63,6 @@ struct GroceryListView: View {
             }
             .navigationTitle(groceryList.name)
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Done") { dismiss() }

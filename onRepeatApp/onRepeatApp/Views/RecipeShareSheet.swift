@@ -28,7 +28,6 @@ struct RecipeShareSheet: View {
             }
             .navigationTitle("Share Recipe")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar) // system adapts in dark mode
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }
@@ -271,7 +270,6 @@ struct QRCodeView: View {
             }
             .navigationTitle("Scan to Import")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarColorScheme(.light, for: .navigationBar) // system adapts in dark mode
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Done") { dismiss() }

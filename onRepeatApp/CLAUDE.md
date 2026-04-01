@@ -493,7 +493,6 @@ Social sharing works entirely via URL schemes — no server required. The full r
 - iCloud sync via CloudKit
 - Photo attachment per recipe
 - Reordering ingredients within a recipe
-- Dark mode polish
 - iPad layout
 - Crash reporting / analytics
 - Orphaned tag cleanup

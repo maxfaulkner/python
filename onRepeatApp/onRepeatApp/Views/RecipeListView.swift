@@ -136,7 +136,6 @@ struct RecipeListView: View {
         }
         .navigationTitle("All Recipes")
         .navigationBarTitleDisplayMode(.large)
-        .toolbarColorScheme(.light, for: .navigationBar) // adaptive in dark mode via semantic colors
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 sortMenu
