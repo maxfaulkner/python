@@ -17,6 +17,7 @@
 		20AA652585A88EF655A2CAF8 /* LeaderboardViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56793A6E990E8D22B83EEE72 /* LeaderboardViewModel.swift */; };
 		21603DB44CB7C82E9DB741B2 /* AuthViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6DE616C894086C456DB8A120 /* AuthViewModel.swift */; };
 		21A2039BF535AF507F79E43A /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = 63DF8ECEBE12277DCFAE016E /* User.swift */; };
+		3171D0F85CEE6257C7EBA425 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = D47410BDBC761CDF9CA9EB08 /* Assets.xcassets */; };
 		40224B0564F2E185B566261F /* MainTabView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0B69E302FC8372F0C4C0BD58 /* MainTabView.swift */; };
 		474100D35E6751CDC2452099 /* ChatViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6B8AFC510F862776E6F0CF08 /* ChatViewModel.swift */; };
 		4A8ED433D9C6344F06199EA9 /* WidgetDataWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80C1C875ADA2300948BF09CD /* WidgetDataWriter.swift */; };
@@ -110,6 +111,7 @@
 		CC93229516D6B4550C12296E /* TeamPickerViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TeamPickerViewModel.swift; sourceTree = "<group>"; };
 		CEED3901F46E299925719AE2 /* ShareableTeamCardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ShareableTeamCardView.swift; sourceTree = "<group>"; };
 		D2CFE2074D1E4B3F4398CEB3 /* League.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = League.swift; sourceTree = "<group>"; };
+		D47410BDBC761CDF9CA9EB08 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		D846E1FF245253AFFCBED00E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		DF3443607256E0FD21520BE1 /* F1SeasonDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = F1SeasonDetailView.swift; sourceTree = "<group>"; };
 		E4FA1E6D20CFFE48ADAF1B07 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
@@ -281,6 +283,7 @@
 				057840006EF89FB8FD0A519F /* Utilities */,
 				2CC90B27A2860DB4DC629CAD /* ViewModels */,
 				CCAADD8C23A5BBB6FB37140F /* Views */,
+				D47410BDBC761CDF9CA9EB08 /* Assets.xcassets */,
 				83D151A38FF1E46E6827AB5E /* F1Fantasy.entitlements */,
 				D846E1FF245253AFFCBED00E /* Info.plist */,
 			);
@@ -366,6 +369,7 @@
 			buildConfigurationList = 00098C48D0FCE89D38A698D1 /* Build configuration list for PBXNativeTarget "F1Fantasy" */;
 			buildPhases = (
 				C43C85B29A2B8CEC02C2B8FD /* Sources */,
+				FCC85B7F8CA52B3B2EA531E3 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -410,6 +414,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		FCC85B7F8CA52B3B2EA531E3 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3171D0F85CEE6257C7EBA425 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		C43C85B29A2B8CEC02C2B8FD /* Sources */ = {

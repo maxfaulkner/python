@@ -27,6 +27,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.maxfaulkner.f1fantasy
         INFOPLIST_FILE: F1Fantasy/Info.plist
         CODE_SIGN_STYLE: Automatic
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     entitlements:
       path: F1Fantasy/F1Fantasy.entitlements
       properties:

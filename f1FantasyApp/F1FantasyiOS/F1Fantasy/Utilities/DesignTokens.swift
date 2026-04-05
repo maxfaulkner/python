@@ -12,20 +12,29 @@ extension Color {
         let b = Double(int & 0xFF) / 255
         self.init(red: r, green: g, blue: b)
     }
+
+    // Adaptive color: one value for dark mode, another for light mode
+    init(dark: String, light: String) {
+        self.init(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor(Color(hex: dark))
+                : UIColor(Color(hex: light))
+        })
+    }
 }
 
 // MARK: - Design Tokens
 
 extension Color {
-    static let appBackground  = Color(hex: "09090b")
-    static let appCard        = Color(hex: "1e1e22")
-    static let appCardRaised  = Color(hex: "27272a")
+    static let appBackground  = Color(dark: "09090b", light: "f4f4f5")
+    static let appCard        = Color(dark: "1e1e22", light: "ffffff")
+    static let appCardRaised  = Color(dark: "27272a", light: "e4e4e7")
     static let appRed         = Color(hex: "e10600")
     static let appGold        = Color(hex: "f59e0b")
-    static let appTextPrimary = Color(hex: "fafafa")
-    static let appTextDim     = Color(hex: "a1a1aa")
-    static let appTextFaint   = Color(hex: "52525b")
-    static let appBorder      = Color.white.opacity(0.06)
+    static let appTextPrimary = Color(dark: "fafafa", light: "09090b")
+    static let appTextDim     = Color(dark: "a1a1aa", light: "52525b")
+    static let appTextFaint   = Color(dark: "52525b", light: "a1a1aa")
+    static let appBorder      = Color(dark: "ffffff", light: "000000").opacity(0.08)
     static let appSuccess     = Color(hex: "22c55e")
     static let appError       = Color(hex: "f87171")
 }
@@ -33,16 +42,16 @@ extension Color {
 // MARK: - ShapeStyle extensions (enables .appRed shorthand in .foregroundStyle())
 
 extension ShapeStyle where Self == Color {
-    static var appBackground:  Color { .init(hex: "09090b") }
-    static var appCard:        Color { .init(hex: "1e1e22") }
-    static var appCardRaised:  Color { .init(hex: "27272a") }
-    static var appRed:         Color { .init(hex: "e10600") }
-    static var appGold:        Color { .init(hex: "f59e0b") }
-    static var appTextPrimary: Color { .init(hex: "fafafa") }
-    static var appTextDim:     Color { .init(hex: "a1a1aa") }
-    static var appTextFaint:   Color { .init(hex: "52525b") }
-    static var appSuccess:     Color { .init(hex: "22c55e") }
-    static var appError:       Color { .init(hex: "f87171") }
+    static var appBackground:  Color { .appBackground }
+    static var appCard:        Color { .appCard }
+    static var appCardRaised:  Color { .appCardRaised }
+    static var appRed:         Color { .appRed }
+    static var appGold:        Color { .appGold }
+    static var appTextPrimary: Color { .appTextPrimary }
+    static var appTextDim:     Color { .appTextDim }
+    static var appTextFaint:   Color { .appTextFaint }
+    static var appSuccess:     Color { .appSuccess }
+    static var appError:       Color { .appError }
 }
 
 // MARK: - F1 Constructor Colors (2026)
