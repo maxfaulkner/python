@@ -831,7 +831,6 @@ router.get('/leagues/:leagueId/leaderboard', authMiddleware, async (req, res) =>
       where: { leagueId },
       include: {
         user: {
-          select: { id: true, name: true, email: true, avatarColor: true },
           include: {
             weeklyTeams: {
               where: { leagueId, week: { gte: startingRound } },
