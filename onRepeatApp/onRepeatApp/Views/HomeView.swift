@@ -15,6 +15,7 @@ private enum MealType: String, CaseIterable {
 struct HomeView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(WeeklyPlanStore.self) private var plan
+    @Environment(AuthStore.self) private var authStore
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
     @Query(sort: \GroceryList.createdAt, order: .reverse) private var groceryLists: [GroceryList]
 
@@ -29,8 +30,12 @@ struct HomeView: View {
     private var activeLists: [GroceryList] { groceryLists.filter { !$0.isCompleted } }
     private var completedLists: [GroceryList] { groceryLists.filter { $0.isCompleted } }
 
+    private var myRecipes: [Recipe] {
+        recipes.filter { $0.creatorID == authStore.currentUserID }
+    }
+
     private var grocerySelections: [(recipe: Recipe, targetServings: Double)] {
-        recipes.compactMap { r in
+        myRecipes.compactMap { r in
             guard let s = plan.selectedRecipes[r.id] else { return nil }
             return (recipe: r, targetServings: s)
         }
@@ -39,9 +44,9 @@ struct HomeView: View {
     private var selectionCount: Int { plan.selectedRecipes.count }
 
     private var filteredPickerRecipes: [Recipe] {
-        guard mealFilter != .all else { return recipes }
+        guard mealFilter != .all else { return myRecipes }
         let keyword = mealFilter.rawValue.lowercased()
-        return recipes.filter { r in
+        return myRecipes.filter { r in
             r.tags.contains { $0.name.localizedCaseInsensitiveContains(keyword) }
         }
     }
@@ -70,6 +75,29 @@ struct HomeView: View {
             .navigationTitle("onRepeat")
             .navigationBarTitleDisplayMode(.large)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Text("Signed in as \(authStore.currentDisplayName)")
+                        Divider()
+                        Button(role: .destructive) {
+                            authStore.logout()
+                        } label: {
+                            Label("Log Out", systemImage: "rectangle.portrait.and.arrow.right")
+                        }
+                    } label: {
+                        HStack(spacing: 6) {
+                            ZStack {
+                                Circle().fill(Color.brandGreen).frame(width: 28, height: 28)
+                                Text(String(authStore.currentDisplayName.prefix(1)))
+                                    .font(.system(size: 13, weight: .bold))
+                                    .foregroundStyle(.white)
+                            }
+                            Text(authStore.currentDisplayName)
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundStyle(Color.textSecondary)
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button { showingAddRecipe = true } label: {
                         ZStack {
@@ -82,7 +110,7 @@ struct HomeView: View {
                 }
             }
             .onAppear {
-                SeedData.seedIfNeeded(context: modelContext)
+                UserSeedData.seedIfNeeded(context: modelContext)
                 plan.load(validIDs: Set(recipes.map(\.id)))
             }
             .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
@@ -220,7 +248,7 @@ struct HomeView: View {
                 Spacer()
                 Button { showingAllRecipes = true } label: {
                     HStack(spacing: 4) {
-                        Text("See all \(recipes.count)")
+                        Text("See all \(myRecipes.count)")
                             .font(.system(size: 13, weight: .semibold))
                         Image(systemName: "chevron.right")
                             .font(.system(size: 11, weight: .semibold))
@@ -235,7 +263,7 @@ struct HomeView: View {
             }
 
             // Recipe picker cards
-            if recipes.isEmpty {
+            if myRecipes.isEmpty {
                 Button { showingAddRecipe = true } label: {
                     HStack(spacing: 10) {
                         Image(systemName: "plus.circle.fill").font(.system(size: 20))
@@ -291,7 +319,7 @@ struct HomeView: View {
     // MARK: - Meal Type Filter
 
     private var hasMealTypeTags: Bool {
-        let allTagNames = Set(recipes.flatMap { $0.tags.map { $0.name.lowercased() } })
+        let allTagNames = Set(myRecipes.flatMap { $0.tags.map { $0.name.lowercased() } })
         return MealType.allCases.dropFirst().contains { allTagNames.contains($0.rawValue.lowercased()) }
     }
 

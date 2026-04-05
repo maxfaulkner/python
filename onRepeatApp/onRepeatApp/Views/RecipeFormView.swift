@@ -17,6 +17,7 @@ struct IngredientDraft: Identifiable {
 struct RecipeFormView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthStore.self) private var authStore
 
     let mode: RecipeFormMode
 
@@ -26,6 +27,7 @@ struct RecipeFormView: View {
     @State private var tagsText = ""
     @State private var ingredientRows: [IngredientDraft] = [IngredientDraft()]
     @State private var tagChips: [String] = []
+    @State private var isPublic = false
 
     // MARK: - Body
 
@@ -140,6 +142,23 @@ struct RecipeFormView: View {
                     }
                 }
                 .padding(16)
+
+                Divider()
+
+                // Visibility
+                HStack {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("VISIBILITY").formLabel()
+                        Text(isPublic ? "Public" : "Private")
+                            .font(.system(size: 15))
+                            .foregroundStyle(isPublic ? Color.brandGreen : Color.textSecondary)
+                    }
+                    Spacer()
+                    Toggle("", isOn: $isPublic)
+                        .labelsHidden()
+                        .tint(Color.brandGreen)
+                }
+                .padding(16)
             }
             .cardSurface()
         }
@@ -246,6 +265,7 @@ struct RecipeFormView: View {
         name = recipe.name
         servings = recipe.servings
         instructions = recipe.instructions
+        isPublic = recipe.isPublic
         tagChips = recipe.tags.map(\.name).sorted()
         let rows = recipe.ingredients.map {
             IngredientDraft(quantityText: $0.quantity.displayString, unit: $0.unit, name: $0.name)
@@ -260,13 +280,21 @@ struct RecipeFormView: View {
         let recipe: Recipe
         switch mode {
         case .new:
-            recipe = Recipe(name: trimmedName, servings: servings, instructions: instructions)
+            recipe = Recipe(
+                name: trimmedName,
+                servings: servings,
+                instructions: instructions,
+                isPublic: isPublic,
+                creatorID: authStore.currentUserID,
+                creatorName: authStore.currentDisplayName
+            )
             modelContext.insert(recipe)
         case .edit(let existing):
             recipe = existing
             recipe.name = trimmedName
             recipe.servings = servings
             recipe.instructions = instructions
+            recipe.isPublic = isPublic
             let old = recipe.ingredients
             recipe.ingredients.removeAll()
             old.forEach { modelContext.delete($0) }

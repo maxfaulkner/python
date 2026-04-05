@@ -6,6 +6,9 @@ struct RecipeCardView: View {
     let targetServings: Double
     let onToggleSelect: () -> Void
     let onServingsChange: (Double) -> Void
+    let onDetail: () -> Void
+    var currentUserID: UUID? = nil
+    var onCreatorTap: (() -> Void)? = nil
 
     var body: some View {
         ZStack(alignment: .topTrailing) {
@@ -19,8 +22,8 @@ struct RecipeCardView: View {
             }
             .buttonStyle(.plain)
 
-            // Detail chevron — top-right, doesn't interfere with select
-            NavigationLink(value: recipe) {
+            // Detail button — top-right
+            Button(action: onDetail) {
                 Image(systemName: "ellipsis")
                     .font(.system(size: 13, weight: .semibold))
                     .foregroundStyle(isSelected ? Color.brandGreen : Color.textDisabled)
@@ -28,6 +31,7 @@ struct RecipeCardView: View {
                     .background(isSelected ? Color.brandGreen.opacity(0.1) : Color.surfaceSecondary)
                     .clipShape(Circle())
             }
+            .buttonStyle(.plain)
             .padding(12)
         }
         .background(
@@ -104,6 +108,30 @@ struct RecipeCardView: View {
                             .font(.system(size: 13))
                             .foregroundStyle(Color.textSecondary)
                             .lineLimit(1)
+                    }
+                }
+
+                if !recipe.creatorName.isEmpty && recipe.creatorID != currentUserID {
+                    if let onCreatorTap {
+                        Button(action: onCreatorTap) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 9))
+                                Text("by \(recipe.creatorName)")
+                                    .font(.system(size: 11, weight: .medium))
+                            }
+                            .foregroundStyle(Color.brandGreen)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
+                        HStack(spacing: 4) {
+                            Image(systemName: "person.fill")
+                                .font(.system(size: 9))
+                                .foregroundStyle(Color.textTertiary)
+                            Text("by \(recipe.creatorName)")
+                                .font(.system(size: 11))
+                                .foregroundStyle(Color.textTertiary)
+                        }
                     }
                 }
             }

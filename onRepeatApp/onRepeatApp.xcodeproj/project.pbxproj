@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1C893BD2F81B70D000CF54A /* User.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C893BC2F81B70D000CF54A /* User.swift */; };
+		A1C893BF2F81B71B000CF54A /* AuthStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C893BE2F81B71B000CF54A /* AuthStore.swift */; };
+		A1C893C12F81B750000CF54A /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C893C02F81B750000CF54A /* LoginView.swift */; };
+		A1C893C32F81E22C000CF54A /* UserSeedData.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C893C22F81E22C000CF54A /* UserSeedData.swift */; };
+		A1C893C52F81EF78000CF54A /* CreatorRecipesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1C893C42F81EF78000CF54A /* CreatorRecipesView.swift */; };
 		AA000100000000000000002A /* onRepeatAppApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000100000000000000001A /* onRepeatAppApp.swift */; };
 		AA000200000000000000002A /* Recipe.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000200000000000000001A /* Recipe.swift */; };
 		AA000300000000000000002A /* Ingredient.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA000300000000000000001A /* Ingredient.swift */; };
@@ -31,6 +36,11 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		A1C893BC2F81B70D000CF54A /* User.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = User.swift; sourceTree = "<group>"; };
+		A1C893BE2F81B71B000CF54A /* AuthStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthStore.swift; sourceTree = "<group>"; };
+		A1C893C02F81B750000CF54A /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		A1C893C22F81E22C000CF54A /* UserSeedData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UserSeedData.swift; sourceTree = "<group>"; };
+		A1C893C42F81EF78000CF54A /* CreatorRecipesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorRecipesView.swift; sourceTree = "<group>"; };
 		AA000100000000000000001A /* onRepeatAppApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = onRepeatAppApp.swift; sourceTree = "<group>"; };
 		AA000200000000000000001A /* Recipe.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Recipe.swift; sourceTree = "<group>"; };
 		AA000300000000000000001A /* Ingredient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Ingredient.swift; sourceTree = "<group>"; };
@@ -82,6 +92,8 @@
 				AA000F00000000000000001A /* RecipeShareManager.swift */,
 				AA001300000000000000001A /* SeedData.swift */,
 				AA001600000000000000001A /* WeeklyPlanStore.swift */,
+				A1C893BE2F81B71B000CF54A /* AuthStore.swift */,
+				A1C893C22F81E22C000CF54A /* UserSeedData.swift */,
 			);
 			path = Utilities;
 			sourceTree = "<group>";
@@ -98,6 +110,8 @@
 				AA001100000000000000001A /* RecipeShareSheet.swift */,
 				AA001400000000000000001A /* CookModeView.swift */,
 				AA001500000000000000001A /* HomeView.swift */,
+				A1C893C02F81B750000CF54A /* LoginView.swift */,
+				A1C893C42F81EF78000CF54A /* CreatorRecipesView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -109,6 +123,7 @@
 				AA000300000000000000001A /* Ingredient.swift */,
 				AA000400000000000000001A /* Tag.swift */,
 				AA001700000000000000001A /* GroceryList.swift */,
+				A1C893BC2F81B70D000CF54A /* User.swift */,
 			);
 			path = Models;
 			sourceTree = "<group>";
@@ -215,6 +230,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				AA000500000000000000002A /* RecipeListView.swift in Sources */,
+				A1C893C52F81EF78000CF54A /* CreatorRecipesView.swift in Sources */,
 				AA000600000000000000002A /* RecipeFormView.swift in Sources */,
 				AA000700000000000000002A /* RecipeDetailView.swift in Sources */,
 				AA000800000000000000002A /* GroceryListView.swift in Sources */,
@@ -222,6 +238,8 @@
 				AA000200000000000000002A /* Recipe.swift in Sources */,
 				AA000300000000000000002A /* Ingredient.swift in Sources */,
 				AA000400000000000000002A /* Tag.swift in Sources */,
+				A1C893C12F81B750000CF54A /* LoginView.swift in Sources */,
+				A1C893BD2F81B70D000CF54A /* User.swift in Sources */,
 				AA000100000000000000002A /* onRepeatAppApp.swift in Sources */,
 				AA000D00000000000000002A /* DesignSystem.swift in Sources */,
 				AA000E00000000000000002A /* RecipeCardView.swift in Sources */,
@@ -229,6 +247,8 @@
 				AA001000000000000000002A /* ImportPreviewView.swift in Sources */,
 				AA001100000000000000002A /* RecipeShareSheet.swift in Sources */,
 				AA001300000000000000002A /* SeedData.swift in Sources */,
+				A1C893C32F81E22C000CF54A /* UserSeedData.swift in Sources */,
+				A1C893BF2F81B71B000CF54A /* AuthStore.swift in Sources */,
 				AA001400000000000000002A /* CookModeView.swift in Sources */,
 				AA001500000000000000002A /* HomeView.swift in Sources */,
 				AA001600000000000000002A /* WeeklyPlanStore.swift in Sources */,

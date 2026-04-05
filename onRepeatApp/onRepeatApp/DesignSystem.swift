@@ -189,6 +189,32 @@ enum RecipeEmojiMapper {
     }
 }
 
+// MARK: - Cuisine Helper
+
+enum CuisineHelper {
+    static let knownCuisines: Set<String> = [
+        "italian", "indian", "chinese", "mexican", "french", "japanese",
+        "middle eastern", "american", "west african", "nordic", "thai",
+        "greek", "vietnamese", "korean", "spanish", "mediterranean"
+    ]
+
+    /// Returns the most frequent cuisine tag from a list of tag names, or nil if none match.
+    static func cuisine(from tags: [String]) -> String? {
+        let lowered = tags.map { $0.lowercased() }
+        let cuisineTags = lowered.filter { knownCuisines.contains($0) }
+        guard !cuisineTags.isEmpty else { return nil }
+        // Most frequent
+        let counts = Dictionary(grouping: cuisineTags, by: { $0 }).mapValues(\.count)
+        return counts.max(by: { $0.value < $1.value })?.key.capitalized
+    }
+
+    /// Returns all cuisine tags present in a list of tag names, sorted.
+    static func cuisines(from tags: [String]) -> [String] {
+        let lowered = tags.map { $0.lowercased() }
+        return Array(Set(lowered.filter { knownCuisines.contains($0) })).sorted().map(\.capitalized)
+    }
+}
+
 // MARK: - View Modifiers
 
 struct CardSurface: ViewModifier {

@@ -4,6 +4,7 @@ import SwiftData
 struct RecipeDetailView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthStore.self) private var authStore
 
     let recipe: Recipe
 
@@ -11,6 +12,10 @@ struct RecipeDetailView: View {
     @State private var showingDeleteAlert = false
     @State private var showingShare = false
     @State private var showingCookMode = false
+
+    private var isOwnRecipe: Bool {
+        recipe.creatorID == authStore.currentUserID
+    }
 
     // MARK: - Body
 
@@ -32,8 +37,10 @@ struct RecipeDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
-                    Button { showingEdit = true } label: {
-                        Label("Edit Recipe", systemImage: "pencil")
+                    if isOwnRecipe {
+                        Button { showingEdit = true } label: {
+                            Label("Edit Recipe", systemImage: "pencil")
+                        }
                     }
                     Button { duplicateRecipe() } label: {
                         Label("Duplicate", systemImage: "plus.square.on.square")
@@ -41,9 +48,11 @@ struct RecipeDetailView: View {
                     Button { showingShare = true } label: {
                         Label("Share Recipe", systemImage: "square.and.arrow.up")
                     }
-                    Divider()
-                    Button(role: .destructive) { showingDeleteAlert = true } label: {
-                        Label("Delete Recipe", systemImage: "trash")
+                    if isOwnRecipe {
+                        Divider()
+                        Button(role: .destructive) { showingDeleteAlert = true } label: {
+                            Label("Delete Recipe", systemImage: "trash")
+                        }
                     }
                 } label: {
                     Image(systemName: "ellipsis.circle.fill")
@@ -56,6 +65,9 @@ struct RecipeDetailView: View {
         .sheet(isPresented: $showingEdit) { RecipeFormView(mode: .edit(recipe)) }
         .sheet(isPresented: $showingShare) { RecipeShareSheet(recipe: recipe) }
         .fullScreenCover(isPresented: $showingCookMode) { CookModeView(recipe: recipe) }
+        .navigationDestination(for: CreatorDestination.self) { dest in
+            CreatorRecipesView(creatorID: dest.id, creatorName: dest.name)
+        }
         .alert("Delete Recipe?", isPresented: $showingDeleteAlert) {
             Button("Delete", role: .destructive) {
                 modelContext.delete(recipe)
@@ -98,6 +110,11 @@ struct RecipeDetailView: View {
                     metaPill(icon: "person.2.fill", text: "\(recipe.servings.displayString) servings")
                     if !recipe.ingredients.isEmpty {
                         metaPill(icon: "list.bullet", text: "\(recipe.ingredients.count) ingredients")
+                    }
+                }
+                if !isOwnRecipe && !recipe.creatorName.isEmpty, let cid = recipe.creatorID {
+                    NavigationLink(value: CreatorDestination(id: cid, name: recipe.creatorName)) {
+                        metaPill(icon: "person.fill", text: "by \(recipe.creatorName)")
                     }
                 }
             }
@@ -297,7 +314,10 @@ struct RecipeDetailView: View {
     private func duplicateRecipe() {
         let copy = Recipe(name: "\(recipe.name) (Copy)",
                           servings: recipe.servings,
-                          instructions: recipe.instructions)
+                          instructions: recipe.instructions,
+                          isPublic: false,
+                          creatorID: authStore.currentUserID,
+                          creatorName: authStore.currentDisplayName)
         modelContext.insert(copy)
         for tag in recipe.tags { copy.tags.append(tag) }
         for ing in recipe.ingredients {

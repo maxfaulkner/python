@@ -4,6 +4,7 @@ import SwiftData
 struct ImportPreviewView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(\.dismiss) private var dismiss
+    @Environment(AuthStore.self) private var authStore
 
     let payload: SharedRecipePayload
 
@@ -328,7 +329,10 @@ struct ImportPreviewView: View {
         let recipe = Recipe(
             name: payload.name,
             servings: payload.servings,
-            instructions: payload.instructions
+            instructions: payload.instructions,
+            isPublic: false,
+            creatorID: authStore.currentUserID,
+            creatorName: authStore.currentDisplayName
         )
         modelContext.insert(recipe)
 

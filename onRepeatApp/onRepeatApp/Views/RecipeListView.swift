@@ -1,6 +1,20 @@
 import SwiftUI
 import SwiftData
 
+// MARK: - Creator Destination
+
+struct CreatorDestination: Identifiable, Hashable {
+    let id: UUID
+    let name: String
+}
+
+struct CreatorInfo: Identifiable, Hashable {
+    let id: UUID
+    let name: String
+    let cuisine: String
+    let recipeCount: Int
+}
+
 // MARK: - Sort Order
 
 enum RecipeSortOrder: String, CaseIterable {
@@ -9,11 +23,20 @@ enum RecipeSortOrder: String, CaseIterable {
     case ingredients   = "Most Ingredients"
 }
 
+// MARK: - Ownership Filter
+
+private enum OwnershipFilter: String, CaseIterable {
+    case all       = "All"
+    case mine      = "My Recipes"
+    case community = "Community"
+}
+
 // MARK: - RecipeListView
 
 struct RecipeListView: View {
     @Environment(\.modelContext) private var modelContext
     @Environment(WeeklyPlanStore.self) private var plan
+    @Environment(AuthStore.self) private var authStore
     @Query(sort: \Recipe.createdAt, order: .reverse) private var recipes: [Recipe]
 
     @State private var showingAddRecipe = false
@@ -21,17 +44,51 @@ struct RecipeListView: View {
     @State private var searchText = ""
     @State private var activeTagFilter: String? = nil
     @State private var sortOrder: RecipeSortOrder = .newest
+    @State private var ownershipFilter: OwnershipFilter = .all
     @State private var editingRecipe: Recipe? = nil
     @State private var deletingRecipe: Recipe? = nil
+    @State private var detailRecipe: Recipe? = nil
+    @State private var selectedCreator: CreatorDestination? = nil
 
     // MARK: - Computed
 
     private var allTags: [String] {
-        Array(Set(recipes.flatMap { $0.tags.map(\.name) })).sorted()
+        Array(Set(ownershipFiltered.flatMap { $0.tags.map(\.name) })).sorted()
+    }
+
+    private var communityRecipes: [Recipe] {
+        recipes.filter { $0.creatorID != authStore.currentUserID && $0.isPublic }
+    }
+
+    private var creators: [CreatorInfo] {
+        let grouped = Dictionary(grouping: communityRecipes, by: { $0.creatorID })
+        return grouped.compactMap { (creatorID, recipes) -> CreatorInfo? in
+            guard let cid = creatorID, let first = recipes.first else { return nil }
+            let allTags = recipes.flatMap { $0.tags.map(\.name) }
+            let cuisine = CuisineHelper.cuisine(from: allTags) ?? ""
+            return CreatorInfo(id: cid, name: first.creatorName, cuisine: cuisine, recipeCount: recipes.count)
+        }.sorted { $0.recipeCount > $1.recipeCount }
+    }
+
+    private var cuisineFilters: [String] {
+        let allTags = communityRecipes.flatMap { $0.tags.map(\.name) }
+        return CuisineHelper.cuisines(from: allTags)
+    }
+
+    private var ownershipFiltered: [Recipe] {
+        switch ownershipFilter {
+        case .all:
+            // Own recipes + public recipes from others
+            return recipes.filter { $0.creatorID == authStore.currentUserID || $0.isPublic }
+        case .mine:
+            return recipes.filter { $0.creatorID == authStore.currentUserID }
+        case .community:
+            return recipes.filter { $0.creatorID != authStore.currentUserID && $0.isPublic }
+        }
     }
 
     private var filteredRecipes: [Recipe] {
-        var result = recipes
+        var result = ownershipFiltered
         if !searchText.isEmpty {
             result = result.filter {
                 $0.name.localizedCaseInsensitiveContains(searchText) ||
@@ -88,8 +145,16 @@ struct RecipeListView: View {
 
                 ScrollView {
                     LazyVStack(spacing: 10) {
-                        if !allTags.isEmpty {
-                            tagFilterRow.padding(.top, 4)
+                        ownershipFilterRow.padding(.top, 4)
+
+                        if ownershipFilter == .community && !creators.isEmpty && searchText.isEmpty {
+                            creatorsSection
+                        }
+
+                        if ownershipFilter == .community && !cuisineFilters.isEmpty {
+                            cuisineFilterRow
+                        } else if !allTags.isEmpty {
+                            tagFilterRow
                         }
 
                         if filteredRecipes.isEmpty {
@@ -110,7 +175,14 @@ struct RecipeListView: View {
                                     },
                                     onServingsChange: { v in
                                         plan.setServings(v, for: recipe.id)
-                                    }
+                                    },
+                                    onDetail: {
+                                        detailRecipe = recipe
+                                    },
+                                    currentUserID: authStore.currentUserID,
+                                    onCreatorTap: recipe.creatorID != authStore.currentUserID && recipe.creatorID != nil ? {
+                                        selectedCreator = CreatorDestination(id: recipe.creatorID!, name: recipe.creatorName)
+                                    } : nil
                                 )
                                 .padding(.horizontal, 16)
                                 .contextMenu {
@@ -151,7 +223,10 @@ struct RecipeListView: View {
                 }
             }
         }
-        .navigationDestination(for: Recipe.self) { RecipeDetailView(recipe: $0) }
+        .navigationDestination(item: $detailRecipe) { recipe in RecipeDetailView(recipe: recipe) }
+        .navigationDestination(item: $selectedCreator) { creator in
+            CreatorRecipesView(creatorID: creator.id, creatorName: creator.name)
+        }
         .sheet(isPresented: $showingAddRecipe) { RecipeFormView(mode: .new) }
         .sheet(item: $activeGroceryList) { GroceryListView(groceryList: $0) }
         .sheet(item: $editingRecipe) { RecipeFormView(mode: .edit($0)) }
@@ -207,6 +282,7 @@ struct RecipeListView: View {
     @ViewBuilder
     private func contextMenuItems(for recipe: Recipe) -> some View {
         let isSelected = plan.isSelected(recipe.id)
+        let isOwn = recipe.creatorID == authStore.currentUserID
 
         Button {
             withAnimation(.spring(response: 0.28, dampingFraction: 0.7)) {
@@ -221,20 +297,24 @@ struct RecipeListView: View {
 
         Divider()
 
-        Button { editingRecipe = recipe } label: {
-            Label("Edit Recipe", systemImage: "pencil")
+        if isOwn {
+            Button { editingRecipe = recipe } label: {
+                Label("Edit Recipe", systemImage: "pencil")
+            }
         }
 
         Button { duplicateRecipe(recipe) } label: {
             Label("Duplicate", systemImage: "plus.square.on.square")
         }
 
-        Divider()
+        if isOwn {
+            Divider()
 
-        Button(role: .destructive) {
-            deletingRecipe = recipe
-        } label: {
-            Label("Delete", systemImage: "trash")
+            Button(role: .destructive) {
+                deletingRecipe = recipe
+            } label: {
+                Label("Delete", systemImage: "trash")
+            }
         }
     }
 
@@ -274,6 +354,124 @@ struct RecipeListView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 10)
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Ownership Filter
+
+    private var ownershipFilterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                ForEach(OwnershipFilter.allCases, id: \.self) { filter in
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) { ownershipFilter = filter }
+                    } label: {
+                        Text(filter.rawValue)
+                            .font(.system(size: 13, weight: ownershipFilter == filter ? .semibold : .regular))
+                            .padding(.horizontal, 14).padding(.vertical, 7)
+                            .background(ownershipFilter == filter ? Color.brandGreen : Color.cardSurface)
+                            .foregroundStyle(ownershipFilter == filter ? .white : Color.textSecondary)
+                            .clipShape(Capsule())
+                            .shadow(color: ownershipFilter == filter ? Color.brandGreen.opacity(0.3) : Color.black.opacity(0.06),
+                                    radius: ownershipFilter == filter ? 6 : 4, x: 0, y: 2)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+        }
+    }
+
+    // MARK: - Creators Section
+
+    private var creatorsSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("CREATORS")
+                .font(.system(size: 12, weight: .bold))
+                .foregroundStyle(Color.textTertiary)
+                .tracking(0.8)
+                .padding(.horizontal, 16)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 10) {
+                    ForEach(creators) { creator in
+                        Button {
+                            selectedCreator = CreatorDestination(id: creator.id, name: creator.name)
+                        } label: {
+                            creatorCard(creator)
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 2)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func creatorCard(_ creator: CreatorInfo) -> some View {
+        HStack(spacing: 10) {
+            ZStack {
+                Circle()
+                    .fill(RecipeGradients.linearGradient(for: creator.name))
+                    .frame(width: 40, height: 40)
+                Text(String(creator.name.prefix(1)))
+                    .font(.system(size: 17, weight: .bold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(creator.name)
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.textPrimary)
+                    .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    if !creator.cuisine.isEmpty {
+                        Text(creator.cuisine)
+                            .font(.system(size: 11, weight: .medium))
+                            .foregroundStyle(Color.brandGreen)
+                    }
+                    Text("·")
+                        .font(.system(size: 11))
+                        .foregroundStyle(Color.textDisabled)
+                    Text("\(creator.recipeCount)")
+                        .font(.system(size: 11, weight: .medium))
+                        .foregroundStyle(Color.textTertiary)
+                    Image(systemName: "book.closed.fill")
+                        .font(.system(size: 9))
+                        .foregroundStyle(Color.textTertiary)
+                }
+            }
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(Color.cardSurface)
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.06), radius: 6, x: 0, y: 2)
+    }
+
+    // MARK: - Cuisine Filter
+
+    private var cuisineFilterRow: some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: 8) {
+                tagChip("All", active: activeTagFilter == nil) {
+                    withAnimation(.easeInOut(duration: 0.18)) { activeTagFilter = nil }
+                }
+                ForEach(cuisineFilters, id: \.self) { cuisine in
+                    let lowered = cuisine.lowercased()
+                    tagChip(cuisine, active: activeTagFilter == lowered) {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            activeTagFilter = activeTagFilter == lowered ? nil : lowered
+                        }
+                    }
+                }
+            }
+            .padding(.horizontal, 16)
+            .padding(.vertical, 4)
+        }
     }
 
     // MARK: - Tag Filter
@@ -389,7 +587,10 @@ struct RecipeListView: View {
     private func duplicateRecipe(_ recipe: Recipe) {
         let copy = Recipe(name: "\(recipe.name) (Copy)",
                           servings: recipe.servings,
-                          instructions: recipe.instructions)
+                          instructions: recipe.instructions,
+                          isPublic: false,
+                          creatorID: authStore.currentUserID,
+                          creatorName: authStore.currentDisplayName)
         modelContext.insert(copy)
         for tag in recipe.tags { copy.tags.append(tag) }
         for ing in recipe.ingredients {
