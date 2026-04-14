@@ -545,13 +545,13 @@ export default function Leagues() {
         {/* League cards */}
         {leagues.length === 0 ? (
           <div style={{
-            textAlign: 'center', padding: '48px 24px',
-            background: '#18181b', border: '1px dashed rgba(255,255,255,0.1)',
-            borderRadius: 14, color: '#52525b',
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>🏁</div>
-            <p style={{ fontWeight: 600, marginBottom: 6 }}>No leagues yet</p>
-            <p style={{ fontSize: 13 }}>Create one or join with an invite ID</p>
+            background: 'var(--bg-card)',
+            border: '1px dashed var(--border-2)',
+            borderRadius: 14,
+          }} className="empty-state">
+            <span className="empty-state-icon">🏁</span>
+            <p className="empty-state-title">No leagues yet</p>
+            <p className="empty-state-sub">Create one above or join with an invite code</p>
           </div>
         ) : (
           leagues.map((league, i) => (
@@ -587,7 +587,7 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
       onMouseLeave={() => setHover(false)}
       style={{
         background: hover ? '#1e1e22' : '#18181b',
-        border: `1px solid ${hover ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.06)'}`,
+        border: `1px solid ${hover ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.06)'}`,
         borderRadius: 14,
         padding: '18px 20px',
         marginBottom: 12,
@@ -595,6 +595,8 @@ function LeagueCard({ league, index, currentRound, onNavigate }) {
         position: 'relative',
         overflow: 'hidden',
         animationDelay: `${index * 0.06}s`,
+        transform: hover ? 'translateY(-2px)' : 'none',
+        boxShadow: hover ? '0 8px 28px rgba(0,0,0,0.4)' : '0 1px 4px rgba(0,0,0,0.3)',
       }}
       className="fade-up"
     >

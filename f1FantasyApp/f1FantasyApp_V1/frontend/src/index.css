@@ -212,6 +212,16 @@ input, select, textarea { font-family: inherit; }
 }
 .inp::placeholder { color: var(--text-4); }
 
+/* ─── Select base ────────────────────────────────────────────── */
+select.inp {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
 /* ─── Table styles ───────────────────────────────────────────── */
 .data-table {
   width: 100%;
@@ -445,3 +455,261 @@ input:focus, textarea:focus, select:focus {
 .h2h-win { color: #22c55e; }
 .h2h-loss { color: #f87171; }
 .h2h-draw { color: #fbbf24; }
+
+/* ═══════════════════════════════════════════════════════════════
+   POLISH ADDITIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Smooth scroll + selection ──────────────────────────────── */
+html { scroll-behavior: smooth; }
+::selection { background: rgba(225,6,0,0.22); color: var(--text); }
+
+/* ─── Focus visible ──────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(225,6,0,0.45);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* ─── Shadow tokens ──────────────────────────────────────────── */
+:root {
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.35);
+  --shadow:     0 4px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-red: 0 4px 20px rgba(225,6,0,0.22);
+}
+
+/* ─── Card shadow upgrade ────────────────────────────────────── */
+.card     { box-shadow: var(--shadow-sm); }
+.card-sm  { box-shadow: var(--shadow-sm); }
+.card-raised {
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card-glow {
+  box-shadow: var(--shadow), 0 0 30px rgba(225,6,0,0.07), 0 0 0 1px rgba(225,6,0,0.1);
+}
+
+/* ─── Button size variant ────────────────────────────────────── */
+.btn-sm { padding: 5px 12px; font-size: 12px; border-radius: var(--r-sm); }
+
+/* ─── Button success variant ─────────────────────────────────── */
+.btn-success { background: #16a34a; color: #fff; }
+.btn-success:hover { background: #15803d; }
+
+/* ─── Badge color variants ───────────────────────────────────── */
+.badge-red   { background: var(--red-dim);              color: #f87171; }
+.badge-gold  { background: var(--gold-dim);             color: var(--gold); }
+.badge-green { background: var(--green-dim);            color: var(--green); }
+.badge-blue  { background: rgba(59,130,246,0.14);       color: #93c5fd; }
+.badge-muted { background: rgba(255,255,255,0.06);      color: var(--text-3); }
+
+/* ─── Text utilities ─────────────────────────────────────────── */
+.text-red    { color: var(--red); }
+.text-gold   { color: var(--gold); }
+.text-green  { color: var(--green); }
+.text-muted  { color: var(--text-3); }
+.text-dim    { color: var(--text-4); }
+.text-gradient {
+  background: linear-gradient(135deg, var(--red), #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.display-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Layout utilities ───────────────────────────────────────── */
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 56px 20px;
+}
+.empty-state-icon { font-size: 38px; display: block; margin-bottom: 12px; opacity: 0.4; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text-2); margin-bottom: 5px; }
+.empty-state-sub   { font-size: 13px; color: var(--text-3); }
+
+/* ─── Navbar ─────────────────────────────────────────────────── */
+.navbar {
+  background: rgba(9,9,11,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.navbar-brand {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+}
+.navbar-logo {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #e10600, #ff4444);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 0 14px rgba(225,6,0,0.45);
+  flex-shrink: 0;
+  transition: box-shadow var(--ease), transform var(--ease);
+}
+.navbar-brand:hover .navbar-logo {
+  box-shadow: 0 0 22px rgba(225,6,0,0.65);
+  transform: scale(1.05);
+}
+.navbar-brand-text { display: flex; flex-direction: column; line-height: 1; }
+.navbar-brand-name {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 18px;
+  letter-spacing: 0.02em; color: var(--text);
+}
+.navbar-brand-red { color: var(--red); }
+.navbar-brand-sub {
+  font-size: 9px; color: var(--text-4);
+  letter-spacing: 0.12em; font-weight: 500; margin-top: 1px;
+}
+.navbar-right { display: flex; gap: 6px; align-items: center; }
+
+.nav-link {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-weight: 500;
+  transition: color var(--ease), background var(--ease);
+  position: relative;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link.nav-active {
+  color: var(--text);
+  background: rgba(225,6,0,0.07);
+}
+.nav-link.nav-active::after {
+  content: '';
+  position: absolute;
+  bottom: -13px; left: 50%;
+  transform: translateX(-50%);
+  width: 20px; height: 2px;
+  background: var(--red);
+  border-radius: 1px;
+}
+
+.navbar-user {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  padding: 5px 12px 5px 6px;
+}
+.navbar-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e10600, #ff6b35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.navbar-username { font-size: 13px; color: var(--text-2); font-weight: 500; }
+
+.btn-signout {
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+  border-radius: 9px;
+  padding: 5px 14px;
+  cursor: pointer;
+  font-size: 13px; font-weight: 500;
+  font-family: inherit;
+  transition: all var(--ease);
+}
+.btn-signout:hover {
+  background: rgba(225,6,0,0.08);
+  color: var(--red);
+  border-color: rgba(225,6,0,0.25);
+}
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 16px; }
+  .navbar-brand-sub { display: none; }
+  .navbar-username { display: none; }
+}
+@media (max-width: 520px) {
+  .nav-link.nav-optional { display: none; }
+}
+
+/* ─── League nav tab ─────────────────────────────────────────── */
+.league-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  padding: 11px 13px;
+  cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  font-family: inherit;
+  transition: color var(--ease), border-color var(--ease);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 5px;
+}
+.league-tab:hover { color: var(--text-2); }
+.league-tab.active {
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--red);
+}
+
+/* ─── Standings "you" row ────────────────────────────────────── */
+tr.row-you td:first-child {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+/* ─── League nav back link ───────────────────────────────────── */
+.league-back {
+  background: none; border: none;
+  color: var(--text-4);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0 0 8px;
+  font-family: inherit;
+  white-space: nowrap; flex-shrink: 0;
+  transition: color var(--ease);
+}
+.league-back:hover { color: var(--text-3); }
+
+/* ─── League name breadcrumb ─────────────────────────────────── */
+.league-breadcrumb {
+  background: none; border: none;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  color: var(--red);
+  font-size: 12px; font-weight: 800;
+  cursor: pointer;
+  padding: 0 16px 0 0;
+  margin-right: 8px;
+  white-space: nowrap; flex-shrink: 0;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  transition: color var(--ease);
+}
+.league-breadcrumb:hover { color: var(--red-dark); }

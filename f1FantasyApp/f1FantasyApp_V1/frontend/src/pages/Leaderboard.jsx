@@ -6,6 +6,7 @@ import { usePageTitle } from '../hooks/usePageTitle';
 import Navbar from '../components/Navbar';
 import LeagueNav from '../components/LeagueNav';
 import { showToast } from '../components/Toast';
+import { teamColor as tColor } from '../constants/teamColors';
 
 export default function Leaderboard() {
   const { leagueId } = useParams();
@@ -198,14 +199,14 @@ export default function Leaderboard() {
       {/* Empty state — no results yet */}
       {!hasResults && standings.length > 0 && (
         <div style={{
-          background: '#18181b', border: '1px dashed rgba(255,255,255,0.08)',
-          borderRadius: 14, padding: '40px 24px', textAlign: 'center', marginBottom: 20,
-        }}>
-          <div style={{ fontSize: 40, marginBottom: 12 }}>🏎</div>
-          <div style={{ fontWeight: 700, color: '#a1a1aa', marginBottom: 6 }}>No race results yet</div>
-          <div style={{ fontSize: 13, color: '#52525b', marginBottom: 16 }}>
+          background: 'var(--bg-card)', border: '1px dashed var(--border-2)',
+          borderRadius: 14, marginBottom: 20,
+        }} className="empty-state">
+          <span className="empty-state-icon">🏎</span>
+          <p className="empty-state-title">No race results yet</p>
+          <p className="empty-state-sub" style={{ marginBottom: 16 }}>
             Once a race is complete, use "Import Results" to update the standings
-          </div>
+          </p>
           <button
             onClick={checkForResults}
             disabled={checking}
@@ -327,9 +328,10 @@ export default function Leaderboard() {
         borderRadius: 14, overflow: 'hidden',
       }}>
         {standings.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px 24px', color: '#52525b' }}>
-            <div style={{ fontSize: 28, marginBottom: 8 }}>🏁</div>
-            <div>No players in this league yet</div>
+          <div className="empty-state">
+            <span className="empty-state-icon">🏁</span>
+            <p className="empty-state-title">No players yet</p>
+            <p className="empty-state-sub">Share your invite code to get the league going</p>
           </div>
         ) : (
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
@@ -352,6 +354,7 @@ export default function Leaderboard() {
                   <>
                     <tr
                       key={user.userId}
+                      className={isYou ? 'row-you' : undefined}
                       style={{
                         background: isYou
                           ? 'rgba(225,6,0,0.05)'
@@ -491,6 +494,9 @@ function PodiumCard({ user, rank, isYou, tall }) {
       borderRadius: 14, padding: tall ? '22px 16px 18px' : '14px 14px 14px',
       textAlign: 'center',
       order: rank === 1 ? 0 : rank === 2 ? -1 : 1,
+      boxShadow: rank === 1 ? `0 8px 32px rgba(245,158,11,0.15), 0 0 0 1px rgba(245,158,11,0.1)` : undefined,
+      transform: tall ? 'translateY(-6px)' : undefined,
+      transition: 'all 0.18s',
     }}>
       <div style={{ fontSize: tall ? 30 : 22, marginBottom: 8 }}>{medal}</div>
       <div style={{
@@ -514,16 +520,6 @@ function RankBadge({ rank }) {
 }
 
 /* ── Team card (expanded row) ───────────────────────────────── */
-const TEAM_COLORS = {
-  'Red Bull': '#3671C6', 'Ferrari': '#E8002D', 'McLaren': '#FF8000',
-  'Mercedes': '#27F4D2', 'Aston Martin': '#229971', 'Alpine': '#FF87BC',
-  'Williams': '#64C4FF', 'Racing Bulls': '#6692FF', 'Haas': '#B6BABD',
-  'Kick Sauber': '#52E252', 'Sauber': '#52E252',
-};
-function tColor(name) {
-  const k = Object.keys(TEAM_COLORS).find(k => (name||'').toLowerCase().includes(k.toLowerCase()));
-  return k ? TEAM_COLORS[k] : '#52525b';
-}
 
 function TeamCard({ team, userName }) {
   return (

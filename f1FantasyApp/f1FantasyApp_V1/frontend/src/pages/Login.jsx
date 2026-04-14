@@ -8,6 +8,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
   const navigate = useNavigate();
 
   async function handleSubmit(e) {
@@ -33,22 +34,28 @@ export default function Login() {
       justifyContent: 'center',
       padding: '0 16px',
     }}>
-      {/* Glow behind the card */}
+      {/* Background glows */}
       <div style={{
-        position: 'fixed', top: '30%', left: '50%',
+        position: 'fixed', top: '25%', left: '50%',
         transform: 'translate(-50%, -50%)',
-        width: 400, height: 400,
-        background: 'radial-gradient(circle, rgba(225,6,0,0.06) 0%, transparent 70%)',
+        width: 600, height: 600,
+        background: 'radial-gradient(circle, rgba(225,6,0,0.07) 0%, transparent 65%)',
+        pointerEvents: 'none',
+      }} />
+      <div style={{
+        position: 'fixed', top: '60%', left: '30%',
+        width: 300, height: 300,
+        background: 'radial-gradient(circle, rgba(245,158,11,0.04) 0%, transparent 70%)',
         pointerEvents: 'none',
       }} />
 
       <div style={{
         width: '100%', maxWidth: 400,
         background: '#18181b',
-        border: '1px solid rgba(255,255,255,0.08)',
+        border: '1px solid rgba(255,255,255,0.09)',
         borderRadius: 16,
         overflow: 'hidden',
-        boxShadow: '0 24px 64px rgba(0,0,0,0.6)',
+        boxShadow: '0 24px 64px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.04)',
         position: 'relative',
         animation: 'fadeUp 0.35s ease forwards',
       }}>
@@ -111,13 +118,18 @@ export default function Login() {
             <button
               type="submit"
               disabled={loading}
+              onMouseEnter={() => setBtnHover(true)}
+              onMouseLeave={() => setBtnHover(false)}
               style={{
                 width: '100%', padding: '11px',
-                background: loading ? '#7f1d1d' : '#e10600',
+                background: loading ? '#7f1d1d' : btnHover ? '#c00500' : '#e10600',
                 color: '#fff', border: 'none', borderRadius: 10,
                 fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
-                transition: 'background 0.15s',
-                boxShadow: loading ? 'none' : '0 4px 16px rgba(225,6,0,0.3)',
+                transition: 'all 0.15s',
+                boxShadow: loading ? 'none' : btnHover
+                  ? '0 6px 24px rgba(225,6,0,0.45)'
+                  : '0 4px 16px rgba(225,6,0,0.28)',
+                transform: !loading && btnHover ? 'translateY(-1px)' : 'none',
               }}
             >
               {loading ? (

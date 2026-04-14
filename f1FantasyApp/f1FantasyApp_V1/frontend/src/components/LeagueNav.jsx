@@ -43,77 +43,27 @@ export default function LeagueNav({ leagueId, week = 1, leagueName }) {
         {leagueName && (
           <button
             onClick={() => navigate(`/leagues/${leagueId}`)}
-            style={{
-              background: 'none',
-              border: 'none',
-              borderRight: '1px solid rgba(255,255,255,0.07)',
-              color: '#e10600',
-              fontSize: 12,
-              fontWeight: 800,
-              cursor: 'pointer',
-              padding: '0 16px 0 0',
-              marginRight: 8,
-              whiteSpace: 'nowrap',
-              flexShrink: 0,
-              fontFamily: 'inherit',
-              letterSpacing: '0.01em',
-            }}
+            className="league-breadcrumb"
           >
             {leagueName}
           </button>
         )}
 
         {/* Tabs */}
-        {TABS.map(tab => {
-          const active = isActive(tab);
-          return (
-            <button
-              key={tab.id}
-              onClick={() => navigate(tab.path(leagueId, week))}
-              style={{
-                background: 'none',
-                border: 'none',
-                borderBottom: `2px solid ${active ? '#e10600' : 'transparent'}`,
-                color: active ? '#fafafa' : '#71717a',
-                padding: '11px 13px',
-                cursor: 'pointer',
-                fontSize: 12,
-                fontWeight: active ? 700 : 500,
-                fontFamily: 'inherit',
-                transition: 'color 0.12s, border-color 0.12s',
-                whiteSpace: 'nowrap',
-                flexShrink: 0,
-                display: 'flex',
-                alignItems: 'center',
-                gap: 5,
-              }}
-              onMouseEnter={e => { if (!active) e.currentTarget.style.color = '#a1a1aa'; }}
-              onMouseLeave={e => { if (!active) e.currentTarget.style.color = '#71717a'; }}
-            >
-              <span style={{ fontSize: 13 }}>{tab.icon}</span>
-              {tab.label}
-            </button>
-          );
-        })}
+        {TABS.map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => navigate(tab.path(leagueId, week))}
+            className={`league-tab${isActive(tab) ? ' active' : ''}`}
+          >
+            <span style={{ fontSize: 13 }}>{tab.icon}</span>
+            {tab.label}
+          </button>
+        ))}
 
         {/* Spacer + back link */}
         <div style={{ flex: 1, minWidth: 16 }} />
-        <button
-          onClick={() => navigate('/leagues')}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#3f3f46',
-            cursor: 'pointer',
-            fontSize: 11,
-            padding: '0 0 0 8px',
-            fontFamily: 'inherit',
-            whiteSpace: 'nowrap',
-            flexShrink: 0,
-          }}
-          onMouseEnter={e => { e.currentTarget.style.color = '#71717a'; }}
-          onMouseLeave={e => { e.currentTarget.style.color = '#3f3f46'; }}
-        >
+        <button onClick={() => navigate('/leagues')} className="league-back">
           ← Leagues
         </button>
       </div>
