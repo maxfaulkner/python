@@ -164,52 +164,57 @@ function CountdownBanner({ onBannerResolved }) {
 
 /* ── F1 Results Panel ───────────────────────────────────────── */
 function ResultsPanel() {
-  const [mode, setMode]       = useState('race');
-  const [year, setYear]       = useState(CURRENT_YEAR);
-  const [races, setRaces]     = useState([]);
-  const [round, setRound]     = useState('');
-  const [session, setSession] = useState('results');
+  const [mode, setMode]           = useState('race');
+  const [year, setYear]           = useState(CURRENT_YEAR);
+  const [races, setRaces]         = useState([]);
+  const [round, setRound]         = useState('');
+  const [session, setSession]     = useState('results');
   const [champType, setChampType] = useState('drivers');
-  const [results, setResults] = useState([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState('');
+  const [results, setResults]     = useState([]);
+  const [loading, setLoading]     = useState(false);
+  const [fetchError, setFetchError] = useState(false); // true = network/parse failure
+  const [noData, setNoData]         = useState(false);  // true = session exists but no results yet
+
+  function resetResults() { setResults([]); setFetchError(false); setNoData(false); }
 
   useEffect(() => {
-    setRaces([]); setRound(''); setResults([]); setError('');
+    setRaces([]); setRound(''); resetResults();
     if (mode !== 'race') return;
     fetch(`${JOLPICA}/${year}.json`)
       .then(r => r.json())
       .then(d => setRaces(d.MRData.RaceTable.Races))
-      .catch(() => setError('Failed to load calendar'));
+      .catch(() => {});
   }, [year, mode]);
 
   useEffect(() => {
     if (mode !== 'race' || !round) return;
-    setResults([]); setError(''); setLoading(true);
+    resetResults(); setLoading(true);
     const sessionDef = RACE_SESSIONS.find(s => s.value === session);
     fetch(`${JOLPICA}/${year}/${round}/${session}.json`)
       .then(r => r.json())
       .then(d => {
         const race = d.MRData.RaceTable.Races[0];
-        if (!race) { setError('No data for this session.'); return; }
-        setResults(race[sessionDef.key] || []);
+        if (!race) { setNoData(true); return; }
+        const rows = race[sessionDef.key] || [];
+        if (rows.length === 0) { setNoData(true); return; }
+        setResults(rows);
       })
-      .catch(() => setError('Failed to load results'))
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [year, round, session, mode]);
 
   useEffect(() => {
     if (mode !== 'championship') return;
-    setResults([]); setError(''); setLoading(true);
+    resetResults(); setLoading(true);
     const endpoint = champType === 'drivers' ? 'driverStandings' : 'constructorStandings';
     fetch(`${JOLPICA}/${year}/${endpoint}.json`)
       .then(r => r.json())
       .then(d => {
         const list = d.MRData.StandingsTable.StandingsLists[0];
-        if (!list) { setError('No standings available.'); return; }
+        if (!list) { setNoData(true); return; }
         setResults(champType === 'drivers' ? list.DriverStandings : list.ConstructorStandings);
       })
-      .catch(() => setError('Failed to load standings'))
+      .catch(() => setFetchError(true))
       .finally(() => setLoading(false));
   }, [year, champType, mode]);
 
@@ -282,12 +287,21 @@ function ResultsPanel() {
           )}
         </div>
 
-        {mode === 'race' && !round && !error && (
+        {mode === 'race' && !round && !loading && (
           <p style={{ color: '#52525b', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
             Select a race to view results
           </p>
         )}
-        {error && <p style={{ color: '#f87171', fontSize: 13 }}>{error}</p>}
+        {noData && !loading && (
+          <p style={{ color: '#52525b', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+            No results available for this session yet
+          </p>
+        )}
+        {fetchError && !loading && (
+          <p style={{ color: '#71717a', fontSize: 13, textAlign: 'center', padding: '20px 0' }}>
+            Could not load results — try again later
+          </p>
+        )}
         {loading && <div className="spinner" />}
 
         {results.length > 0 && (
