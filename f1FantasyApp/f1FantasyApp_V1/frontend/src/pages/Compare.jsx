@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import { api } from '../api';
 import { getUser } from '../auth';
 import Navbar from '../components/Navbar';
@@ -9,6 +9,7 @@ import { teamColor } from '../constants/teamColors';
 
 export default function Compare() {
   const { leagueId } = useParams();
+  const [searchParams] = useSearchParams();
   const { id: currentUserId } = getUser();
   const [members, setMembers] = useState([]);
   const [standings, setStandings] = useState([]);
@@ -36,9 +37,14 @@ export default function Compare() {
       if (lb.latestRound) { setWeek(lb.latestRound); setLatestWeek(lb.latestRound); }
       // Auto-select current user as player 1
       setPlayer1(currentUserId);
-      // Auto-select top player as player 2 (or first that isn't current user)
-      const other = boards.find(s => s.userId !== currentUserId);
-      if (other) setPlayer2(other.userId);
+      // Use ?p2= param if present, otherwise default to top player that isn't current user
+      const p2Param = searchParams.get('p2');
+      if (p2Param && mems.some(m => m.userId === p2Param)) {
+        setPlayer2(p2Param);
+      } else {
+        const other = boards.find(s => s.userId !== currentUserId);
+        if (other) setPlayer2(other.userId);
+      }
     }).catch(console.error)
       .finally(() => setInitLoading(false));
   }, [leagueId, currentUserId]);

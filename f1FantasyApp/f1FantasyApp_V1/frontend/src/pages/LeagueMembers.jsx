@@ -195,7 +195,7 @@ export default function LeagueMembers() {
               key={m.userId}
               member={m}
               isYou={m.userId === currentUserId}
-              onCompare={() => navigate(`/leagues/${leagueId}/compare`)}
+              onCompare={() => navigate(`/leagues/${leagueId}/compare?p2=${m.userId}`)}
             />
           ))}
         </div>

@@ -14,18 +14,17 @@ export default function PriceWatch() {
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState('drivers'); // drivers | constructors
   const [sortBy, setSortBy] = useState('change'); // change | price | name
+  const [sortDir, setSortDir] = useState('desc');
 
   useEffect(() => {
-    // Load current week's prices
     Promise.all([
       api.getLeagues(),
-    ]).then(([leagues]) => {
+      api.getLeaderboard(leagueId).catch(() => null),
+    ]).then(([leagues, lb]) => {
       const l = leagues.find(l => l.id === leagueId);
-      if (l) {
-        setLeagueName(l.name);
-        // Start from the league's starting round
-        setWeek(l.startingRound || 1);
-      }
+      if (l) setLeagueName(l.name);
+      if (lb?.latestRound) setWeek(lb.latestRound);
+      else if (l) setWeek(l.startingRound || 1);
     }).catch(console.error)
       .finally(() => setLoading(false));
   }, [leagueId]);
@@ -83,14 +82,25 @@ export default function PriceWatch() {
 
   const items = tab === 'drivers' ? driverItems : ctorItems;
 
-  const sorted = [...items].sort((a, b) => {
-    if (sortBy === 'change') {
-      const ca = a.change ?? 0;
-      const cb = b.change ?? 0;
-      return Math.abs(cb) - Math.abs(ca);
+  function handleSort(key) {
+    if (sortBy === key) {
+      setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortBy(key);
+      setSortDir(key === 'name' ? 'asc' : 'desc');
     }
-    if (sortBy === 'price') return b.price - a.price;
-    return a.name.localeCompare(b.name);
+  }
+
+  const sorted = [...items].sort((a, b) => {
+    let cmp;
+    if (sortBy === 'change') {
+      cmp = Math.abs(b.change ?? 0) - Math.abs(a.change ?? 0);
+    } else if (sortBy === 'price') {
+      cmp = b.price - a.price;
+    } else {
+      cmp = a.name.localeCompare(b.name);
+    }
+    return sortDir === 'asc' ? -cmp : cmp;
   });
 
   const priceRanked = [...items].sort((a, b) => b.price - a.price);
@@ -154,43 +164,21 @@ export default function PriceWatch() {
           </div>
         )}
 
-        {/* Tabs + Sort */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-          <div style={{ display: 'flex', gap: 4 }}>
-            {['drivers', 'constructors'].map(t => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                style={{
-                  background: tab === t ? 'var(--red)' : 'rgba(255,255,255,0.05)',
-                  border: `1px solid ${tab === t ? 'var(--red)' : 'var(--border)'}`,
-                  borderRadius: 8, padding: '6px 16px', cursor: 'pointer',
-                  color: tab === t ? '#fff' : 'var(--text-3)',
-                  fontWeight: 700, fontSize: 13, fontFamily: 'inherit', textTransform: 'capitalize',
-                }}
-              >{t}</button>
-            ))}
-          </div>
-
-          <div style={{ display: 'flex', gap: 4 }}>
-            {[
-              { key: 'change', label: '± Change' },
-              { key: 'price', label: '$ Price' },
-              { key: 'name', label: 'A-Z' },
-            ].map(s => (
-              <button
-                key={s.key}
-                onClick={() => setSortBy(s.key)}
-                style={{
-                  background: sortBy === s.key ? 'rgba(255,255,255,0.1)' : 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6, padding: '4px 10px', cursor: 'pointer',
-                  color: sortBy === s.key ? '#fff' : 'var(--text-3)',
-                  fontWeight: 600, fontSize: 11, fontFamily: 'inherit',
-                }}
-              >{s.label}</button>
-            ))}
-          </div>
+        {/* Tabs */}
+        <div style={{ display: 'flex', gap: 4, marginBottom: 16 }}>
+          {['drivers', 'constructors'].map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              style={{
+                background: tab === t ? 'var(--red)' : 'rgba(255,255,255,0.05)',
+                border: `1px solid ${tab === t ? 'var(--red)' : 'var(--border)'}`,
+                borderRadius: 8, padding: '6px 16px', cursor: 'pointer',
+                color: tab === t ? '#fff' : 'var(--text-3)',
+                fontWeight: 700, fontSize: 13, fontFamily: 'inherit', textTransform: 'capitalize',
+              }}
+            >{t}</button>
+          ))}
         </div>
 
         {/* Price table */}
@@ -222,10 +210,18 @@ export default function PriceWatch() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ borderBottom: '1px solid var(--border)' }}>
-                  <th style={th}>Name</th>
+                  <th style={{ ...th, cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('name')}>
+                    Name {sortBy === 'name' ? (sortDir === 'asc' ? '▲' : '▼') : <span style={{ opacity: 0.3 }}>⇅</span>}
+                  </th>
                   <th style={th}>Team</th>
-                  <th style={{ ...th, textAlign: 'right' }}>Price</th>
-                  {prices?.prev && <th style={{ ...th, textAlign: 'right' }}>Change</th>}
+                  <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('price')}>
+                    Price {sortBy === 'price' ? (sortDir === 'asc' ? '▲' : '▼') : <span style={{ opacity: 0.3 }}>⇅</span>}
+                  </th>
+                  {prices?.prev && (
+                    <th style={{ ...th, textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => handleSort('change')}>
+                      Change {sortBy === 'change' ? (sortDir === 'asc' ? '▲' : '▼') : <span style={{ opacity: 0.3 }}>⇅</span>}
+                    </th>
+                  )}
                   {prices?.prev && <th style={{ ...th, textAlign: 'right' }}>Prev</th>}
                 </tr>
               </thead>

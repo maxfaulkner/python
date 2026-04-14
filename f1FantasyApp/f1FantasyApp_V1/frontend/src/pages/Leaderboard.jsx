@@ -16,8 +16,8 @@ export default function Leaderboard() {
   const [leagueName, setLeagueName] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [viewingTeam, setViewingTeam] = useState(null);
-  const [teamLoading, setTeamLoading] = useState(false);
+  const [expandedTeams, setExpandedTeams] = useState(new Map());
+  const [loadingTeams, setLoadingTeams] = useState(new Set());
   const [week, setWeek] = useState(1);
   const [checking, setChecking] = useState(false);
   const [isRaceWeekend, setIsRaceWeekend] = useState(false);
@@ -86,22 +86,25 @@ export default function Leaderboard() {
   }
 
   async function viewTeam(userId, userName) {
-    if (viewingTeam?.userId === userId) { setViewingTeam(null); return; }
-    setTeamLoading(true);
+    if (expandedTeams.has(userId)) {
+      setExpandedTeams(prev => { const m = new Map(prev); m.delete(userId); return m; });
+      return;
+    }
+    setLoadingTeams(prev => new Set([...prev, userId]));
     try {
       const team = await api.getPlayerTeam(leagueId, week, userId);
-      setViewingTeam({ userId, userName, team });
+      setExpandedTeams(prev => new Map([...prev, [userId, { userId, userName, team }]]));
     } catch {
-      setViewingTeam({ userId, userName, team: null });
+      setExpandedTeams(prev => new Map([...prev, [userId, { userId, userName, team: null }]]));
     } finally {
-      setTeamLoading(false);
+      setLoadingTeams(prev => { const s = new Set(prev); s.delete(userId); return s; });
     }
   }
 
   function changeWeek(delta) {
     const next = Math.max(1, week + delta);
     setWeek(next);
-    setViewingTeam(null);
+    setExpandedTeams(new Map());
   }
 
   useEffect(() => {
@@ -269,7 +272,7 @@ export default function Leaderboard() {
           <span style={{ fontSize: 16, fontWeight: 800, color: '#fafafa', fontFamily: "'Barlow Condensed', sans-serif" }}>
             {week}
           </span>
-          {teamLoading && <span className="spinner-sm" />}
+          {loadingTeams.size > 0 && <span className="spinner-sm" />}
         </div>
         <div style={{ display: 'flex', gap: 4 }}>
           <button
@@ -348,7 +351,8 @@ export default function Leaderboard() {
             <tbody>
               {standings.map((user, i) => {
                 const isYou = user.userId === currentUser?.id;
-                const isExpanded = viewingTeam?.userId === user.userId;
+                const isExpanded = expandedTeams.has(user.userId);
+                const isTeamLoading = loadingTeams.has(user.userId);
                 const colSpan = hasResults ? 6 : 2;
                 return (
                   <>
@@ -433,10 +437,10 @@ export default function Leaderboard() {
                             border: `1px solid ${isExpanded ? 'transparent' : 'rgba(255,255,255,0.09)'}`,
                             borderRadius: 7, padding: '4px 12px',
                             cursor: 'pointer', fontSize: 12, fontWeight: 600,
-                            fontFamily: 'inherit', transition: 'all 0.15s',
+                            fontFamily: 'inherit', transition: 'all 0.15s', minWidth: 72,
                           }}
                         >
-                          {isExpanded ? 'Hide ▲' : 'View ▼'}
+                          {isTeamLoading ? <span className="spinner-sm" /> : isExpanded ? 'Hide ▲' : 'View ▼'}
                         </button>
                       </td>
                     </tr>
@@ -447,12 +451,8 @@ export default function Leaderboard() {
                           background: '#1e1e22', padding: '4px 18px 18px',
                           borderBottom: '1px solid rgba(255,255,255,0.06)',
                         }}>
-                          {teamLoading ? (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#71717a', padding: '12px 0', fontSize: 13 }}>
-                              <span className="spinner-sm" />Loading team…
-                            </div>
-                          ) : viewingTeam?.team ? (
-                            <TeamCard team={viewingTeam.team} userName={user.userName} />
+                          {expandedTeams.get(user.userId)?.team ? (
+                            <TeamCard team={expandedTeams.get(user.userId).team} userName={user.userName} />
                           ) : (
                             <p style={{ color: '#52525b', margin: '12px 0', fontSize: 13 }}>
                               No team submitted for Round {week}.
@@ -541,9 +541,6 @@ function TeamCard({ team, userName }) {
               </div>
               <div style={{ fontSize: 10, color: '#71717a' }}>{td.driver?.constructor?.name}</div>
               <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-                {td.pricePaidPerPoint != null && (
-                  <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${td.pricePaidPerPoint.toFixed(1)}M</span>
-                )}
                 {td.roundPoints != null && (
                   <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: td.roundPoints > 0 ? '#22c55e' : td.roundPoints < 0 ? '#f87171' : '#52525b' }}>
                     {td.roundPoints > 0 ? '+' : ''}{td.roundPoints}
@@ -562,9 +559,6 @@ function TeamCard({ team, userName }) {
             <div style={{ fontWeight: 600, fontSize: 12, color: '#fafafa' }}>{team.constructors[0].constructor?.name}</div>
             <div style={{ fontSize: 10, color: '#e10600' }}>Constructor</div>
             <div style={{ display: 'flex', gap: 6, marginTop: 3, alignItems: 'center' }}>
-              {team.constructors[0].pricePaidPerPoint != null && (
-                <span style={{ fontSize: 9, color: '#52525b', fontWeight: 600 }}>${team.constructors[0].pricePaidPerPoint.toFixed(1)}M</span>
-              )}
               {team.constructors[0].roundPoints != null && (
                 <span style={{ fontSize: 10, fontWeight: 800, fontFamily: "'Barlow Condensed', sans-serif", color: team.constructors[0].roundPoints > 0 ? '#22c55e' : '#52525b' }}>
                   {team.constructors[0].roundPoints > 0 ? '+' : ''}{team.constructors[0].roundPoints}

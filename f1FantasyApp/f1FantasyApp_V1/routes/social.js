@@ -279,10 +279,10 @@ router.get('/leagues/:leagueId/stats', async (req, res) => {
     for (const team of teams) {
       const driverIds = team.drivers.map(d => d.driverId);
       const results = await prisma.raceResult.findMany({
-        where: { leagueId, week: team.week, driverId: { in: driverIds } },
+        where: { week: team.week, driverId: { in: driverIds } },
       });
       const conResult = team.constructors[0] ? await prisma.constructorRaceResult.findFirst({
-        where: { leagueId, week: team.week, constructorId: team.constructors[0].constructorId },
+        where: { week: team.week, constructorId: team.constructors[0].constructorId },
       }) : null;
 
       let points = results.reduce((s, r) => s + r.points, 0);
