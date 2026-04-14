@@ -333,6 +333,13 @@ router.get('/leagues/:leagueId/stats', async (req, res) => {
     const worstRound = roundData.filter(r => r.points >= 0).reduce((worst, r) => r.points < (worst?.points ?? Infinity) ? r : worst, null);
     const avgPoints = roundData.length > 0 ? Math.round(totalPoints / roundData.length) : 0;
 
+    // If no rounds played, check whether results exist at all so the UI can show the right message
+    let resultsExist = false;
+    if (roundData.length === 0) {
+      const anyResult = await prisma.raceResult.findFirst({ select: { id: true } });
+      resultsExist = !!anyResult;
+    }
+
     res.json({
       leagueId,
       userId,
@@ -342,6 +349,7 @@ router.get('/leagues/:leagueId/stats', async (req, res) => {
       bestRound,
       worstRound,
       rounds: roundData,
+      resultsExist,
     });
   } catch (error) {
     console.error('Stats error:', error);

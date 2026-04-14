@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, Link } from 'react-router-dom';
 import { api } from '../api';
 import Navbar from '../components/Navbar';
 import LeagueNav from '../components/LeagueNav';
@@ -220,17 +220,41 @@ export default function Stats() {
     </div>
   );
 
-  if (!stats || stats.roundsPlayed === 0) return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
-      <Navbar />
-      <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 16px', textAlign: 'center' }}>
-        <div style={{ fontSize: 48, marginBottom: 16 }}>📊</div>
-        <h2 style={{ color: '#fff', fontFamily: 'var(--font-display)' }}>No Stats Yet</h2>
-        <p style={{ color: 'rgba(255,255,255,0.5)' }}>Stats will appear after your first race result is imported.</p>
+  if (!stats || stats.roundsPlayed === 0) {
+    const hasResults = stats?.resultsExist;
+    return (
+      <div style={{ minHeight: '100vh', background: 'var(--bg-root)' }}>
+        <Navbar />
+        <LeagueNav leagueId={leagueId} week={1} leagueName={leagueName} />
+        <div style={{ maxWidth: 800, margin: '0 auto', padding: '40px 16px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>{hasResults ? '🏎️' : '📊'}</div>
+          <h2 style={{ color: '#fff', fontFamily: 'var(--font-display)' }}>No Stats Yet</h2>
+          {hasResults ? (
+            <>
+              <p style={{ color: 'rgba(255,255,255,0.5)', marginBottom: 20 }}>
+                Race results are in, but you haven't submitted a team for any rounds in this league yet.
+              </p>
+              <Link
+                to={`/leagues/${leagueId}/pick`}
+                style={{
+                  display: 'inline-block',
+                  background: '#e10600', color: '#fff',
+                  padding: '10px 24px', borderRadius: 10,
+                  fontWeight: 700, fontSize: 14, textDecoration: 'none',
+                }}
+              >
+                Pick your team →
+              </Link>
+            </>
+          ) : (
+            <p style={{ color: 'rgba(255,255,255,0.5)' }}>
+              Stats will appear after your first race result is imported.
+            </p>
+          )}
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
 
   const barData = stats.rounds.map(r => ({ label: r.week, value: r.points, highlight: r.week === stats.bestRound?.week }));
 
