@@ -1,0 +1,1116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Misfit Media Interactive — Pitch Deck</title>
+
+  <!-- Reveal.js (CDN) -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reset.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.css" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&display=swap" />
+
+  <style>
+    /* =====================================================================
+       DESIGN TOKENS — mirrors tokens.css from the main site
+    ===================================================================== */
+    :root {
+      --color-bg:           #09000F;
+      --color-surface:      #130020;
+      --color-surface-2:    #1E0035;
+      --color-purple-deep:  #3D0059;
+      --color-purple-mid:   #7B2FBE;
+      --color-purple-light: #A855F7;
+      --color-magenta:      #C026D3;
+      --color-text:         #F0E8FF;
+      --color-text-muted:   #A88CC0;
+      --color-text-subtle:  #6B4F8A;
+      --color-border:       #3D1A5E;
+
+      --gradient-cta:    linear-gradient(135deg, #7B2FBE 0%, #C026D3 100%);
+      --gradient-card:   linear-gradient(145deg, #1E0035 0%, #130020 100%);
+
+      --font-display: 'Space Grotesk', sans-serif;
+      --font-body:    'Inter', sans-serif;
+    }
+
+    /* =====================================================================
+       REVEAL OVERRIDES
+    ===================================================================== */
+    .reveal-viewport {
+      background: var(--color-bg);
+    }
+
+    .reveal {
+      font-family: var(--font-body);
+      font-size: 18px;
+      color: var(--color-text);
+    }
+
+    /* Progress bar */
+    .reveal .progress {
+      color: var(--color-magenta);
+      height: 3px;
+    }
+
+    /* Slide numbers */
+    .reveal .slide-number {
+      background: transparent;
+      color: var(--color-text-subtle);
+      font-family: var(--font-display);
+      font-size: 11px;
+      letter-spacing: 0.1em;
+      bottom: 20px;
+      right: 28px;
+    }
+
+    /* Controls */
+    .reveal .controls button {
+      color: var(--color-text-subtle);
+    }
+
+    /* =====================================================================
+       GLOBAL SLIDE STYLES
+    ===================================================================== */
+    .reveal .slides section {
+      height: 100%;
+      box-sizing: border-box;
+      text-align: left;
+      padding: 60px 72px;
+      display: flex !important;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    /* Reset Reveal's default heading styles */
+    .reveal h1, .reveal h2, .reveal h3, .reveal h4 {
+      font-family: var(--font-display);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      color: var(--color-text);
+      text-transform: none;
+      margin: 0;
+    }
+
+    .reveal p {
+      margin: 0;
+      line-height: 1.6;
+    }
+
+    .reveal ul {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    /* =====================================================================
+       REUSABLE COMPONENTS
+    ===================================================================== */
+
+    /* Eyebrow label */
+    .eyebrow {
+      font-family: var(--font-display);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: var(--color-magenta);
+      display: block;
+      margin-bottom: 20px;
+    }
+
+    /* Gradient text */
+    .grad {
+      background: var(--gradient-cta);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    /* Fuchsia bullet dot */
+    .dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--gradient-cta);
+      flex-shrink: 0;
+      margin-top: 7px;
+    }
+
+    /* Card base */
+    .card {
+      background: var(--gradient-card);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      padding: 28px 28px;
+    }
+
+    /* Divider line */
+    .rule {
+      width: 48px;
+      height: 2px;
+      background: var(--gradient-cta);
+      margin-bottom: 28px;
+      border: none;
+    }
+
+    /* =====================================================================
+       BACKGROUNDS
+    ===================================================================== */
+
+    /* Full bokeh bg */
+    .bg-bokeh {
+      background-image: url('../assets/images/bokeh-gradient.jpeg') !important;
+      background-size: cover !important;
+      background-position: center !important;
+    }
+    .bg-bokeh::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(160deg, rgba(9,0,15,0.80) 0%, rgba(61,0,89,0.72) 100%);
+      z-index: 0;
+    }
+
+    /* Wide bokeh bg */
+    .bg-bokeh-wide {
+      background-image: url('../assets/images/bokeh-wide.jpeg') !important;
+      background-size: cover !important;
+      background-position: center !important;
+    }
+    .bg-bokeh-wide::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 0, 15, 0.82);
+      z-index: 0;
+    }
+
+    /* Smoke bg */
+    .bg-smoke {
+      background-image: url('../assets/images/smoke-dark.jpeg') !important;
+      background-size: cover !important;
+      background-position: center !important;
+    }
+    .bg-smoke::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: rgba(9, 0, 15, 0.78);
+      z-index: 0;
+    }
+
+    /* Dark surface */
+    .bg-surface {
+      background: var(--color-surface) !important;
+    }
+
+    /* Purple gradient surface */
+    .bg-purple {
+      background: linear-gradient(135deg, #1E0035 0%, #3D0059 100%) !important;
+    }
+
+    /* Ensure content sits above pseudo-element overlays */
+    .bg-bokeh > *,
+    .bg-bokeh-wide > *,
+    .bg-smoke > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* =====================================================================
+       SLIDE 1 — TITLE
+    ===================================================================== */
+    .slide-title {
+      align-items: flex-start;
+      justify-content: flex-end !important;
+      padding-bottom: 80px !important;
+    }
+
+    .slide-title .logo {
+      position: absolute;
+      top: 48px;
+      left: 72px;
+      height: 32px;
+      width: auto;
+      filter: brightness(0) invert(1);
+      z-index: 2;
+    }
+
+    .slide-title h1 {
+      font-size: clamp(2.2rem, 4.5vw, 3.8rem);
+      max-width: 14ch;
+      color: #fff;
+    }
+
+    .slide-title .sub {
+      font-size: 1.1rem;
+      color: rgba(240,232,255,0.65);
+      max-width: 52ch;
+      margin-top: 20px;
+      line-height: 1.65;
+    }
+
+    /* =====================================================================
+       SLIDE 2 — PROBLEM
+    ===================================================================== */
+    .slide-problem .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2px;
+      background: var(--color-border);
+      border: 1px solid var(--color-border);
+      border-radius: 16px;
+      overflow: hidden;
+      margin-top: 32px;
+    }
+
+    .slide-problem .col {
+      padding: 36px 32px;
+    }
+
+    .slide-problem .col-left  { background: var(--color-surface); }
+    .slide-problem .col-right { background: linear-gradient(135deg, #1E0035, #3D0059); }
+
+    .slide-problem .col-label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .slide-problem .col-left  .col-label { color: var(--color-text-subtle); }
+    .slide-problem .col-right .col-label { color: rgba(240,232,255,0.45); }
+
+    .slide-problem .item {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 14px;
+      align-items: flex-start;
+    }
+
+    .slide-problem .item-icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .slide-problem .col-left  .item-icon { color: var(--color-text-subtle); }
+    .slide-problem .col-right .item-icon { color: var(--color-magenta); }
+
+    .slide-problem .item-text {
+      font-size: 0.95rem;
+      color: var(--color-text-muted);
+      line-height: 1.4;
+    }
+
+    .slide-problem .col-right .item-text { color: var(--color-text); }
+
+    /* =====================================================================
+       SLIDE 3 — SERVICES
+    ===================================================================== */
+    .slide-services .grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      margin-top: 32px;
+    }
+
+    .slide-services .service-card {
+      background: var(--gradient-card);
+      border: 1px solid var(--color-border);
+      border-radius: 14px;
+      padding: 28px 24px;
+    }
+
+    .slide-services .service-icon {
+      width: 40px;
+      height: 40px;
+      color: var(--color-magenta);
+      margin-bottom: 14px;
+    }
+
+    .slide-services .service-title {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text);
+      line-height: 1.25;
+      margin-bottom: 8px;
+      letter-spacing: -0.02em;
+    }
+
+    .slide-services .service-desc {
+      font-size: 0.82rem;
+      color: var(--color-text-muted);
+      line-height: 1.55;
+    }
+
+    /* =====================================================================
+       SLIDE 4 — PROCESS
+    ===================================================================== */
+    .slide-process .steps {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-top: 40px;
+    }
+
+    .slide-process .step {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .slide-process .step-num {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      border: 1.5px solid var(--color-border);
+      background: var(--color-surface);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      color: var(--color-purple-light);
+      margin-bottom: 16px;
+    }
+
+    .slide-process .step-title {
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--color-text);
+      margin-bottom: 8px;
+      line-height: 1.2;
+    }
+
+    .slide-process .step-desc {
+      font-size: 0.78rem;
+      color: var(--color-text-muted);
+      line-height: 1.5;
+    }
+
+    .slide-process .closing {
+      margin-top: 40px;
+      text-align: center;
+      font-family: var(--font-display);
+      font-size: 1.15rem;
+      font-style: italic;
+      font-weight: 700;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+      padding: 20px 0;
+      border-top: 1px solid var(--color-border);
+    }
+
+    .slide-process .closing::before { content: '\201C'; color: var(--color-magenta); margin-right: 4px; }
+    .slide-process .closing::after  { content: '\201D'; color: var(--color-magenta); margin-left: 4px; }
+
+    /* =====================================================================
+       SLIDE 5 — AUDIENCE
+    ===================================================================== */
+    .slide-audience .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin-top: 36px;
+    }
+
+    .slide-audience .col-card {
+      border-radius: 14px;
+      padding: 32px 28px;
+    }
+
+    .slide-audience .good { background: linear-gradient(135deg, #1E0035, #3D0059); }
+    .slide-audience .pass { background: var(--color-surface); }
+
+    .slide-audience .col-label {
+      font-family: var(--font-display);
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    .slide-audience .good .col-label { color: var(--color-magenta); }
+    .slide-audience .pass .col-label { color: var(--color-text-subtle); }
+
+    .slide-audience .aud-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 12px;
+      align-items: flex-start;
+    }
+
+    .slide-audience .aud-icon { flex-shrink: 0; margin-top: 2px; }
+    .slide-audience .good .aud-icon { color: var(--color-magenta); }
+    .slide-audience .pass .aud-icon { color: var(--color-text-subtle); }
+
+    .slide-audience .aud-text {
+      font-size: 0.9rem;
+      line-height: 1.4;
+    }
+
+    .slide-audience .good .aud-text { color: var(--color-text); }
+    .slide-audience .pass .aud-text { color: var(--color-text-muted); }
+
+    /* =====================================================================
+       SLIDE 6 — ABOUT
+    ===================================================================== */
+    .slide-about .about-grid {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      gap: 48px;
+      margin-top: 16px;
+      align-items: start;
+    }
+
+    .slide-about .profile-photo {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 2px solid var(--color-border);
+      background: linear-gradient(135deg, #1E0035, #3D0059);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+      margin-bottom: 16px;
+    }
+
+    .slide-about .profile-photo svg {
+      width: 56px;
+      height: 56px;
+      color: var(--color-purple-mid);
+    }
+
+    .slide-about .profile-name {
+      font-family: var(--font-display);
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .slide-about .profile-role {
+      font-size: 0.8rem;
+      color: var(--color-text-muted);
+      margin-top: 4px;
+    }
+
+    .slide-about .pull-quote {
+      font-family: var(--font-display);
+      font-size: 1.45rem;
+      font-weight: 700;
+      line-height: 1.2;
+      letter-spacing: -0.03em;
+      color: var(--color-text);
+      margin-bottom: 20px;
+    }
+
+    .slide-about .bio {
+      font-size: 0.88rem;
+      color: var(--color-text-muted);
+      line-height: 1.65;
+      margin-bottom: 20px;
+    }
+
+    .slide-about .principles {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .slide-about .principle {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--color-text);
+    }
+
+    .slide-about .clients {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .slide-about .client-tag {
+      font-family: var(--font-display);
+      font-size: 0.7rem;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 5px 12px;
+      border: 1px solid var(--color-border);
+      border-radius: 999px;
+      color: var(--color-text-muted);
+      background: var(--color-surface);
+    }
+
+    /* =====================================================================
+       SLIDE 7 — CTA
+    ===================================================================== */
+    .slide-cta {
+      align-items: flex-start;
+      justify-content: flex-end !important;
+      padding-bottom: 80px !important;
+    }
+
+    .slide-cta .logo {
+      position: absolute;
+      top: 48px;
+      left: 72px;
+      height: 32px;
+      width: auto;
+      filter: brightness(0) invert(1);
+      z-index: 2;
+    }
+
+    .slide-cta h2 {
+      font-size: clamp(2rem, 4vw, 3.4rem);
+      max-width: 16ch;
+      color: #fff;
+    }
+
+    .slide-cta .tagline {
+      font-size: 1.1rem;
+      color: rgba(240,232,255,0.65);
+      margin-top: 16px;
+      margin-bottom: 36px;
+    }
+
+    .slide-cta .contact-row {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .slide-cta .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: var(--font-display);
+      font-size: 0.95rem;
+      color: var(--color-text-muted);
+    }
+
+    .slide-cta .contact-item svg {
+      color: var(--color-magenta);
+      flex-shrink: 0;
+    }
+
+    /* =====================================================================
+       SLIDE HEADER — shared across content slides
+    ===================================================================== */
+    .slide-header {
+      margin-bottom: 0;
+    }
+
+    .slide-headline {
+      font-size: clamp(1.6rem, 2.8vw, 2.4rem);
+      letter-spacing: -0.03em;
+    }
+
+    /* =====================================================================
+       PRINT / PDF EXPORT
+       File → Print → Save as PDF in browser (use landscape, no margins)
+    ===================================================================== */
+    @media print {
+      .reveal .slides section {
+        page-break-after: always;
+      }
+      .reveal .controls,
+      .reveal .progress,
+      .reveal .slide-number {
+        display: none !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="reveal">
+  <div class="slides">
+
+
+    <!-- ===================================================================
+         SLIDE 1 — TITLE
+    =================================================================== -->
+    <section class="slide-title bg-bokeh" data-background-opacity="1">
+
+      <img class="logo"
+           src="../assets/images/logo-horizontal.png"
+           alt="Misfit Media Interactive" />
+
+      <div>
+        <span class="eyebrow">Misfit Media Interactive</span>
+        <h1>
+          Built for ideas that<br />
+          <span class="grad">don't fit the template.</span>
+        </h1>
+        <p class="sub">
+          Strategy, marketing, events, and communications
+          for brands that refuse to blend in.
+        </p>
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 2 — THE PROBLEM & ADVANTAGE
+    =================================================================== -->
+    <section class="slide-problem bg-smoke" data-background-opacity="1">
+
+      <div class="slide-header">
+        <span class="eyebrow">The Situation</span>
+        <h2 class="slide-headline">Most agencies flatten what makes you different.</h2>
+      </div>
+
+      <div class="split">
+
+        <div class="col col-left">
+          <span class="col-label">The Problem</span>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="item-text">Your idea doesn't fit agency playbooks.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="item-text">You're tired of sounding like everyone else.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="item-text">You don't want trend-chasing or recycled tactics.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="item-text">You're building something different — but execution keeps flattening it.</span>
+          </div>
+        </div>
+
+        <div class="col col-right">
+          <span class="col-label">The Misfit Advantage</span>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="item-text">Clarity before creativity.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="item-text">Strategy before scale.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="item-text">Differentiation baked into execution.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="item-text">Systems designed around you, not the industry average.</span>
+          </div>
+
+          <div class="item">
+            <span class="item-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="item-text">Standing out isn't a personality trait — it's a strategy.</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 3 — SERVICES
+    =================================================================== -->
+    <section class="slide-services" style="background: var(--color-bg);">
+
+      <div class="slide-header">
+        <span class="eyebrow">What We Do</span>
+        <h2 class="slide-headline">Different ideas need different blueprints.</h2>
+      </div>
+
+      <div class="grid">
+
+        <div class="service-card">
+          <div class="service-icon">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="20" cy="20" r="15"/>
+              <circle cx="20" cy="20" r="3" fill="currentColor"/>
+              <line x1="20" y1="5"  x2="20" y2="11"/>
+              <line x1="20" y1="29" x2="20" y2="35"/>
+              <line x1="5"  y1="20" x2="11" y2="20"/>
+              <line x1="29" y1="20" x2="35" y2="20"/>
+            </svg>
+          </div>
+          <div class="service-title">Strategy &amp; Direction for Outliers</div>
+          <div class="service-desc">Positioning and planning built around what makes you genuinely different — not what worked for someone else last quarter.</div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="20" cy="23" r="4"/>
+              <path d="M13 16 a10 10 0 0 1 14 0"/>
+              <path d="M8 11  a18 18 0 0 1 24 0"/>
+              <line x1="20" y1="27" x2="20" y2="34"/>
+              <line x1="15" y1="34" x2="25" y2="34"/>
+            </svg>
+          </div>
+          <div class="service-title">Marketing That Refuses to Blend In</div>
+          <div class="service-desc">Multi-channel campaigns and brand messaging designed to be memorable — not just present.</div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="6" y="9"  width="28" height="24" rx="3"/>
+              <line x1="6"  y1="17" x2="34" y2="17"/>
+              <line x1="14" y1="6"  x2="14" y2="12"/>
+              <line x1="26" y1="6"  x2="26" y2="12"/>
+              <polyline points="16,24 19,27 24,22"/>
+            </svg>
+          </div>
+          <div class="service-title">Events That Feel Intentional, Not Imitative</div>
+          <div class="service-desc">From concept through execution — events that feel like an extension of your brand, not a borrowed template.</div>
+        </div>
+
+        <div class="service-card">
+          <div class="service-icon">
+            <svg viewBox="0 0 40 40" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="20,6 34,14 20,22 6,14" fill="currentColor" opacity="0.1"/>
+              <polyline points="6,14 20,22 34,14"/>
+              <polyline points="6,20 20,28 34,20"/>
+              <polyline points="6,26 20,34 34,26"/>
+            </svg>
+          </div>
+          <div class="service-title">Communications Built for Scale, Not Burnout</div>
+          <div class="service-desc">Systems and messaging frameworks that grow with you — without burning out your team.</div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 4 — PROCESS
+    =================================================================== -->
+    <section class="slide-process bg-bokeh-wide" data-background-opacity="1">
+
+      <div class="slide-header">
+        <span class="eyebrow">How It Works</span>
+        <h2 class="slide-headline">We don't plug you in. We build around you.</h2>
+      </div>
+
+      <div class="steps">
+
+        <div class="step">
+          <div class="step-num">01</div>
+          <div class="step-title">Find the Friction</div>
+          <div class="step-desc">We start where most skip — understanding what's getting in the way of your idea landing.</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">02</div>
+          <div class="step-title">Define the Edge</div>
+          <div class="step-desc">Your differentiation gets named, sharpened, and turned into a strategic foundation.</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">03</div>
+          <div class="step-title">Build the Starting Point</div>
+          <div class="step-desc">We build the systems, strategies, and assets that give your brand real traction.</div>
+        </div>
+
+        <div class="step">
+          <div class="step-num">04</div>
+          <div class="step-title">Make You Self-Sufficient</div>
+          <div class="step-desc">The handoff is part of the plan. You leave with what you need to move confidently.</div>
+        </div>
+
+      </div>
+
+      <div class="closing">
+        The goal isn't to need us forever. It's to outgrow us on purpose.
+      </div>
+
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 5 — WHO THIS IS FOR
+    =================================================================== -->
+    <section class="slide-audience" style="background: var(--color-surface);">
+
+      <div class="slide-header">
+        <span class="eyebrow">Who This Is For</span>
+        <h2 class="slide-headline">Built for a specific kind of founder.</h2>
+      </div>
+
+      <div class="two-col">
+
+        <div class="col-card good">
+          <span class="col-label">A Good Fit</span>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="aud-text">Ideas that don't fit a tidy category.</span>
+          </div>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="aud-text">Brands that value clarity over hype.</span>
+          </div>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="aud-text">Founders who want to be recognizable, not generic.</span>
+          </div>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="2,8 6,12 14,4"/>
+              </svg>
+            </span>
+            <span class="aud-text">Builders who know differentiation is a strategy, not a personality trait.</span>
+          </div>
+        </div>
+
+        <div class="col-card pass">
+          <span class="col-label">Probably Not a Fit</span>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="aud-text">Those seeking cookie-cutter retainers.</span>
+          </div>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="aud-text">Brands looking to copy what's already trending.</span>
+          </div>
+
+          <div class="aud-item">
+            <span class="aud-icon">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                <line x1="3" y1="3" x2="13" y2="13"/><line x1="13" y1="3" x2="3" y2="13"/>
+              </svg>
+            </span>
+            <span class="aud-text">Anyone who just wants more noise, not more clarity.</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 6 — ABOUT TAYLOR
+    =================================================================== -->
+    <section class="slide-about" style="background: var(--color-bg);">
+
+      <span class="eyebrow">About</span>
+
+      <div class="about-grid">
+
+        <div>
+          <div class="profile-photo">
+            <!--
+              PHOTO: Replace this SVG with:
+              <img src="../assets/images/taylor-bedell.jpg"
+                   alt="Taylor Bedell"
+                   style="width:100%;height:100%;object-fit:cover;" />
+            -->
+            <svg viewBox="0 0 56 56" fill="none" stroke="currentColor" stroke-width="1.5">
+              <circle cx="28" cy="20" r="10"/>
+              <path d="M8 50 c0-11 8-18 20-18 s20 7 20 18"/>
+            </svg>
+          </div>
+          <div class="profile-name">Taylor Bedell</div>
+          <div class="profile-role">Founder &amp; Head Misfit</div>
+        </div>
+
+        <div>
+          <div class="pull-quote">
+            Built by someone who believes <span class="grad">different is powerful</span> when it's intentional.
+          </div>
+
+          <p class="bio">
+            10+ years driving brand growth across motorsports, media, and technology.
+            Taylor has built and led high-impact campaigns for established organizations and
+            fast-moving startups — generating revenue through emerging platforms and turning
+            unconventional ideas into measurable results.
+          </p>
+
+          <div class="principles">
+            <div class="principle">
+              <span class="dot"></span>
+              Systems protect creativity.
+            </div>
+            <div class="principle">
+              <span class="dot"></span>
+              Clarity beats noise.
+            </div>
+          </div>
+
+          <div style="margin-bottom:10px; font-family:var(--font-display); font-size:10px; font-weight:700; letter-spacing:0.18em; text-transform:uppercase; color:var(--color-text-subtle);">
+            Past Clients Include
+          </div>
+          <div class="clients">
+            <span class="client-tag">Porsche Motorsports North America</span>
+            <span class="client-tag">Ferrari Beverly Hills</span>
+            <span class="client-tag">Centinel Spine</span>
+            <span class="client-tag">SRO Motorsports America</span>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+
+    <!-- ===================================================================
+         SLIDE 7 — LET'S TALK
+    =================================================================== -->
+    <section class="slide-cta bg-bokeh" data-background-opacity="1">
+
+      <img class="logo"
+           src="../assets/images/logo-horizontal.png"
+           alt="Misfit Media Interactive" />
+
+      <div>
+        <span class="eyebrow">Let's Talk</span>
+        <h2>
+          Let's turn your misfit idea<br />
+          <span class="grad">into momentum.</span>
+        </h2>
+        <p class="tagline">No fluff. No pretending. Just clarity.</p>
+
+        <div class="contact-row">
+          <div class="contact-item">
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="1" y="3" width="14" height="10" rx="2"/>
+              <polyline points="1,3 8,9 15,3"/>
+            </svg>
+            bedell.taylor@gmail.com
+          </div>
+          <!--
+            LINKEDIN: Replace the text below with your actual LinkedIn URL
+          -->
+          <div class="contact-item">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+              <rect x="2" y="9" width="4" height="12"/>
+              <circle cx="4" cy="4" r="2"/>
+            </svg>
+            linkedin.com/in/taylorbedell
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+
+  </div><!-- /.slides -->
+</div><!-- /.reveal -->
+
+<!-- Reveal.js -->
+<script src="https://cdn.jsdelivr.net/npm/reveal.js@5.1.0/dist/reveal.js"></script>
+<script>
+  Reveal.initialize({
+    hash: true,
+    slideNumber: true,
+    transition: 'fade',
+    transitionSpeed: 'slow',
+    backgroundTransition: 'fade',
+    width: 1280,
+    height: 720,
+    margin: 0,
+    controls: true,
+    progress: true,
+    center: false,
+    // PDF export: append ?print-pdf to URL, then File → Print → Save as PDF
+    // Use landscape orientation, no margins, background graphics enabled
+  });
+</script>
+
+</body>
+</html>

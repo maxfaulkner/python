@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Misfit Media Interactive — Strategy, marketing, events, and communications for brands that refuse to blend in. Built for ideas that don't fit the template." />
+  <meta name="author" content="Taylor Bedell" />
+
+  <!-- Open Graph -->
+  <meta property="og:title"       content="Misfit Media Interactive" />
+  <meta property="og:description" content="Built for ideas that don't fit the template." />
+  <meta property="og:type"        content="website" />
+  <meta property="og:image"       content="assets/images/logo-horizontal.png" />
+
+  <title>Misfit Media Interactive</title>
+
+  <!-- Favicon: logo mark -->
+  <link rel="icon" type="image/png" href="assets/images/logo-mark.png" />
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Inter:wght@400;500&display=swap" />
+
+  <!-- Styles (order matters: tokens first, then reset, then main) -->
+  <link rel="stylesheet" href="css/tokens.css" />
+  <link rel="stylesheet" href="css/reset.css" />
+  <link rel="stylesheet" href="css/main.css" />
+
+  <!-- Inline form-status styles (small enough to inline) -->
+  <style>
+    .form-status {
+      font-size: 0.875rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      text-align: center;
+      margin-top: 0.5rem;
+    }
+    .form-status--success { background: rgba(16,185,129,0.1); color: #6EE7B7; }
+    .form-status--error   { background: rgba(239,68,68,0.1);  color: #FCA5A5; }
+    .form-status--info    { background: rgba(123,47,190,0.1); color: #A855F7; }
+  </style>
+</head>
+
+<body>
+
+  <!-- ======================================================================
+       NAV
+  ====================================================================== -->
+  <header>
+    <nav class="nav" aria-label="Main navigation">
+      <div class="container">
+        <div class="nav__inner">
+
+          <!-- Logo -->
+          <a class="nav__logo" href="#hero" aria-label="Misfit Media Interactive — Home">
+            <img src="assets/images/logo-horizontal.png"
+                 alt="Misfit Media Interactive"
+                 width="180" height="37" />
+          </a>
+
+          <!-- Desktop links -->
+          <ul class="nav__links" role="list">
+            <li><a class="nav__link" href="#services"  data-section="services">Services</a></li>
+            <li><a class="nav__link" href="#process"   data-section="process">Process</a></li>
+            <li><a class="nav__link" href="#about"     data-section="about">About</a></li>
+            <li><a class="nav__link" href="#contact"   data-section="contact">Contact</a></li>
+          </ul>
+
+          <!-- CTA -->
+          <div class="nav__cta">
+            <a class="btn btn-primary" href="#contact">Let's Talk</a>
+          </div>
+
+          <!-- Hamburger (mobile) -->
+          <button class="nav__hamburger"
+                  aria-label="Open navigation menu"
+                  aria-expanded="false"
+                  aria-controls="mobile-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+          </button>
+
+        </div>
+      </div>
+    </nav>
+
+    <!-- Mobile menu overlay -->
+    <nav class="nav__mobile" id="mobile-menu" aria-label="Mobile navigation">
+      <a class="nav__mobile-link" href="#services">Services</a>
+      <a class="nav__mobile-link" href="#process">Process</a>
+      <a class="nav__mobile-link" href="#about">About</a>
+      <a class="nav__mobile-link" href="#contact">Contact</a>
+      <a class="btn btn-primary" href="#contact" style="margin-top:1rem;">Let's Talk</a>
+    </nav>
+  </header>
+
+
+  <!-- ======================================================================
+       HERO
+  ====================================================================== -->
+  <section id="hero" class="hero">
+    <div class="hero__bg" role="presentation" aria-hidden="true"></div>
+    <div class="hero__overlay" aria-hidden="true"></div>
+
+    <div class="hero__content">
+      <span class="hero__eyebrow">Misfit Media Interactive</span>
+
+      <h1 class="hero__headline">
+        Built for ideas that<br />
+        <em>don't fit the template.</em>
+      </h1>
+
+      <p class="hero__subhead">
+        We help brands, founders, and creatives stand out — not by being louder,
+        but by being smarter. Unconventional ideas turned into executable
+        marketing, events, and communications that actually cut through.
+      </p>
+
+      <div class="hero__actions">
+        <a class="btn btn-primary" href="#contact">Let's Talk</a>
+        <a class="btn btn-ghost"   href="#process">See How It Works</a>
+      </div>
+    </div>
+
+    <div class="hero__scroll" aria-hidden="true">
+      <span>Scroll</span>
+      <div class="hero__scroll-line"></div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================================
+       THE PROBLEM / THE MISFIT ADVANTAGE
+  ====================================================================== -->
+  <section id="problem" class="section problem" aria-labelledby="problem-heading">
+    <div class="problem__bg" aria-hidden="true"></div>
+    <div class="container">
+
+      <div class="section-header reveal">
+        <span class="eyebrow">The Situation</span>
+        <h2 class="section-headline" id="problem-heading">
+          Most agencies flatten what makes you different.
+        </h2>
+      </div>
+
+      <div class="problem__grid stagger">
+
+        <!-- Left: The Problem -->
+        <div class="problem__col problem__col--left">
+          <span class="problem__col-title">The Problem</span>
+          <ul class="problem__list" role="list">
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <!-- X icon -->
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Your idea doesn't fit agency playbooks.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">You're tired of sounding like everyone else.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">You don't want trend-chasing or recycled tactics.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">You're building something different — but execution keeps flattening it.</span>
+            </li>
+
+          </ul>
+        </div>
+
+        <!-- Right: The Misfit Advantage -->
+        <div class="problem__col problem__col--right">
+          <span class="problem__col-title">The Misfit Advantage</span>
+          <ul class="problem__list" role="list">
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <!-- Check icon -->
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Clarity before creativity.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Strategy before scale.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Differentiation baked into execution.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Systems designed around you, not the industry average.</span>
+            </li>
+
+            <li class="problem__item">
+              <span class="problem__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="problem__item-text">Standing out isn't a personality trait — it's a strategy.</span>
+            </li>
+
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true"></div>
+
+
+  <!-- ======================================================================
+       SERVICES — WHAT WE DO
+  ====================================================================== -->
+  <section id="services" class="section services" aria-labelledby="services-heading">
+    <div class="container">
+
+      <div class="section-header reveal">
+        <span class="eyebrow">What We Do</span>
+        <h2 class="section-headline" id="services-heading">
+          Different ideas need<br />different blueprints.
+        </h2>
+        <p class="section-subhead">
+          Four areas of focus, all built around the same belief:
+          standing out requires intention, not just effort.
+        </p>
+      </div>
+
+      <div class="services__grid stagger">
+
+        <!-- 1: Strategy -->
+        <article class="service-card">
+          <div class="service-card__icon" aria-hidden="true">
+            <!-- Compass / direction icon -->
+            <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="26" cy="26" r="20"/>
+              <polygon points="33,13 19,26 26,39 40,26" fill="currentColor" opacity="0.15"/>
+              <polyline points="33,13 26,39"/>
+              <polyline points="19,26 40,26"/>
+              <circle cx="26" cy="26" r="3" fill="currentColor"/>
+            </svg>
+          </div>
+          <h3 class="service-card__title">Strategy &amp; Direction for Outliers</h3>
+          <p class="service-card__desc">
+            Positioning and planning built around what makes you genuinely different —
+            not what worked for someone else last quarter.
+          </p>
+        </article>
+
+        <!-- 2: Marketing -->
+        <article class="service-card">
+          <div class="service-card__icon" aria-hidden="true">
+            <!-- Signal / broadcast icon -->
+            <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="26" cy="30" r="5"/>
+              <path d="M17 21 a13 13 0 0 1 18 0"/>
+              <path d="M11 15 a22 22 0 0 1 30 0"/>
+              <line x1="26" y1="35" x2="26" y2="44"/>
+              <line x1="20" y1="44" x2="32" y2="44"/>
+            </svg>
+          </div>
+          <h3 class="service-card__title">Marketing That Refuses to Blend In</h3>
+          <p class="service-card__desc">
+            Multi-channel campaigns, content strategy, and brand messaging
+            designed to be memorable — not just present.
+          </p>
+        </article>
+
+        <!-- 3: Events -->
+        <article class="service-card">
+          <div class="service-card__icon" aria-hidden="true">
+            <!-- Calendar / event icon -->
+            <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="8" y="12" width="36" height="32" rx="4"/>
+              <line x1="8"  y1="22" x2="44" y2="22"/>
+              <line x1="18" y1="8"  x2="18" y2="16"/>
+              <line x1="34" y1="8"  x2="34" y2="16"/>
+              <circle cx="26" cy="32" r="5" fill="currentColor" opacity="0.2"/>
+              <polyline points="23,32 25.5,34.5 30,29.5"/>
+            </svg>
+          </div>
+          <h3 class="service-card__title">Events That Feel Intentional, Not Imitative</h3>
+          <p class="service-card__desc">
+            From concept through execution — events that feel like an extension
+            of your brand, not a borrowed template.
+          </p>
+        </article>
+
+        <!-- 4: Communications -->
+        <article class="service-card">
+          <div class="service-card__icon" aria-hidden="true">
+            <!-- Layers / systems icon -->
+            <svg viewBox="0 0 52 52" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="26,8 44,18 26,28 8,18" fill="currentColor" opacity="0.1"/>
+              <polyline points="8,18 26,28 44,18"/>
+              <polyline points="8,26 26,36 44,26"/>
+              <polyline points="8,34 26,44 44,34"/>
+            </svg>
+          </div>
+          <h3 class="service-card__title">Communications Built for Scale, Not Burnout</h3>
+          <p class="service-card__desc">
+            Systems, workflows, and messaging frameworks that grow with you —
+            so your team stays effective without burning out.
+          </p>
+        </article>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true"></div>
+
+
+  <!-- ======================================================================
+       PROCESS — HOW IT WORKS
+  ====================================================================== -->
+  <section id="process" class="section process" aria-labelledby="process-heading">
+    <div class="process__bg" aria-hidden="true"></div>
+    <div class="process__bg-overlay" aria-hidden="true"></div>
+
+    <div class="container process__inner">
+
+      <div class="section-header reveal">
+        <span class="eyebrow">How It Works</span>
+        <h2 class="section-headline" id="process-heading">
+          We don't plug you in.<br />We build around you.
+        </h2>
+      </div>
+
+      <div class="process__steps stagger" role="list">
+
+        <div class="process-step" role="listitem">
+          <div class="process-step__number" aria-hidden="true">01</div>
+          <h3 class="process-step__title">Find the Friction</h3>
+          <p class="process-step__desc">
+            We start where most skip — understanding exactly what's getting
+            in the way of your idea landing the way it should.
+          </p>
+        </div>
+
+        <div class="process-step" role="listitem">
+          <div class="process-step__number" aria-hidden="true">02</div>
+          <h3 class="process-step__title">Define the Edge</h3>
+          <p class="process-step__desc">
+            Your differentiation gets named, sharpened, and turned into
+            a strategic foundation — not a tagline.
+          </p>
+        </div>
+
+        <div class="process-step" role="listitem">
+          <div class="process-step__number" aria-hidden="true">03</div>
+          <h3 class="process-step__title">Build the Starting Point</h3>
+          <p class="process-step__desc">
+            We build the systems, strategies, and assets that give your
+            brand real traction — custom to how you work.
+          </p>
+        </div>
+
+        <div class="process-step" role="listitem">
+          <div class="process-step__number" aria-hidden="true">04</div>
+          <h3 class="process-step__title">Make You Self-Sufficient</h3>
+          <p class="process-step__desc">
+            The handoff is part of the plan. You leave with what you need
+            to keep moving — confidently, independently.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="process__closing reveal">
+        <p class="process__closing-quote">
+          The goal isn't to need us forever. It's to outgrow us on purpose.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true"></div>
+
+
+  <!-- ======================================================================
+       WHO THIS IS FOR
+  ====================================================================== -->
+  <section id="audience" class="section audience" aria-labelledby="audience-heading">
+    <div class="container">
+
+      <div class="section-header reveal" style="text-align:center; max-width:600px; margin-inline:auto;">
+        <span class="eyebrow">Who This Is For</span>
+        <h2 class="section-headline" id="audience-heading">
+          Built for a specific kind of founder.
+        </h2>
+      </div>
+
+      <div class="audience__grid reveal">
+
+        <!-- Good fit -->
+        <div class="audience__col audience__col--good">
+          <span class="audience__col-title">A Good Fit</span>
+          <ul class="audience__list" role="list">
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Ideas that don't fit a tidy category.</span>
+            </li>
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Brands that value clarity over hype.</span>
+            </li>
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Founders who want to be recognizable, not generic.</span>
+            </li>
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3,9 7,13 15,5"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Builders who understand that differentiation is a strategy, not a personality trait.</span>
+            </li>
+
+          </ul>
+        </div>
+
+        <!-- Divider -->
+        <div class="audience__divider" role="separator" aria-hidden="true"></div>
+
+        <!-- Not a fit -->
+        <div class="audience__col audience__col--pass">
+          <span class="audience__col-title">Probably Not a Fit</span>
+          <ul class="audience__list" role="list">
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Those seeking cookie-cutter retainers.</span>
+            </li>
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Brands looking to copy what's already trending.</span>
+            </li>
+
+            <li class="audience__item">
+              <span class="audience__item-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+                  <line x1="4" y1="4" x2="14" y2="14"/>
+                  <line x1="14" y1="4" x2="4" y2="14"/>
+                </svg>
+              </span>
+              <span class="audience__item-text">Anyone who just wants more noise, not more clarity.</span>
+            </li>
+
+          </ul>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true"></div>
+
+
+  <!-- ======================================================================
+       ABOUT
+  ====================================================================== -->
+  <section id="about" class="section about" aria-labelledby="about-heading">
+    <div class="container">
+
+      <div class="about__inner">
+
+        <!-- Profile sidebar -->
+        <aside class="about__profile reveal">
+          <div class="about__photo">
+            <!--
+              PHOTO: Replace the placeholder below with an <img> tag:
+              <img src="assets/images/taylor-bedell.jpg" alt="Taylor Bedell" />
+              Remove the about__photo-placeholder div once the real photo is added.
+            -->
+            <div class="about__photo-placeholder" aria-hidden="true">
+              <svg viewBox="0 0 72 72" fill="none" stroke="currentColor" stroke-width="1.5">
+                <circle cx="36" cy="28" r="12"/>
+                <path d="M12 62 c0-14 10-22 24-22 s24 8 24 22"/>
+              </svg>
+            </div>
+          </div>
+          <div>
+            <p class="about__name">Taylor Bedell</p>
+            <p class="about__title">Founder &amp; Head Misfit</p>
+          </div>
+        </aside>
+
+        <!-- Content -->
+        <div class="about__content">
+
+          <div class="reveal">
+            <span class="eyebrow">About</span>
+            <h2 class="about__pull-quote" id="about-heading">
+              Built by someone who believes <em>different is powerful</em> when it's intentional.
+            </h2>
+          </div>
+
+          <div class="reveal">
+            <p class="about__bio">
+              Taylor Bedell is a marketing and communications strategist with 10+ years of experience
+              driving brand growth across motorsports, media, and technology. She has built and led
+              high-impact campaigns for both established organizations and fast-moving startups —
+              generating revenue through emerging platforms and turning unconventional ideas into
+              measurable results.
+            </p>
+          </div>
+
+          <div class="about__principles reveal">
+            <div class="about__principle">
+              <span class="about__principle-dot" aria-hidden="true"></span>
+              Systems protect creativity.
+            </div>
+            <div class="about__principle">
+              <span class="about__principle-dot" aria-hidden="true"></span>
+              Clarity beats noise.
+            </div>
+          </div>
+
+          <div class="reveal">
+            <p class="about__clients-label">Past Clients Include</p>
+            <div class="about__clients">
+              <span class="about__client-tag">Porsche Motorsports North America</span>
+              <span class="about__client-tag">Ferrari Beverly Hills</span>
+              <span class="about__client-tag">Centinel Spine</span>
+              <span class="about__client-tag">SRO Motorsports America</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="section-divider" aria-hidden="true"></div>
+
+
+  <!-- ======================================================================
+       CONTACT — LET'S TALK
+  ====================================================================== -->
+  <section id="contact" class="section contact" aria-labelledby="contact-heading">
+    <div class="contact__bg" aria-hidden="true"></div>
+    <div class="contact__overlay" aria-hidden="true"></div>
+
+    <div class="container">
+      <div class="contact__inner">
+
+        <!-- Left: copy -->
+        <div class="contact__left reveal">
+          <span class="eyebrow">Let's Talk</span>
+          <h2 class="contact__headline" id="contact-heading">
+            Let's turn your misfit idea into momentum.
+          </h2>
+          <p class="contact__subhead">
+            No fluff. No pretending. Just clarity.
+          </p>
+
+          <div class="contact__direct">
+            <span class="contact__direct-label">Or reach out directly</span>
+            <a class="contact__direct-link"
+               href="mailto:bedell.taylor@gmail.com"
+               aria-label="Email Taylor Bedell">
+              <!-- Mail icon -->
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="1" y="3" width="14" height="10" rx="2"/>
+                <polyline points="1,3 8,9 15,3"/>
+              </svg>
+              bedell.taylor@gmail.com
+            </a>
+            <!--
+              LINKEDIN: Replace href="#" with your LinkedIn profile URL
+              e.g. href="https://linkedin.com/in/taylorbedell"
+            -->
+            <a class="contact__direct-link"
+               href="#"
+               target="_blank"
+               rel="noopener noreferrer"
+               aria-label="Taylor Bedell on LinkedIn">
+              <!-- LinkedIn icon -->
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/>
+                <rect x="2" y="9" width="4" height="12"/>
+                <circle cx="4" cy="4" r="2"/>
+              </svg>
+              LinkedIn
+            </a>
+          </div>
+        </div>
+
+        <!-- Right: form -->
+        <div class="contact__form-wrap reveal">
+          <!--
+            FORMSPREE: Replace action="#" with your Formspree endpoint:
+            action="https://formspree.io/f/YOUR_FORM_ID"
+            Sign up free at https://formspree.io
+          -->
+          <form class="contact__form"
+                action="#"
+                method="POST"
+                novalidate
+                aria-label="Contact form">
+
+            <div class="form-group">
+              <label class="form-label" for="contact-name">Name</label>
+              <input class="form-input"
+                     type="text"
+                     id="contact-name"
+                     name="name"
+                     placeholder="Your name"
+                     required
+                     autocomplete="name" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contact-email">Email</label>
+              <input class="form-input"
+                     type="email"
+                     id="contact-email"
+                     name="email"
+                     placeholder="your@email.com"
+                     required
+                     autocomplete="email" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="contact-message">Tell me about your idea</label>
+              <textarea class="form-textarea"
+                        id="contact-message"
+                        name="message"
+                        placeholder="What are you building? What's getting in the way?"
+                        required></textarea>
+            </div>
+
+            <button class="btn btn-primary" type="submit" style="width:100%; justify-content:center;">
+              Send It
+            </button>
+
+            <p class="form-note">
+              No spam. No recycled pitch decks. Just a real conversation.
+            </p>
+
+          </form>
+
+          <!-- JS populates this after submission -->
+          <p class="form-status" role="status" aria-live="polite"></p>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+
+  <!-- ======================================================================
+       FOOTER
+  ====================================================================== -->
+  <footer class="footer" aria-label="Site footer">
+    <div class="container">
+      <div class="footer__inner">
+
+        <div class="footer__logo">
+          <a href="#hero" aria-label="Back to top">
+            <img src="assets/images/logo-horizontal.png"
+                 alt="Misfit Media Interactive"
+                 width="150" height="31" />
+          </a>
+        </div>
+
+        <nav class="footer__nav" aria-label="Footer navigation">
+          <a class="footer__nav-link" href="#services">Services</a>
+          <a class="footer__nav-link" href="#process">Process</a>
+          <a class="footer__nav-link" href="#about">About</a>
+          <a class="footer__nav-link" href="#contact">Contact</a>
+        </nav>
+
+        <div class="footer__right">
+          <p class="footer__copy">
+            &copy; <span id="footer-year"></span> Misfit Media Interactive.
+            All rights reserved.
+          </p>
+          <p class="footer__copy" style="color:var(--color-text-subtle); font-style:italic; font-size:0.7rem;">
+            Built for ideas that don't fit the template.
+          </p>
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <!-- Footer year -->
+  <script>
+    document.getElementById('footer-year').textContent = new Date().getFullYear();
+  </script>
+
+  <!-- Main JS -->
+  <script src="js/main.js"></script>
+
+</body>
+</html>
