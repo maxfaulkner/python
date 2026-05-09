@@ -1,60 +1,68 @@
 from db import get_conn
 
+SAFETY_CAR_FLAGS = ("FCY", "SF")
 
-def get_filter_universe() -> dict:
+
+def _sc_filter() -> str:
+    placeholders = ", ".join(f"'{f}'" for f in SAFETY_CAR_FLAGS)
+    return f"AND (flags IS NULL OR flags NOT IN ({placeholders}))"
+
+
+def get_filter_universe(series: str) -> dict:
     conn = get_conn()
     years = [r[0] for r in conn.execute(
-        "SELECT DISTINCT year FROM laps WHERE series_code = 'imsa' ORDER BY year DESC"
+        "SELECT DISTINCT year FROM laps WHERE series_code = ? ORDER BY year DESC", [series]
     ).fetchall()]
     sessions = [r[0] for r in conn.execute(
-        "SELECT DISTINCT session FROM laps WHERE series_code = 'imsa' ORDER BY session"
+        "SELECT DISTINCT session FROM laps WHERE series_code = ? ORDER BY session", [series]
     ).fetchall()]
     classes = [r[0] for r in conn.execute(
-        "SELECT DISTINCT class FROM laps WHERE series_code = 'imsa' ORDER BY class"
+        "SELECT DISTINCT class FROM laps WHERE series_code = ? ORDER BY class", [series]
     ).fetchall()]
     return {"years": years, "sessions": sessions, "classes": classes}
 
 
-def get_events(year: int) -> list[str]:
+def get_events(series: str, year: int) -> list[str]:
     rows = get_conn().execute(
-        "SELECT DISTINCT event FROM laps WHERE series_code = 'imsa' AND year = ? ORDER BY event",
-        [year],
+        "SELECT DISTINCT event FROM laps WHERE series_code = ? AND year = ? ORDER BY event",
+        [series, year],
     ).fetchall()
     return [r[0] for r in rows]
 
 
-def get_drivers(year: int, event: str, session: str, cls: str) -> list[dict]:
+def get_drivers(series: str, year: int, event: str, session: str, cls: str) -> list[dict]:
     rows = get_conn().execute(
         """SELECT DISTINCT driver_id, driver_name, car, team_name
            FROM laps
-           WHERE series_code = 'imsa' AND year = ? AND event = ? AND session = ? AND class = ?
+           WHERE series_code = ? AND year = ? AND event = ? AND session = ? AND class = ?
            ORDER BY driver_name""",
-        [year, event, session, cls],
+        [series, year, event, session, cls],
     ).fetchall()
     return [{"driver_id": r[0], "driver_name": r[1], "car": r[2], "team_name": r[3]} for r in rows]
 
 
-def compare_drivers(driver_ids: list[str], year: int, event: str, session: str, cls: str) -> list[dict]:
+def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, session: str, cls: str) -> list[dict]:
     conn = get_conn()
     placeholders = ", ".join("?" * len(driver_ids))
+    sc = _sc_filter()
 
     cutoff_row = conn.execute(
         f"""SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY lap_time)
             FROM laps
-            WHERE series_code = 'imsa' AND year = ? AND event = ? AND session = ? AND class = ?
-              AND lap_time > 0""",
-        [year, event, session, cls],
+            WHERE series_code = ? AND year = ? AND event = ? AND session = ? AND class = ?
+              AND lap_time > 0 {sc}""",
+        [series, year, event, session, cls],
     ).fetchone()
     cutoff = cutoff_row[0] if cutoff_row else 1e9
 
     rows = conn.execute(
         f"""SELECT driver_id, driver_name, car, team_name, lap, lap_time, stint_number, flags
             FROM laps
-            WHERE series_code = 'imsa' AND year = ? AND event = ? AND session = ? AND class = ?
+            WHERE series_code = ? AND year = ? AND event = ? AND session = ? AND class = ?
               AND driver_id IN ({placeholders})
-              AND lap_time > 0 AND lap_time < ?
+              AND lap_time > 0 AND lap_time < ? {sc}
             ORDER BY driver_id, lap""",
-        [year, event, session, cls, *driver_ids, cutoff],
+        [series, year, event, session, cls, *driver_ids, cutoff],
     ).fetchall()
 
     by_driver: dict[str, dict] = {}
@@ -93,38 +101,40 @@ def compare_drivers(driver_ids: list[str], year: int, event: str, session: str, 
     return results
 
 
-def get_teams(year: int, session: str, cls: str) -> list[str]:
+def get_teams(series: str, year: int, session: str, cls: str) -> list[str]:
     rows = get_conn().execute(
         """SELECT DISTINCT team_name FROM laps
-           WHERE series_code = 'imsa' AND year = ? AND session = ? AND class = ?
+           WHERE series_code = ? AND year = ? AND session = ? AND class = ?
              AND team_name IS NOT NULL
            ORDER BY team_name""",
-        [year, session, cls],
+        [series, year, session, cls],
     ).fetchall()
     return [r[0] for r in rows]
 
 
-def compare_teams(teams: list[str], year: int, session: str, cls: str) -> list[dict]:
+def compare_teams(teams: list[str], series: str, year: int, session: str, cls: str) -> list[dict]:
     conn = get_conn()
     placeholders = ", ".join("?" * len(teams))
+    sc = _sc_filter()
 
     cutoff_row = conn.execute(
-        """SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY lap_time)
+        f"""SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY lap_time)
            FROM laps
-           WHERE series_code = 'imsa' AND year = ? AND session = ? AND class = ? AND lap_time > 0""",
-        [year, session, cls],
+           WHERE series_code = ? AND year = ? AND session = ? AND class = ?
+             AND lap_time > 0 {sc}""",
+        [series, year, session, cls],
     ).fetchone()
     cutoff = cutoff_row[0] if cutoff_row else 1e9
 
     rows = conn.execute(
         f"""SELECT team_name, event, MEDIAN(lap_time) as median_lap, MIN(lap_time) as best_lap, COUNT(*) as lap_count
             FROM laps
-            WHERE series_code = 'imsa' AND year = ? AND session = ? AND class = ?
+            WHERE series_code = ? AND year = ? AND session = ? AND class = ?
               AND team_name IN ({placeholders})
-              AND lap_time > 0 AND lap_time < ?
+              AND lap_time > 0 AND lap_time < ? {sc}
             GROUP BY team_name, event
             ORDER BY event, team_name""",
-        [year, session, cls, *teams, cutoff],
+        [series, year, session, cls, *teams, cutoff],
     ).fetchall()
 
     return [
@@ -133,38 +143,39 @@ def compare_teams(teams: list[str], year: int, session: str, cls: str) -> list[d
     ]
 
 
-def get_manufacturers(year: int, session: str) -> list[str]:
+def get_manufacturers(series: str, year: int, session: str) -> list[str]:
     rows = get_conn().execute(
         """SELECT DISTINCT manufacturer FROM laps
-           WHERE series_code = 'imsa' AND year = ? AND session = ?
+           WHERE series_code = ? AND year = ? AND session = ?
              AND manufacturer IS NOT NULL
            ORDER BY manufacturer""",
-        [year, session],
+        [series, year, session],
     ).fetchall()
     return [r[0] for r in rows]
 
 
-def compare_manufacturers(manufacturers: list[str], year: int, session: str, cls_normalized: str) -> list[dict]:
+def compare_manufacturers(manufacturers: list[str], series: str, year: int, session: str, cls_normalized: str) -> list[dict]:
     conn = get_conn()
     placeholders = ", ".join("?" * len(manufacturers))
+    sc = _sc_filter()
 
     cutoff_row = conn.execute(
-        """SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY lap_time)
+        f"""SELECT percentile_cont(0.95) WITHIN GROUP (ORDER BY lap_time)
            FROM laps
-           WHERE series_code = 'imsa' AND year = ? AND session = ? AND class_normalized = ?
-             AND lap_time > 0""",
-        [year, session, cls_normalized],
+           WHERE series_code = ? AND year = ? AND session = ? AND class_normalized = ?
+             AND lap_time > 0 {sc}""",
+        [series, year, session, cls_normalized],
     ).fetchone()
     cutoff = cutoff_row[0] if cutoff_row else 1e9
 
     rows = conn.execute(
         f"""SELECT manufacturer, lap_time
             FROM laps
-            WHERE series_code = 'imsa' AND year = ? AND session = ? AND class_normalized = ?
+            WHERE series_code = ? AND year = ? AND session = ? AND class_normalized = ?
               AND manufacturer IN ({placeholders})
-              AND lap_time > 0 AND lap_time < ?
+              AND lap_time > 0 AND lap_time < ? {sc}
             ORDER BY manufacturer, lap_time""",
-        [year, session, cls_normalized, *manufacturers, cutoff],
+        [series, year, session, cls_normalized, *manufacturers, cutoff],
     ).fetchall()
 
     by_mfr: dict[str, list[float]] = {}

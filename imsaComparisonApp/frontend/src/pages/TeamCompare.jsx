@@ -40,7 +40,7 @@ function TeamEventChart({ data }) {
 }
 
 export default function TeamCompare() {
-  const { year, session, cls } = useFilters()
+  const { series, year, session, cls } = useFilters()
   const [selected, setSelected] = useState([])
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -48,7 +48,7 @@ export default function TeamCompare() {
   useEffect(() => {
     setSelected([])
     setResults(null)
-  }, [year, session, cls])
+  }, [series, year, session, cls])
 
   useEffect(() => {
     if (!selected.length || !year || !session || !cls) {
@@ -56,11 +56,11 @@ export default function TeamCompare() {
       return
     }
     setLoading(true)
-    api.compareTeams(selected, year, session, cls)
+    api.compareTeams(selected, series, year, session, cls)
       .then(setResults)
       .catch(() => setResults(null))
       .finally(() => setLoading(false))
-  }, [selected, year, session, cls])
+  }, [selected, series, year, session, cls])
 
   return (
     <div className="page">

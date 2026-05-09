@@ -6,41 +6,46 @@ const FilterContext = createContext(null)
 
 export function FilterProvider({ children }) {
   const [searchParams, setSearchParams] = useSearchParams()
+  const [seriesList, setSeriesList] = useState([])
   const [universe, setUniverse] = useState(null)
   const [events, setEvents] = useState([])
 
+  const series = searchParams.get('series') || 'imsa'
   const year = Number(searchParams.get('year')) || null
   const event = searchParams.get('event') || ''
   const session = searchParams.get('session') || 'race'
   const cls = searchParams.get('class') || ''
 
   useEffect(() => {
-    api.filters().then(setUniverse)
+    api.seriesList().then(setSeriesList)
   }, [])
 
   useEffect(() => {
-    if (year) api.events(year).then(setEvents)
-  }, [year])
-
-  useEffect(() => {
-    if (!universe) return
-    const defaultYear = universe.years[0]
-    const updates = {}
-    if (!year) updates.year = String(defaultYear)
-    if (!session) updates.session = 'race'
-    if (Object.keys(updates).length) {
+    setUniverse(null)
+    api.filters(series).then((data) => {
+      setUniverse(data)
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
-        for (const [k, v] of Object.entries(updates)) next.set(k, v)
+        if (!next.get('year') || !data.years.includes(Number(next.get('year')))) {
+          next.set('year', String(data.years[0]))
+          next.delete('event')
+          next.delete('class')
+        }
+        if (!next.get('session')) next.set('session', 'race')
         return next
       }, { replace: true })
-    }
-  }, [universe])
+    })
+  }, [series])
+
+  useEffect(() => {
+    if (year && series) api.events(series, year).then(setEvents)
+  }, [series, year])
 
   function setFilter(key, value) {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev)
       next.set(key, value)
+      if (key === 'series') { next.delete('year'); next.delete('event'); next.delete('class') }
       if (key === 'year') { next.delete('event'); next.delete('class') }
       if (key === 'event') next.delete('class')
       return next
@@ -48,7 +53,7 @@ export function FilterProvider({ children }) {
   }
 
   return (
-    <FilterContext.Provider value={{ universe, events, year, event, session, cls, setFilter }}>
+    <FilterContext.Provider value={{ seriesList, universe, events, series, year, event, session, cls, setFilter }}>
       {children}
     </FilterContext.Provider>
   )

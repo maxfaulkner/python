@@ -9,7 +9,7 @@ import SummaryTable from '../components/SummaryTable'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 export default function DriverCompare() {
-  const { year, event, session, cls } = useFilters()
+  const { series, year, event, session, cls } = useFilters()
   const [selected, setSelected] = useState([])
   const [results, setResults] = useState(null)
   const [loading, setLoading] = useState(false)
@@ -17,7 +17,7 @@ export default function DriverCompare() {
   useEffect(() => {
     setSelected([])
     setResults(null)
-  }, [year, event, session, cls])
+  }, [series, year, event, session, cls])
 
   useEffect(() => {
     if (!selected.length || !year || !event || !session || !cls) {
@@ -25,11 +25,11 @@ export default function DriverCompare() {
       return
     }
     setLoading(true)
-    api.compareDrivers(selected, year, event, session, cls)
+    api.compareDrivers(selected, series, year, event, session, cls)
       .then(setResults)
       .catch(() => setResults(null))
       .finally(() => setLoading(false))
-  }, [selected, year, event, session, cls])
+  }, [selected, series, year, event, session, cls])
 
   return (
     <div className="page">

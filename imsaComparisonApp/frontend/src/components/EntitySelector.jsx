@@ -3,7 +3,7 @@ import { api } from '../api'
 import { useFilters } from '../FilterContext'
 
 export default function EntitySelector({ mode, selected, onChange }) {
-  const { year, event, session, cls } = useFilters()
+  const { series, year, event, session, cls } = useFilters()
   const [options, setOptions] = useState([])
   const [loading, setLoading] = useState(false)
 
@@ -14,9 +14,9 @@ export default function EntitySelector({ mode, selected, onChange }) {
     setOptions([])
 
     const req = {
-      drivers: () => api.drivers(year, event, session, cls),
-      teams: () => api.teams(year, session, cls),
-      manufacturers: () => api.manufacturers(year, session),
+      drivers: () => api.drivers(series, year, event, session, cls),
+      teams: () => api.teams(series, year, session, cls),
+      manufacturers: () => api.manufacturers(series, year, session),
     }[mode]()
 
     req
@@ -29,7 +29,7 @@ export default function EntitySelector({ mode, selected, onChange }) {
       })
       .catch(() => setOptions([]))
       .finally(() => setLoading(false))
-  }, [mode, year, event, session, cls])
+  }, [mode, series, year, event, session, cls])
 
   function toggle(value) {
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])

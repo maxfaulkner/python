@@ -5,24 +5,25 @@ async function get(path) {
 }
 
 export const api = {
-  filters: () => get('/api/filters'),
-  events: (year) => get(`/api/filters/events?year=${year}`),
+  seriesList: () => get('/api/filters/series'),
+  filters: (series) => get(`/api/filters?series=${series}`),
+  events: (series, year) => get(`/api/filters/events?series=${series}&year=${year}`),
 
-  drivers: (year, event, session, cls) =>
-    get(`/api/drivers?year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
+  drivers: (series, year, event, session, cls) =>
+    get(`/api/drivers?series=${series}&year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
 
-  compareDrivers: (driverIds, year, event, session, cls) =>
-    get(`/api/compare/drivers?driver_id=${driverIds.join(',')}&year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
+  compareDrivers: (driverIds, series, year, event, session, cls) =>
+    get(`/api/compare/drivers?driver_id=${driverIds.join(',')}&series=${series}&year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
 
-  teams: (year, session, cls) =>
-    get(`/api/teams?year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
+  teams: (series, year, session, cls) =>
+    get(`/api/teams?series=${series}&year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
 
-  compareTeams: (teams, year, session, cls) =>
-    get(`/api/compare/teams?team=${teams.map(encodeURIComponent).join(',')}&year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
+  compareTeams: (teams, series, year, session, cls) =>
+    get(`/api/compare/teams?team=${teams.map(encodeURIComponent).join(',')}&series=${series}&year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
 
-  manufacturers: (year, session) =>
-    get(`/api/manufacturers?year=${year}&session=${session}`),
+  manufacturers: (series, year, session) =>
+    get(`/api/manufacturers?series=${series}&year=${year}&session=${session}`),
 
-  compareManufacturers: (manufacturers, year, session, classNormalized) =>
-    get(`/api/compare/manufacturers?manufacturer=${manufacturers.map(encodeURIComponent).join(',')}&year=${year}&session=${session}&class_normalized=${encodeURIComponent(classNormalized)}`),
+  compareManufacturers: (manufacturers, series, year, session, classNormalized) =>
+    get(`/api/compare/manufacturers?manufacturer=${manufacturers.map(encodeURIComponent).join(',')}&series=${series}&year=${year}&session=${session}&class_normalized=${encodeURIComponent(classNormalized)}`),
 }

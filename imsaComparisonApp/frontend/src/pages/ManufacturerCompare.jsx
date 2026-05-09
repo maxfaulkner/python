@@ -9,7 +9,7 @@ import LoadingSpinner from '../components/LoadingSpinner'
 const NORMALIZED_CLASSES = ['GTP', 'GTD', 'LMP2', 'LMP3']
 
 export default function ManufacturerCompare() {
-  const { year, session } = useFilters()
+  const { series, year, session } = useFilters()
   const [selected, setSelected] = useState([])
   const [classNormalized, setClassNormalized] = useState('GTP')
   const [results, setResults] = useState(null)
@@ -18,7 +18,7 @@ export default function ManufacturerCompare() {
   useEffect(() => {
     setSelected([])
     setResults(null)
-  }, [year, session, classNormalized])
+  }, [series, year, session, classNormalized])
 
   useEffect(() => {
     if (!selected.length || !year || !session) {
@@ -26,11 +26,11 @@ export default function ManufacturerCompare() {
       return
     }
     setLoading(true)
-    api.compareManufacturers(selected, year, session, classNormalized)
+    api.compareManufacturers(selected, series, year, session, classNormalized)
       .then(setResults)
       .catch(() => setResults(null))
       .finally(() => setLoading(false))
-  }, [selected, year, session, classNormalized])
+  }, [selected, series, year, session, classNormalized])
 
   return (
     <div className="page">

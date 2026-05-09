@@ -5,16 +5,22 @@ router = APIRouter(prefix="/api")
 
 
 @router.get("/teams")
-def get_teams(year: int, session: str, cls: str = Query(alias="class")) -> list[str]:
-    return queries.get_teams(year, session, cls)
+def get_teams(
+    series: str = "imsa",
+    year: int = 0,
+    session: str = "race",
+    cls: str = Query(alias="class"),
+) -> list[str]:
+    return queries.get_teams(series, year, session, cls)
 
 
 @router.get("/compare/teams")
 def compare_teams(
     team: str,
-    year: int,
-    session: str,
+    series: str = "imsa",
+    year: int = 0,
+    session: str = "race",
     cls: str = Query(alias="class"),
 ) -> list[dict]:
     names = [t.strip() for t in team.split(",") if t.strip()]
-    return queries.compare_teams(names, year, session, cls)
+    return queries.compare_teams(names, series, year, session, cls)
