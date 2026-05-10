@@ -44,6 +44,30 @@ def test_compare_drivers_stats_includes_sigma(db):
     assert bamber["stats"]["sigma"] > 0
 
 
+def test_driver_fingerprint_returns_six_dimensions(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.driver_fingerprint("earl bamber", "GTP", "imsa")
+    dims = {"qualifying_pace", "race_pace", "wet_pace", "consistency",
+            "tire_management", "quali_race_delta"}
+    assert set(result.keys()) == dims
+    for k, v in result.items():
+        assert v is None or 0 <= v <= 100, f"{k}={v} out of range"
+
+def test_driver_career_arc(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.driver_career_arc("earl bamber", "GTP", "imsa")
+    assert len(result) >= 1
+    for row in result:
+        assert "year" in row and "percentile" in row
+        assert 0 <= row["percentile"] <= 100
+
+def test_driver_best_circuits(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.driver_best_circuits("earl bamber", "GTP", "imsa")
+    assert isinstance(result, list)
+    events = [r["event"] for r in result]
+    assert "Watkins Glen" in events
+
 def test_h2h_record_returns_year_by_year(db):
     with patch("queries.get_conn", return_value=db):
         result = queries.h2h_record(
