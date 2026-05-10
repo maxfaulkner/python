@@ -4,26 +4,29 @@ async function get(path) {
   return res.json()
 }
 
+const qs = (params) =>
+  Object.entries(params)
+    .filter(([, v]) => v != null && v !== '')
+    .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
+    .join('&')
+
 export const api = {
   seriesList: () => get('/api/filters/series'),
   filters: (series) => get(`/api/filters?series=${series}`),
-  events: (series, year) => get(`/api/filters/events?series=${series}&year=${year}`),
+  events: (series, year) => get(`/api/filters/events?${qs({ series, year })}`),
 
   drivers: (series, year, event, session, cls) =>
-    get(`/api/drivers?series=${series}&year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
+    get(`/api/drivers?${qs({ series, year, event, session, class: cls })}`),
 
   compareDrivers: (driverIds, series, year, event, session, cls) =>
-    get(`/api/compare/drivers?driver_id=${driverIds.join(',')}&series=${series}&year=${year}&event=${encodeURIComponent(event)}&session=${session}&class=${encodeURIComponent(cls)}`),
+    get(`/api/compare/drivers?driver_id=${driverIds.join(',')}&${qs({ series, year, event, session, class: cls })}`),
 
-  teams: (series, year, session, cls) =>
-    get(`/api/teams?series=${series}&year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
+  h2h: (driverIdA, driverIdB, event, series, cls) =>
+    get(`/api/compare/h2h?${qs({ driver_id_a: driverIdA, driver_id_b: driverIdB, event, series, class: cls })}`),
 
-  compareTeams: (teams, series, year, session, cls) =>
-    get(`/api/compare/teams?team=${teams.map(encodeURIComponent).join(',')}&series=${series}&year=${year}&session=${session}&class=${encodeURIComponent(cls)}`),
+  driverProfile: (driverId, series, cls) =>
+    get(`/api/driver/profile?${qs({ driver_id: driverId, series, class: cls })}`),
 
-  manufacturers: (series, year, session) =>
-    get(`/api/manufacturers?series=${series}&year=${year}&session=${session}`),
-
-  compareManufacturers: (manufacturers, series, year, session, classNormalized) =>
-    get(`/api/compare/manufacturers?manufacturer=${manufacturers.map(encodeURIComponent).join(',')}&series=${series}&year=${year}&session=${session}&class_normalized=${encodeURIComponent(classNormalized)}`),
+  circuitProfile: (event, series, cls) =>
+    get(`/api/circuit/profile?${qs({ event, series, class: cls })}`),
 }
