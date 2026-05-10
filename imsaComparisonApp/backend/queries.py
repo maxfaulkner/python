@@ -1,3 +1,5 @@
+import statistics
+
 from db import get_conn
 
 SAFETY_CAR_FLAGS = ("FCY", "SF")
@@ -56,7 +58,8 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
     cutoff = cutoff_row[0] if cutoff_row else 1e9
 
     rows = conn.execute(
-        f"""SELECT driver_id, driver_name, car, team_name, lap, lap_time, stint_number, flags
+        f"""SELECT driver_id, driver_name, car, team_name, lap, lap_time,
+                   lap_time_s1, lap_time_s2, lap_time_s3, stint_number, stint_lap, flags
             FROM laps
             WHERE series_code = ? AND year = ? AND event = ? AND session = ? AND class = ?
               AND driver_id IN ({placeholders})
@@ -66,7 +69,8 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
     ).fetchall()
 
     by_driver: dict[str, dict] = {}
-    for driver_id, driver_name, car, team_name, lap, lap_time, stint, flags in rows:
+    for driver_id, driver_name, car, team_name, lap, lap_time, \
+            s1, s2, s3, stint, stint_lap, flags in rows:
         if driver_id not in by_driver:
             by_driver[driver_id] = {
                 "driver_id": driver_id,
@@ -78,7 +82,11 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
         by_driver[driver_id]["laps"].append({
             "lap": lap,
             "lap_time": lap_time,
+            "lap_time_s1": float(s1) if s1 is not None else None,
+            "lap_time_s2": float(s2) if s2 is not None else None,
+            "lap_time_s3": float(s3) if s3 is not None else None,
             "stint_number": stint,
+            "stint_lap": stint_lap,
             "flags": flags,
         })
 
@@ -93,9 +101,10 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
                 "median_lap": times_sorted[len(times_sorted) // 2],
                 "p75_lap": times_sorted[p75_idx],
                 "lap_count": len(times),
+                "sigma": round(statistics.stdev(times), 3) if len(times) > 1 else 0.0,
             }
         else:
-            d["stats"] = {"best_lap": None, "median_lap": None, "p75_lap": None, "lap_count": 0}
+            d["stats"] = {"best_lap": None, "median_lap": None, "p75_lap": None, "lap_count": 0, "sigma": 0.0}
         results.append(d)
 
     return results
