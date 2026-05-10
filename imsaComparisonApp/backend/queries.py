@@ -101,10 +101,10 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
                 "median_lap": times_sorted[len(times_sorted) // 2],
                 "p75_lap": times_sorted[p75_idx],
                 "lap_count": len(times),
-                "sigma": round(statistics.stdev(times), 3) if len(times) > 1 else 0.0,
+                "sigma": round(statistics.stdev(times), 3) if len(times) > 1 else None,
             }
         else:
-            d["stats"] = {"best_lap": None, "median_lap": None, "p75_lap": None, "lap_count": 0, "sigma": 0.0}
+            d["stats"] = {"best_lap": None, "median_lap": None, "p75_lap": None, "lap_count": 0, "sigma": None}
         results.append(d)
 
     return results
