@@ -134,19 +134,43 @@ def event_name_from_folder(folder: str) -> str:
     return re.sub(r"^\d+_", "", decoded)
 
 
+def find_lap_csv(session_url: str) -> tuple[str, str] | None:
+    """Return (base_url, filename) for the 23_Time Cards CSV.
+    Checks top level first, then the highest-numbered subfolder (race final-hour pattern)."""
+    try:
+        files = list_files(session_url, "23_")
+        csv_file = next((f for f in files if f.upper().endswith(".CSV")), None)
+        if csv_file:
+            return session_url, csv_file
+    except Exception:
+        return None
+
+    try:
+        subdirs = list_dirs(session_url)
+        numbered = sorted([s for s in subdirs if re.match(r"\d+_", s)], reverse=True)
+        for subdir in numbered:
+            time.sleep(REQUEST_DELAY)
+            sub_url = session_url + subdir
+            files = list_files(sub_url, "23_")
+            csv_file = next((f for f in files if f.upper().endswith(".CSV")), None)
+            if csv_file:
+                return sub_url, csv_file
+    except Exception:
+        pass
+
+    return None
+
+
 def scrape_session(session_url: str) -> list[tuple]:
     """Return list of row tuples from the 23_Time Cards CSV, or [] if unavailable."""
-    try:
-        lap_files = list_files(session_url, "23_")
-        csv_file = next((f for f in lap_files if f.upper().endswith(".CSV")), None)
-        if not csv_file:
-            return []
-    except Exception:
+    result = find_lap_csv(session_url)
+    if not result:
         return []
+    csv_base_url, csv_file = result
 
     time.sleep(REQUEST_DELAY)
     try:
-        rows = parse_csv(fetch(session_url + csv_file))
+        rows = parse_csv(fetch(csv_base_url + csv_file))
     except Exception as e:
         print(f"CSV error: {e}")
         return []
