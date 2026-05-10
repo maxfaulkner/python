@@ -5,6 +5,7 @@ router = APIRouter(prefix="/api/filters")
 
 SERIES = {
     "imsa": "IMSA WeatherTech",
+    "impc": "Michelin Pilot Challenge",
     "wec": "WEC",
     "elms": "ELMS",
     "alms": "ALMS",
