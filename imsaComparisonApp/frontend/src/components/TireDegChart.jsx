@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Plotly from 'plotly.js-dist-min'
 import { DRIVER_COLORS } from '../constants'
 
@@ -29,11 +29,13 @@ function buildTraces(drivers) {
 
 export default function TireDegChart({ drivers }) {
   const ref = useRef(null)
+  const [hasData, setHasData] = useState(false)
 
   useEffect(() => {
-    if (!ref.current || !drivers?.length) return
+    if (!ref.current || !drivers?.length) { setHasData(false); return }
     const traces = buildTraces(drivers)
-    if (traces.every((t) => t.x.length === 0)) return
+    if (traces.every((t) => t.x.length === 0)) { setHasData(false); return }
+    setHasData(true)
     Plotly.react(ref.current, traces, {
       xaxis: { title: 'Stint Lap', zeroline: false, dtick: 1 },
       yaxis: { title: 'Median Lap Time (s)', autorange: true },
@@ -43,7 +45,7 @@ export default function TireDegChart({ drivers }) {
     }, { responsive: true, displayModeBar: false })
   }, [drivers])
 
-  if (!drivers?.length) return null
+  if (!drivers?.length || !hasData) return null
   return (
     <div>
       <div className="section-label" style={{ marginBottom: 8 }}>Tire Degradation</div>

@@ -51,7 +51,7 @@ export default function H2HRecord({ drivers }) {
                 <td style={{ color: DRIVER_COLORS[0] }}>{fmtLap(r.lap_a)}</td>
                 <td style={{ color: DRIVER_COLORS[1] }}>{fmtLap(r.lap_b)}</td>
                 <td style={{ color: isATie ? 'var(--text-muted)' : (isAWinner ? DRIVER_COLORS[0] : DRIVER_COLORS[1]), fontWeight: 600 }}>
-                  {isATie ? 'Tie' : r.winner_id.split(' ').pop()}
+                  {isATie ? 'Tie' : (isAWinner ? drivers[0].driver_name : drivers[1].driver_name).split(' ').pop()}
                 </td>
                 <td>{r.margin.toFixed(3)}s</td>
               </tr>
