@@ -1,61 +1,81 @@
 import { useEffect, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api } from '../api'
 import { useFilters } from '../FilterContext'
+import { DRIVER_COLORS } from '../constants'
 
-export default function EntitySelector({ mode, selected, onChange }) {
+export default function EntitySelector({ selected, onChange }) {
   const { series, year, event, session, cls } = useFilters()
   const [options, setOptions] = useState([])
   const [loading, setLoading] = useState(false)
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   useEffect(() => {
     if (!year) return
-
     setLoading(true)
     setOptions([])
-
-    const req = {
-      drivers: () => api.drivers(series, year, event, session, cls),
-      teams: () => api.teams(series, year, session, cls),
-      manufacturers: () => api.manufacturers(series, year, session),
-    }[mode]()
-
-    req
-      .then((data) => {
-        if (mode === 'drivers') {
-          setOptions(data.map((d) => ({ value: d.driver_id, label: `${d.driver_name} (#${d.car}) — ${d.team_name}` })))
-        } else {
-          setOptions(data.map((d) => ({ value: d, label: d })))
-        }
-      })
+    api.drivers(series, year, event, session, cls)
+      .then((data) =>
+        setOptions(data.map((d) => ({
+          value: d.driver_id,
+          label: `${d.driver_name} (#${d.car})`,
+          team: d.team_name,
+        })))
+      )
       .catch(() => setOptions([]))
       .finally(() => setLoading(false))
-  }, [mode, series, year, event, session, cls])
+  }, [series, year, event, session, cls])
 
   function toggle(value) {
-    onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
+    if (selected.includes(value)) {
+      onChange(selected.filter((v) => v !== value))
+    } else if (selected.length < 4) {
+      onChange([...selected, value])
+    }
   }
 
-  if (loading) return <div className="entity-selector">Loading {mode}...</div>
-  if (!options.length) return <div className="entity-selector empty">No {mode} found for current filters.</div>
+  if (loading) return <div className="entity-selector loading">Loading drivers...</div>
+  if (!options.length) return <div className="entity-selector empty">No drivers found for current filters.</div>
 
   return (
     <div className="entity-selector">
       <div className="entity-selector-header">
-        <span>Select {mode} to compare</span>
+        <span>Select up to 4 drivers</span>
         {selected.length > 0 && (
           <button className="clear-btn" onClick={() => onChange([])}>Clear</button>
         )}
       </div>
       <div className="entity-list">
-        {options.map(({ value, label }) => (
-          <button
-            key={value}
-            className={`entity-item ${selected.includes(value) ? 'selected' : ''}`}
-            onClick={() => toggle(value)}
-          >
-            {label}
-          </button>
-        ))}
+        {options.map(({ value, label, team }) => {
+          const idx = selected.indexOf(value)
+          const isSelected = idx !== -1
+          const color = isSelected ? DRIVER_COLORS[idx] : null
+          return (
+            <button
+              key={value}
+              className={`entity-item ${isSelected ? 'selected' : ''}`}
+              style={isSelected ? { background: color, borderColor: color, color: '#fff' } : {}}
+              onClick={() => toggle(value)}
+              disabled={!isSelected && selected.length >= 4}
+              title={team}
+            >
+              {label}
+              {isSelected && (
+                <span
+                  style={{ marginLeft: 6, opacity: 0.8, cursor: 'pointer', fontSize: 11 }}
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    navigate(`/drivers/${encodeURIComponent(value)}?${searchParams}`)
+                  }}
+                  title="View driver profile"
+                >
+                  ↗
+                </span>
+              )}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

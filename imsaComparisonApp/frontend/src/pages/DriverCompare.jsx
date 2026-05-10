@@ -34,7 +34,7 @@ export default function DriverCompare() {
   return (
     <div className="page">
       <FilterBar />
-      <EntitySelector mode="drivers" selected={selected} onChange={setSelected} />
+      <EntitySelector selected={selected} onChange={setSelected} />
       {loading && <LoadingSpinner />}
       {results && (
         <>
