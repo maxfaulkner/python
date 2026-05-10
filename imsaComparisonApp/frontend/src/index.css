@@ -71,6 +71,14 @@ body { margin: 0; }
 
 .navbar-links a:hover { color: var(--text); background: var(--border); }
 .navbar-links a.active { color: var(--text); font-weight: 600; }
+.navbar-links a.primary {
+  font-weight: 600;
+  color: var(--accent);
+}
+.navbar-links a.primary.active {
+  background: var(--accent);
+  color: #fff;
+}
 
 /* Page layout */
 main { flex: 1; }

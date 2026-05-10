@@ -3,11 +3,13 @@ import { NavLink } from 'react-router-dom'
 export default function Navbar() {
   return (
     <nav className="navbar">
-      <span className="navbar-brand">IMSA Compare</span>
+      <span className="navbar-brand">IMSA Intel</span>
       <div className="navbar-links">
+        <NavLink to="/compare" className={({ isActive }) => isActive ? 'active primary' : 'primary'}>
+          ⚡ Compare
+        </NavLink>
         <NavLink to="/drivers" className={({ isActive }) => isActive ? 'active' : ''}>Drivers</NavLink>
-        <NavLink to="/teams" className={({ isActive }) => isActive ? 'active' : ''}>Teams</NavLink>
-        <NavLink to="/manufacturers" className={({ isActive }) => isActive ? 'active' : ''}>Manufacturers</NavLink>
+        <NavLink to="/circuits" className={({ isActive }) => isActive ? 'active' : ''}>Circuits</NavLink>
       </div>
     </nav>
   )

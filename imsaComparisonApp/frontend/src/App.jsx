@@ -2,8 +2,6 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { FilterProvider } from './FilterContext'
 import Navbar from './components/Navbar'
 import DriverCompare from './pages/DriverCompare'
-import TeamCompare from './pages/TeamCompare'
-import ManufacturerCompare from './pages/ManufacturerCompare'
 
 export default function App() {
   return (
@@ -12,10 +10,8 @@ export default function App() {
         <Navbar />
         <main>
           <Routes>
-            <Route path="/" element={<Navigate to="/drivers" replace />} />
-            <Route path="/drivers" element={<DriverCompare />} />
-            <Route path="/teams" element={<TeamCompare />} />
-            <Route path="/manufacturers" element={<ManufacturerCompare />} />
+            <Route path="/" element={<Navigate to="/compare" replace />} />
+            <Route path="/compare" element={<DriverCompare />} />
           </Routes>
         </main>
       </FilterProvider>
