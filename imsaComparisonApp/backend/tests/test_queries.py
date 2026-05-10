@@ -93,11 +93,21 @@ def test_circuit_manufacturer_affinity(db):
     assert isinstance(result, list)
     assert any(r["manufacturer"] == "Porsche" for r in result)
 
+def test_circuit_record(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.circuit_record("Watkins Glen", "GTP", "imsa")
+    assert result is not None
+    assert "driver_name" in result and "year" in result
+    assert "lap_time" in result and "wet" in result
+    assert result["lap_time"] > 0
+    assert result["wet"] is False  # fixture uses raining=False for Watkins Glen
+
 def test_circuit_weather_sensitivity(db):
     with patch("queries_profile.get_conn", return_value=db):
         result = queries_profile.circuit_weather_sensitivity("Sebring", "GTP", "imsa")
     assert "circuit_rain_delta_s" in result
     assert "series_rain_delta_s" in result
+    assert result["circuit_rain_delta_s"] is not None  # both wet and dry laps exist now
 
 
 def test_h2h_record_returns_year_by_year(db):

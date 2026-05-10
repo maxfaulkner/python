@@ -47,5 +47,11 @@ def db():
                      "Earl Bamber", "earl bamber", lap, 110.0 + lap * 0.2,
                      None, None, None,
                      "GF", 1, lap, "Porsche", "Porsche", True, 65.0, 75.0))
+    # Dry laps at Sebring (for weather sensitivity test)
+    for lap in range(1, 21):
+        rows.append(("imsa", "2023", "Sebring", "race", "10", "GTP", "GTP",
+                     "Earl Bamber", "earl bamber", lap, 105.0 + lap * 0.15,
+                     None, None, None,
+                     "GF", 1, lap, "Porsche", "Porsche", False, 72.0, 90.0))
     conn.executemany("INSERT INTO laps VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)", rows)
     return conn

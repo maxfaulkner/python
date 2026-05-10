@@ -231,7 +231,7 @@ def circuit_specialists(event: str, cls: str, series: str) -> list[dict]:
     """, [series, event, cls, series, event, cls]).fetchall()
     return [
         {"driver_id": r[0], "driver_name": r[1],
-         "appearances": r[2], "margin_pct": round(float(r[3]), 3)}
+         "appearances": r[2], "margin_pct": round(float(r[3]), 2)}
         for r in rows
     ]
 
@@ -258,7 +258,7 @@ def circuit_manufacturer_affinity(event: str, cls: str, series: str) -> list[dic
         ORDER BY delta_pct DESC
     """, [series, event, cls, series, event, cls]).fetchall()
     return [
-        {"manufacturer": r[0], "delta_pct": round(float(r[1]), 3), "laps": r[2]}
+        {"manufacturer": r[0], "delta_pct": round(float(r[1]), 2), "laps": r[2]}
         for r in rows
     ]
 
@@ -266,21 +266,28 @@ def circuit_manufacturer_affinity(event: str, cls: str, series: str) -> list[dic
 def circuit_weather_sensitivity(event: str, cls: str, series: str) -> dict:
     conn = get_conn()
 
-    # event_filter uses f-string interpolation (not a parameterized placeholder) because
-    # DuckDB does not support parameters in the CASE expression's WHERE clause position
-    # used here. `event` is an internal trusted value validated by the router, not raw
-    # user input, so this is safe.
     def _rain_delta(event_filter: str | None) -> float | None:
-        event_clause = f"AND event = '{event_filter}'" if event_filter else ""
-        row = conn.execute(f"""
-            SELECT
-                AVG(CASE WHEN raining=TRUE THEN lap_time END) -
-                AVG(CASE WHEN raining=FALSE THEN lap_time END) as delta
-            FROM laps
-            WHERE series_code=? AND class=? AND session ILIKE '%race%'
-              AND lap_time>0 {_SC} {event_clause}
-              AND raining IS NOT NULL
-        """, [series, cls]).fetchone()
+        if event_filter:
+            sql = f"""
+                SELECT
+                    AVG(CASE WHEN raining=TRUE THEN lap_time END) -
+                    AVG(CASE WHEN raining=FALSE THEN lap_time END) as delta
+                FROM laps
+                WHERE series_code=? AND class=? AND session ILIKE '%race%'
+                  AND lap_time>0 {_SC} AND event=? AND raining IS NOT NULL
+            """
+            params = [series, cls, event_filter]
+        else:
+            sql = f"""
+                SELECT
+                    AVG(CASE WHEN raining=TRUE THEN lap_time END) -
+                    AVG(CASE WHEN raining=FALSE THEN lap_time END) as delta
+                FROM laps
+                WHERE series_code=? AND class=? AND session ILIKE '%race%'
+                  AND lap_time>0 {_SC} AND raining IS NOT NULL
+            """
+            params = [series, cls]
+        row = conn.execute(sql, params).fetchone()
         return float(row[0]) if row and row[0] is not None else None
 
     return {
@@ -291,10 +298,10 @@ def circuit_weather_sensitivity(event: str, cls: str, series: str) -> dict:
 
 def circuit_record(event: str, cls: str, series: str) -> dict | None:
     row = get_conn().execute(f"""
-        SELECT driver_name, year, MIN(lap_time) as best, raining
+        SELECT driver_name, year, lap_time, raining
         FROM laps
         WHERE series_code=? AND event=? AND class=? AND lap_time>0 {_SC}
-        ORDER BY best LIMIT 1
+        ORDER BY lap_time ASC LIMIT 1
     """, [series, event, cls]).fetchone()
     if not row:
         return None
