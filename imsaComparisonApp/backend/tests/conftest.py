@@ -18,9 +18,9 @@ def db():
         )
     """)
     rows = []
-    # Driver A (bamber): GTP race at Watkins Glen, 2023 and 2024
-    for year in ["2023", "2024"]:
-        for lap in range(1, 21):
+    # Driver A (bamber): GTP race at Watkins Glen, 2022, 2023, and 2024
+    for year in ["2022", "2023", "2024"]:
+        for lap in range(1, 56):
             rows.append(("imsa", year, "Watkins Glen", "race", "10", "GTP", "GTP",
                          "Earl Bamber", "earl bamber", lap,
                          100.0 + lap * 0.1,  # lap_time
@@ -28,14 +28,14 @@ def db():
                          "GF", 1, lap, "Porsche", "Porsche", False, 72.0, 85.0))
     # Driver B (tandy): same event
     for year in ["2023", "2024"]:
-        for lap in range(1, 21):
+        for lap in range(1, 56):
             rows.append(("imsa", year, "Watkins Glen", "race", "79", "GTP", "GTP",
                          "Nick Tandy", "nick tandy", lap,
                          100.5 + lap * 0.1,
                          32.3, 44.2, 24.0,
                          "GF", 1, lap, "Porsche", "Porsche", False, 72.0, 85.0))
     # Driver A qualifying laps
-    for year in ["2023", "2024"]:
+    for year in ["2022", "2023", "2024"]:
         for lap in range(1, 6):
             rows.append(("imsa", year, "Watkins Glen", "qualifying", "10", "GTP", "GTP",
                          "Earl Bamber", "earl bamber", lap, 99.0 + lap * 0.05,
