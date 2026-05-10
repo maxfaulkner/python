@@ -57,3 +57,4 @@ def test_h2h_record_returns_year_by_year(db):
         assert "winner_id" in row
         assert "margin" in row
         assert row["winner_id"] == "earl bamber"  # bamber is faster in fixture
+        assert row["margin"] == pytest.approx(0.5, abs=1e-2)

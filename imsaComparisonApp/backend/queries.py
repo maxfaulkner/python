@@ -173,7 +173,7 @@ def h2h_record(driver_id_a: str, driver_id_b: str, event: str, cls: str, series:
                 WHERE a.driver_id = ? AND b.driver_id = ?
             )
             SELECT year,
-                   CASE WHEN lap_a < lap_b THEN ? ELSE ? END as winner_id,
+                   CASE WHEN lap_a < lap_b THEN ? WHEN lap_b < lap_a THEN ? ELSE NULL END as winner_id,
                    ABS(lap_b - lap_a) as margin,
                    lap_a, lap_b
             FROM paired
