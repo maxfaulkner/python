@@ -26,3 +26,14 @@ def compare_drivers(
 ) -> list[dict]:
     ids = [d.strip() for d in driver_id.split(",") if d.strip()]
     return queries.compare_drivers(ids, series, year, event, session, cls)
+
+
+@router.get("/compare/h2h")
+def h2h(
+    driver_id_a: str,
+    driver_id_b: str,
+    event: str,
+    series: str = "imsa",
+    cls: str = Query(alias="class"),
+) -> list[dict]:
+    return queries.h2h_record(driver_id_a, driver_id_b, event, cls, series)

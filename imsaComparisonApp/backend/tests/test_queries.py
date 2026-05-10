@@ -42,3 +42,18 @@ def test_compare_drivers_stats_includes_sigma(db):
     bamber = next(d for d in results if d["driver_id"] == "earl bamber")
     assert bamber["stats"]["sigma"] is not None
     assert bamber["stats"]["sigma"] > 0
+
+
+def test_h2h_record_returns_year_by_year(db):
+    with patch("queries.get_conn", return_value=db):
+        result = queries.h2h_record(
+            "earl bamber", "nick tandy", "Watkins Glen", "GTP", "imsa"
+        )
+    # fixture has tandy for 2023 and 2024 only; JOIN yields 2 paired years
+    assert len(result) == 2
+    years = {r["year"] for r in result}
+    assert {"2023", "2024"} == years
+    for row in result:
+        assert "winner_id" in row
+        assert "margin" in row
+        assert row["winner_id"] == "earl bamber"  # bamber is faster in fixture

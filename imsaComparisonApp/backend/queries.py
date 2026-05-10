@@ -152,6 +152,42 @@ def compare_teams(teams: list[str], series: str, year: int, session: str, cls: s
     ]
 
 
+def h2h_record(driver_id_a: str, driver_id_b: str, event: str, cls: str, series: str) -> list[dict]:
+    sc = _sc_filter()
+    rows = get_conn().execute(
+        f"""WITH best AS (
+                SELECT year,
+                       driver_id,
+                       MIN(lap_time) as best_lap
+                FROM laps
+                WHERE series_code = ? AND event = ? AND class = ? AND session ILIKE '%race%'
+                  AND driver_id IN (?, ?)
+                  AND lap_time > 0 {sc}
+                GROUP BY year, driver_id
+            ),
+            paired AS (
+                SELECT a.year,
+                       a.best_lap as lap_a,
+                       b.best_lap as lap_b
+                FROM best a JOIN best b ON a.year = b.year
+                WHERE a.driver_id = ? AND b.driver_id = ?
+            )
+            SELECT year,
+                   CASE WHEN lap_a < lap_b THEN ? ELSE ? END as winner_id,
+                   ABS(lap_b - lap_a) as margin,
+                   lap_a, lap_b
+            FROM paired
+            ORDER BY year""",
+        [series, event, cls, driver_id_a, driver_id_b,
+         driver_id_a, driver_id_b, driver_id_a, driver_id_b],
+    ).fetchall()
+    return [
+        {"year": r[0], "winner_id": r[1], "margin": float(r[2]),
+         "lap_a": float(r[3]), "lap_b": float(r[4])}
+        for r in rows
+    ]
+
+
 def get_manufacturers(series: str, year: int, session: str) -> list[str]:
     rows = get_conn().execute(
         """SELECT DISTINCT manufacturer FROM laps
