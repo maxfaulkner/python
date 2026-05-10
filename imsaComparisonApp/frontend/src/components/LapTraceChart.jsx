@@ -8,19 +8,20 @@ export function fmtLap(seconds) {
   return `${m}:${s}`
 }
 
-export default function LapTraceChart({ data }) {
+export default function LapTraceChart({ data, colors }) {
   const ref = useRef(null)
 
   useEffect(() => {
     if (!ref.current || !data?.length) return
 
-    const traces = data.map((driver) => ({
+    const traces = data.map((driver, idx) => ({
       x: driver.laps.map((l) => l.lap),
       y: driver.laps.map((l) => l.lap_time),
       text: driver.laps.map((l) => fmtLap(l.lap_time)),
       name: driver.driver_name,
       mode: 'lines+markers',
-      marker: { size: 4 },
+      line: { color: colors?.[idx] ?? '#888' },
+      marker: { size: 4, color: colors?.[idx] ?? '#888' },
       hovertemplate: 'Lap %{x}<br>%{text}<extra>%{fullData.name}</extra>',
     }))
 

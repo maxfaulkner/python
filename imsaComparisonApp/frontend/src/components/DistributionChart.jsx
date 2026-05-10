@@ -8,19 +8,20 @@ function fmtLap(seconds) {
   return `${m}:${s}`
 }
 
-export default function DistributionChart({ data, nameKey = 'driver_name', timesKey = null }) {
+export default function DistributionChart({ data, nameKey = 'driver_name', timesKey = null, colors }) {
   const ref = useRef(null)
 
   useEffect(() => {
     if (!ref.current || !data?.length) return
 
-    const traces = data.map((entity) => {
+    const traces = data.map((entity, idx) => {
       const times = timesKey ? entity[timesKey] : entity.laps.map((l) => l.lap_time)
       return {
         y: times,
         name: entity[nameKey],
         type: 'box',
         boxpoints: 'outliers',
+        marker: { color: colors?.[idx] ?? '#888' },
         hovertemplate: '%{y:.3f}s<extra>%{fullData.name}</extra>',
       }
     })
