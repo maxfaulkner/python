@@ -68,6 +68,17 @@ def test_driver_best_circuits(db):
     events = [r["event"] for r in result]
     assert "Watkins Glen" in events
 
+def test_driver_profile_composite(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.driver_profile("earl bamber", "GTP", "imsa")
+    assert result["driver_id"] == "earl bamber"
+    assert result["driver_name"] == "Earl Bamber"
+    assert "fingerprint" in result
+    assert "career_arc" in result
+    assert "best_circuits" in result
+    assert isinstance(result["fingerprint"], dict)
+    assert len(result["career_arc"]) >= 1
+
 def test_h2h_record_returns_year_by_year(db):
     with patch("queries.get_conn", return_value=db):
         result = queries.h2h_record(

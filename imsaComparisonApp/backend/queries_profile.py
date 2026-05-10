@@ -1,5 +1,6 @@
-import statistics
 from db import get_conn
+
+_SC = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF'))"
 
 
 def _pct_rank_score(conn, sql: str, params: list) -> float | None:
@@ -11,7 +12,6 @@ def _pct_rank_score(conn, sql: str, params: list) -> float | None:
 
 def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
     conn = get_conn()
-    sc_clause = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF'))"
 
     # Qualifying pace: PERCENT_RANK where lower lap_time = higher rank
     qual_score = _pct_rank_score(conn, f"""
@@ -19,14 +19,16 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             SELECT driver_id, MEDIAN(lap_time) as med
             FROM laps
             WHERE series_code = ? AND class = ? AND session ILIKE '%qual%'
-              AND lap_time > 0 {sc_clause}
+              AND lap_time > 0 {_SC}
             GROUP BY driver_id HAVING COUNT(*) >= 3
         ),
         ranked AS (
-            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct
+            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct,
+                   COUNT(*) OVER () as pool_size
             FROM medians
         )
-        SELECT pct FROM ranked WHERE driver_id = ?
+        SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+        FROM ranked WHERE driver_id = ?
     """, [series, cls, driver_id])
 
     # Race pace
@@ -35,19 +37,21 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             SELECT driver_id, MEDIAN(lap_time) as med
             FROM laps
             WHERE series_code = ? AND class = ? AND session ILIKE '%race%'
-              AND lap_time > 0 {sc_clause}
+              AND lap_time > 0 {_SC}
             GROUP BY driver_id HAVING COUNT(*) >= 20
         ),
         ranked AS (
-            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct
+            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct,
+                   COUNT(*) OVER () as pool_size
             FROM medians
         )
-        SELECT pct FROM ranked WHERE driver_id = ?
+        SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+        FROM ranked WHERE driver_id = ?
     """, [series, cls, driver_id])
 
     # Wet pace (null if driver has <20 wet laps)
     wet_count = conn.execute(
-        f"SELECT COUNT(*) FROM laps WHERE series_code=? AND class=? AND driver_id=? AND raining=TRUE AND lap_time>0 {sc_clause}",
+        f"SELECT COUNT(*) FROM laps WHERE series_code=? AND class=? AND driver_id=? AND raining=TRUE AND lap_time>0 {_SC}",
         [series, cls, driver_id]
     ).fetchone()[0]
     if wet_count >= 20:
@@ -55,13 +59,16 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             WITH medians AS (
                 SELECT driver_id, MEDIAN(lap_time) as med
                 FROM laps
-                WHERE series_code=? AND class=? AND raining=TRUE AND lap_time>0 {sc_clause}
+                WHERE series_code=? AND class=? AND raining=TRUE AND lap_time>0 {_SC}
                 GROUP BY driver_id HAVING COUNT(*) >= 20
             ),
             ranked AS (
-                SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct FROM medians
+                SELECT driver_id, PERCENT_RANK() OVER (ORDER BY med DESC) as pct,
+                       COUNT(*) OVER () as pool_size
+                FROM medians
             )
-            SELECT pct FROM ranked WHERE driver_id=?
+            SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+            FROM ranked WHERE driver_id=?
         """, [series, cls, driver_id])
     else:
         wet_score = None
@@ -72,13 +79,16 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             SELECT driver_id, STDDEV(lap_time) as sd
             FROM laps
             WHERE series_code=? AND class=? AND session ILIKE '%race%'
-              AND lap_time>0 {sc_clause}
+              AND lap_time>0 {_SC}
             GROUP BY driver_id HAVING COUNT(*) >= 20
         ),
         ranked AS (
-            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY sd ASC) as pct FROM stddevs
+            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY sd ASC) as pct,
+                   COUNT(*) OVER () as pool_size
+            FROM stddevs
         )
-        SELECT pct FROM ranked WHERE driver_id=?
+        SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+        FROM ranked WHERE driver_id=?
     """, [series, cls, driver_id])
 
     # Tire management: pace in late vs early stints, relative to field
@@ -89,7 +99,7 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
                    AVG(CASE WHEN stint_lap >= 8 THEN lap_time END) as late
             FROM laps
             WHERE series_code=? AND class=? AND session ILIKE '%race%'
-              AND lap_time>0 {sc_clause} AND stint_lap IS NOT NULL
+              AND lap_time>0 {_SC} AND stint_lap IS NOT NULL
             GROUP BY driver_id HAVING COUNT(*) >= 20
         ),
         deltas AS (
@@ -97,9 +107,12 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             FROM stint_pace WHERE early IS NOT NULL AND late IS NOT NULL
         ),
         ranked AS (
-            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY deg_pct ASC) as pct FROM deltas
+            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY deg_pct ASC) as pct,
+                   COUNT(*) OVER () as pool_size
+            FROM deltas
         )
-        SELECT pct FROM ranked WHERE driver_id=?
+        SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+        FROM ranked WHERE driver_id=?
     """, [series, cls, driver_id]).fetchone()
     tire_score = round(float(tire_row[0]) * 100, 1) if tire_row and tire_row[0] is not None else None
 
@@ -109,14 +122,14 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             SELECT driver_id,
                    RANK() OVER (ORDER BY MEDIAN(lap_time)) as q_rank
             FROM laps
-            WHERE series_code=? AND class=? AND session ILIKE '%qual%' AND lap_time>0 {sc_clause}
+            WHERE series_code=? AND class=? AND session ILIKE '%qual%' AND lap_time>0 {_SC}
             GROUP BY driver_id HAVING COUNT(*) >= 3
         ),
         race_ranks AS (
             SELECT driver_id,
                    RANK() OVER (ORDER BY MEDIAN(lap_time)) as r_rank
             FROM laps
-            WHERE series_code=? AND class=? AND session ILIKE '%race%' AND lap_time>0 {sc_clause}
+            WHERE series_code=? AND class=? AND session ILIKE '%race%' AND lap_time>0 {_SC}
             GROUP BY driver_id HAVING COUNT(*) >= 20
         ),
         deltas AS (
@@ -124,9 +137,12 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
             FROM qual_ranks q JOIN race_ranks r ON q.driver_id = r.driver_id
         ),
         ranked AS (
-            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY delta DESC) as pct FROM deltas
+            SELECT driver_id, PERCENT_RANK() OVER (ORDER BY delta DESC) as pct,
+                   COUNT(*) OVER () as pool_size
+            FROM deltas
         )
-        SELECT pct FROM ranked WHERE driver_id=?
+        SELECT CASE WHEN pool_size > 1 THEN pct ELSE NULL END
+        FROM ranked WHERE driver_id=?
     """, [series, cls, series, cls, driver_id]).fetchone()
     qr_score = round(float(qr_row[0]) * 100, 1) if qr_row and qr_row[0] is not None else None
 
@@ -141,13 +157,12 @@ def driver_fingerprint(driver_id: str, cls: str, series: str) -> dict:
 
 
 def driver_career_arc(driver_id: str, cls: str, series: str) -> list[dict]:
-    sc = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF'))"
     rows = get_conn().execute(f"""
         WITH yearly AS (
             SELECT year, driver_id, MEDIAN(lap_time) as med
             FROM laps
             WHERE series_code=? AND class=? AND session ILIKE '%race%'
-              AND lap_time>0 {sc}
+              AND lap_time>0 {_SC}
             GROUP BY year, driver_id HAVING COUNT(*) >= 50
         ),
         ranked AS (
@@ -161,19 +176,18 @@ def driver_career_arc(driver_id: str, cls: str, series: str) -> list[dict]:
 
 
 def driver_best_circuits(driver_id: str, cls: str, series: str) -> list[dict]:
-    sc = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF'))"
     rows = get_conn().execute(f"""
         WITH field AS (
             SELECT event, year, MEDIAN(lap_time) as field_med
             FROM laps
-            WHERE series_code=? AND class=? AND session ILIKE '%race%' AND lap_time>0 {sc}
+            WHERE series_code=? AND class=? AND session ILIKE '%race%' AND lap_time>0 {_SC}
             GROUP BY event, year
         ),
         driver_ev AS (
-            SELECT event, year, MEDIAN(lap_time) as drv_med, COUNT(*) as laps
+            SELECT event, year, MEDIAN(lap_time) as drv_med
             FROM laps
             WHERE series_code=? AND class=? AND driver_id=?
-              AND session ILIKE '%race%' AND lap_time>0 {sc}
+              AND session ILIKE '%race%' AND lap_time>0 {_SC}
             GROUP BY event, year HAVING COUNT(*) >= 5
         ),
         margins AS (
@@ -191,18 +205,30 @@ def driver_best_circuits(driver_id: str, cls: str, series: str) -> list[dict]:
 
 def driver_profile(driver_id: str, cls: str, series: str) -> dict:
     conn = get_conn()
-    meta = conn.execute(
-        """SELECT driver_name, license, driver_country
-           FROM laps WHERE driver_id=? AND series_code=? AND class=? LIMIT 1""",
-        [driver_id, series, cls]
-    ).fetchone()
-    if not meta:
+    try:
+        meta = conn.execute(
+            """SELECT driver_name, license, driver_country
+               FROM laps WHERE driver_id=? AND series_code=? AND class=? LIMIT 1""",
+            [driver_id, series, cls]
+        ).fetchone()
+        driver_name = meta[0] if meta else None
+        license_val = meta[1] if meta else None
+        driver_country = meta[2] if meta else None
+    except Exception:
+        meta_row = conn.execute(
+            "SELECT driver_name FROM laps WHERE driver_id=? AND series_code=? AND class=? LIMIT 1",
+            [driver_id, series, cls]
+        ).fetchone()
+        driver_name = meta_row[0] if meta_row else None
+        license_val = None
+        driver_country = None
+    if driver_name is None:
         return {}
     return {
         "driver_id": driver_id,
-        "driver_name": meta[0],
-        "license": meta[1],
-        "driver_country": meta[2],
+        "driver_name": driver_name,
+        "license": license_val,
+        "driver_country": driver_country,
         "fingerprint": driver_fingerprint(driver_id, cls, series),
         "career_arc": driver_career_arc(driver_id, cls, series),
         "best_circuits": driver_best_circuits(driver_id, cls, series),
