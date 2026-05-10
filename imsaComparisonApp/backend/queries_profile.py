@@ -203,6 +203,117 @@ def driver_best_circuits(driver_id: str, cls: str, series: str) -> list[dict]:
     return [{"event": r[0], "appearances": r[1], "margin_pct": round(float(r[2]), 2)} for r in rows]
 
 
+def circuit_specialists(event: str, cls: str, series: str) -> list[dict]:
+    rows = get_conn().execute(f"""
+        WITH field AS (
+            SELECT year, MEDIAN(lap_time) as field_med
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC}
+            GROUP BY year
+        ),
+        driver_ev AS (
+            SELECT driver_id, driver_name, year, MEDIAN(lap_time) as drv_med
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC}
+            GROUP BY driver_id, driver_name, year HAVING COUNT(*) >= 5
+        ),
+        margins AS (
+            SELECT d.driver_id, d.driver_name,
+                   COUNT(*) as appearances,
+                   AVG((f.field_med - d.drv_med) / f.field_med * 100) as margin_pct
+            FROM driver_ev d JOIN field f ON d.year=f.year
+            GROUP BY d.driver_id, d.driver_name HAVING COUNT(*) >= 3
+        )
+        SELECT driver_id, driver_name, appearances, margin_pct
+        FROM margins ORDER BY margin_pct DESC LIMIT 10
+    """, [series, event, cls, series, event, cls]).fetchall()
+    return [
+        {"driver_id": r[0], "driver_name": r[1],
+         "appearances": r[2], "margin_pct": round(float(r[3]), 3)}
+        for r in rows
+    ]
+
+
+def circuit_manufacturer_affinity(event: str, cls: str, series: str) -> list[dict]:
+    rows = get_conn().execute(f"""
+        WITH field_med AS (
+            SELECT MEDIAN(lap_time) as med
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC}
+        ),
+        mfr AS (
+            SELECT manufacturer, MEDIAN(lap_time) as med, COUNT(*) as laps
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC} AND manufacturer IS NOT NULL
+            GROUP BY manufacturer HAVING COUNT(*) >= 10
+        )
+        SELECT m.manufacturer,
+               (f.med - m.med) / f.med * 100 as delta_pct,
+               m.laps
+        FROM mfr m, field_med f
+        ORDER BY delta_pct DESC
+    """, [series, event, cls, series, event, cls]).fetchall()
+    return [
+        {"manufacturer": r[0], "delta_pct": round(float(r[1]), 3), "laps": r[2]}
+        for r in rows
+    ]
+
+
+def circuit_weather_sensitivity(event: str, cls: str, series: str) -> dict:
+    conn = get_conn()
+
+    # event_filter uses f-string interpolation (not a parameterized placeholder) because
+    # DuckDB does not support parameters in the CASE expression's WHERE clause position
+    # used here. `event` is an internal trusted value validated by the router, not raw
+    # user input, so this is safe.
+    def _rain_delta(event_filter: str | None) -> float | None:
+        event_clause = f"AND event = '{event_filter}'" if event_filter else ""
+        row = conn.execute(f"""
+            SELECT
+                AVG(CASE WHEN raining=TRUE THEN lap_time END) -
+                AVG(CASE WHEN raining=FALSE THEN lap_time END) as delta
+            FROM laps
+            WHERE series_code=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC} {event_clause}
+              AND raining IS NOT NULL
+        """, [series, cls]).fetchone()
+        return float(row[0]) if row and row[0] is not None else None
+
+    return {
+        "circuit_rain_delta_s": _rain_delta(event),
+        "series_rain_delta_s": _rain_delta(None),
+    }
+
+
+def circuit_record(event: str, cls: str, series: str) -> dict | None:
+    row = get_conn().execute(f"""
+        SELECT driver_name, year, MIN(lap_time) as best, raining
+        FROM laps
+        WHERE series_code=? AND event=? AND class=? AND lap_time>0 {_SC}
+        ORDER BY best LIMIT 1
+    """, [series, event, cls]).fetchone()
+    if not row:
+        return None
+    return {
+        "driver_name": row[0], "year": row[1],
+        "lap_time": float(row[2]), "wet": bool(row[3])
+    }
+
+
+def circuit_profile(event: str, cls: str, series: str) -> dict:
+    return {
+        "event": event,
+        "record": circuit_record(event, cls, series),
+        "specialists": circuit_specialists(event, cls, series),
+        "manufacturer_affinity": circuit_manufacturer_affinity(event, cls, series),
+        "weather_sensitivity": circuit_weather_sensitivity(event, cls, series),
+    }
+
+
 def driver_profile(driver_id: str, cls: str, series: str) -> dict:
     conn = get_conn()
     try:

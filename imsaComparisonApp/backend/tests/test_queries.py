@@ -79,6 +79,27 @@ def test_driver_profile_composite(db):
     assert isinstance(result["fingerprint"], dict)
     assert len(result["career_arc"]) >= 1
 
+def test_circuit_specialists(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.circuit_specialists("Watkins Glen", "GTP", "imsa")
+    assert isinstance(result, list)
+    assert len(result) >= 1
+    for row in result:
+        assert "driver_id" in row and "margin_pct" in row and "appearances" in row
+
+def test_circuit_manufacturer_affinity(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.circuit_manufacturer_affinity("Watkins Glen", "GTP", "imsa")
+    assert isinstance(result, list)
+    assert any(r["manufacturer"] == "Porsche" for r in result)
+
+def test_circuit_weather_sensitivity(db):
+    with patch("queries_profile.get_conn", return_value=db):
+        result = queries_profile.circuit_weather_sensitivity("Sebring", "GTP", "imsa")
+    assert "circuit_rain_delta_s" in result
+    assert "series_rain_delta_s" in result
+
+
 def test_h2h_record_returns_year_by_year(db):
     with patch("queries.get_conn", return_value=db):
         result = queries.h2h_record(
