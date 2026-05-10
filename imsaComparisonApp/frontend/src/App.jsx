@@ -2,6 +2,7 @@ import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { FilterProvider } from './FilterContext'
 import Navbar from './components/Navbar'
 import DriverCompare from './pages/DriverCompare'
+import DriverProfile from './pages/DriverProfile'
 
 export default function App() {
   return (
@@ -12,6 +13,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/compare" replace />} />
             <Route path="/compare" element={<DriverCompare />} />
+            <Route path="/drivers/:driverId" element={<DriverProfile />} />
           </Routes>
         </main>
       </FilterProvider>
