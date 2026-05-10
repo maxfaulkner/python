@@ -92,7 +92,7 @@ def compare_drivers(driver_ids: list[str], series: str, year: int, event: str, s
 
     results = []
     for d in by_driver.values():
-        times = [l["lap_time"] for l in d["laps"]]
+        times = [float(l["lap_time"]) for l in d["laps"]]
         if times:
             times_sorted = sorted(times)
             p75_idx = int(len(times_sorted) * 0.75)

@@ -12,7 +12,7 @@ export default function EntitySelector({ selected, onChange }) {
   const [searchParams] = useSearchParams()
 
   useEffect(() => {
-    if (!year) return
+    if (!year || !event || !session || !cls) return
     setLoading(true)
     setOptions([])
     api.drivers(series, year, event, session, cls)
