@@ -1,12 +1,14 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import Plotly from 'plotly.js-dist-min'
 
 export default function ManufacturerAffinity({ data }) {
   const ref = useRef(null)
+  const [hasData, setHasData] = useState(false)
 
   useEffect(() => {
-    if (!ref.current || !data?.length) return
+    if (!ref.current || !data?.length) { setHasData(false); return }
     const sorted = [...data].sort((a, b) => b.delta_pct - a.delta_pct)
+    setHasData(true)
     Plotly.react(ref.current, [{
       x: sorted.map((d) => d.delta_pct),
       y: sorted.map((d) => d.manufacturer),
@@ -21,6 +23,6 @@ export default function ManufacturerAffinity({ data }) {
     }, { responsive: true, displayModeBar: false })
   }, [data])
 
-  if (!data?.length) return null
+  if (!data?.length || !hasData) return null
   return <div ref={ref} className="chart" style={{ height: 200 }} />
 }

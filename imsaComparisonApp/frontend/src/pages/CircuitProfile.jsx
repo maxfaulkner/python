@@ -114,7 +114,7 @@ export default function CircuitProfile() {
               className="cta-button"
               onClick={() => navigate(`/compare?${new URLSearchParams({
                 ...Object.fromEntries(searchParams),
-                driver_id: `${encodeURIComponent(top2[0].driver_id)},${encodeURIComponent(top2[1].driver_id)}`,
+                driver_id: `${top2[0].driver_id},${top2[1].driver_id}`,
               })}`)}
             >
               Compare top 2 specialists →
