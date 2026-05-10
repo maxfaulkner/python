@@ -31,7 +31,7 @@ export default function DriverProfile() {
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!driverId || !cls) return
+    if (!driverId) return
     setLoading(true)
     api.driverProfile(driverId, series, cls)
       .then(setProfile)
@@ -42,7 +42,7 @@ export default function DriverProfile() {
   if (loading) return <div className="page"><LoadingSpinner /></div>
   if (!profile?.driver_name) return <div className="page"><p className="hint">Driver not found.</p></div>
 
-  const initials = profile.driver_name.split(' ').map((w) => w[0]).join('').slice(0, 2)
+  const initials = profile.driver_name.split(' ').filter(Boolean).map((w) => w[0]).join('').slice(0, 2)
 
   return (
     <div className="page">

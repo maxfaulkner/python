@@ -19,7 +19,8 @@ export default function FingerprintRadar({ profiles }) {
     const theta = [...DIMS.map((d) => d.label), DIMS[0].label]
     const traces = profiles.map((p, idx) => ({
       type: 'scatterpolar',
-      r: [...DIMS.map((d) => p.fingerprint?.[d.key] ?? 0), p.fingerprint?.[DIMS[0].key] ?? 0],
+      r: [...DIMS.map((d) => p.fingerprint?.[d.key] ?? null), p.fingerprint?.[DIMS[0].key] ?? null],
+      connectgaps: false,
       theta,
       name: p.driver_name,
       fill: 'toself',
