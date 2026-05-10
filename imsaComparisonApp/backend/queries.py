@@ -7,7 +7,7 @@ SAFETY_CAR_FLAGS = ("FCY", "SF")
 
 def _sc_filter() -> str:
     placeholders = ", ".join(f"'{f}'" for f in SAFETY_CAR_FLAGS)
-    return f"AND (flags IS NULL OR flags NOT IN ({placeholders}))"
+    return f"AND (flags IS NULL OR flags NOT IN ({placeholders})) AND (pit_time IS NULL OR pit_time = 0)"
 
 
 def get_filter_universe(series: str) -> dict:

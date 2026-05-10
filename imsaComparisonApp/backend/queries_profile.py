@@ -1,6 +1,6 @@
 from db import get_conn
 
-_SC = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF'))"
+_SC = "AND (flags IS NULL OR flags NOT IN ('FCY', 'SF')) AND (pit_time IS NULL OR pit_time = 0)"
 
 
 def _pct_rank_score(conn, sql: str, params: list) -> float | None:
