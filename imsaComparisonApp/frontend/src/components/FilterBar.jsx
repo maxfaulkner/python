@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { useFilters } from '../FilterContext'
 
 export default function FilterBar({ showClass = true }) {
@@ -26,6 +27,16 @@ export default function FilterBar({ showClass = true }) {
           {events.map((ev) => <option key={ev} value={ev}>{ev}</option>)}
         </select>
       </label>
+
+      {event && (
+        <Link
+          to={`/circuits/${encodeURIComponent(event)}?${new URLSearchParams({ series, session, class: cls }).toString()}`}
+          className="circuit-link"
+          title="View circuit profile"
+        >
+          View circuit →
+        </Link>
+      )}
 
       <label>
         Session

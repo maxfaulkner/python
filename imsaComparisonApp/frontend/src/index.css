@@ -388,3 +388,41 @@ main { flex: 1; }
   cursor: pointer; align-self: flex-start;
 }
 .cta-button:hover { opacity: 0.9; }
+
+/* Circuit link in FilterBar */
+.circuit-link {
+  font-size: 12px;
+  color: var(--accent);
+  text-decoration: none;
+  align-self: flex-end;
+  padding-bottom: 8px;
+}
+.circuit-link:hover { text-decoration: underline; }
+
+/* DriversSearch */
+.driver-search-input {
+  width: 100%;
+  padding: 9px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+}
+.driver-search-input:focus { outline: 2px solid var(--accent); outline-offset: 1px; }
+.driver-list { display: flex; flex-direction: column; gap: 4px; }
+.driver-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  text-decoration: none;
+  color: var(--text);
+  background: var(--bg-surface);
+  transition: border-color 0.1s;
+}
+.driver-list-item:hover { border-color: var(--accent); }
+.driver-list-name { font-weight: 600; }
+.driver-list-meta { font-size: 12px; color: var(--text-muted); }
