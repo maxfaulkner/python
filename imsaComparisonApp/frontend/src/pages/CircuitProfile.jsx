@@ -4,6 +4,7 @@ import { api } from '../api'
 import { useFilters } from '../FilterContext'
 import CircuitSpecialists from '../components/CircuitSpecialists'
 import ManufacturerAffinity from '../components/ManufacturerAffinity'
+import FieldRanking from '../components/FieldRanking'
 import LoadingSpinner from '../components/LoadingSpinner'
 
 function fmtLap(s) {
@@ -108,6 +109,11 @@ export default function CircuitProfile() {
               </div>
             </div>
           )}
+
+          <div>
+            <div className="section-label" style={{ marginBottom: 12 }}>Field Ranking — All Drivers</div>
+            <FieldRanking event={decodedEvent} series={series} cls={profileCls} />
+          </div>
 
           {top2.length === 2 && (
             <button

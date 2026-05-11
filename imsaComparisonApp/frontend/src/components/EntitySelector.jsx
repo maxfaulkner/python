@@ -8,6 +8,7 @@ export default function EntitySelector({ selected, onChange }) {
   const { series, year, event, session, cls } = useFilters()
   const [options, setOptions] = useState([])
   const [loading, setLoading] = useState(false)
+  const [query, setQuery] = useState('')
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -15,6 +16,7 @@ export default function EntitySelector({ selected, onChange }) {
     if (!year || !event || !session || !cls) return
     setLoading(true)
     setOptions([])
+    setQuery('')
     api.drivers(series, year, event, session, cls)
       .then((data) =>
         setOptions(data.map((d) => ({
@@ -38,6 +40,10 @@ export default function EntitySelector({ selected, onChange }) {
   if (loading) return <div className="entity-selector loading">Loading drivers...</div>
   if (!options.length) return <div className="entity-selector empty">No drivers found for current filters.</div>
 
+  const filtered = query
+    ? options.filter((o) => o.label.toLowerCase().includes(query.toLowerCase()) || o.team?.toLowerCase().includes(query.toLowerCase()))
+    : options
+
   return (
     <div className="entity-selector">
       <div className="entity-selector-header">
@@ -46,8 +52,14 @@ export default function EntitySelector({ selected, onChange }) {
           <button className="clear-btn" onClick={() => onChange([])}>Clear</button>
         )}
       </div>
+      <input
+        className="entity-search"
+        placeholder="Search drivers..."
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
       <div className="entity-list">
-        {options.map(({ value, label, team }) => {
+        {filtered.map(({ value, label, team }) => {
           const idx = selected.indexOf(value)
           const isSelected = idx !== -1
           const color = isSelected ? DRIVER_COLORS[idx] : null

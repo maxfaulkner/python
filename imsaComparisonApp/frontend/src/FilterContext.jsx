@@ -11,7 +11,7 @@ export function FilterProvider({ children }) {
   const [events, setEvents] = useState([])
 
   const series = searchParams.get('series') || 'imsa'
-  const year = Number(searchParams.get('year')) || null
+  const year = searchParams.get('year') ? Number(searchParams.get('year')) : null
   const event = searchParams.get('event') || ''
   const session = searchParams.get('session') || 'race'
   const cls = searchParams.get('class') || ''
@@ -22,11 +22,12 @@ export function FilterProvider({ children }) {
 
   useEffect(() => {
     setUniverse(null)
+    setEvents([])
     api.filters(series).then((data) => {
       setUniverse(data)
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev)
-        if (!next.get('year') || !data.years.includes(Number(next.get('year')))) {
+        if (!next.get('year') || !data.years.map(String).includes(next.get('year'))) {
           next.set('year', String(data.years[0]))
           next.delete('event')
           next.delete('class')

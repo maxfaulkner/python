@@ -29,4 +29,7 @@ export const api = {
 
   circuitProfile: (event, series, cls) =>
     get(`/api/circuit/profile?${qs({ event, series, class: cls })}`),
+
+  circuitFieldRanking: (event, series, cls) =>
+    get(`/api/circuit/field-ranking?${qs({ event, series, class: cls })}`),
 }

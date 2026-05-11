@@ -321,6 +321,65 @@ def circuit_profile(event: str, cls: str, series: str) -> dict:
     }
 
 
+def circuit_field_ranking(event: str, cls: str, series: str) -> list[dict]:
+    """Full field ranking at a circuit: vs field median and vs teammates."""
+    rows = get_conn().execute(f"""
+        WITH field AS (
+            SELECT year, MEDIAN(lap_time) as field_med
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC}
+            GROUP BY year
+        ),
+        driver_year AS (
+            SELECT driver_id, driver_name, team_name, year,
+                   MEDIAN(lap_time) as drv_med,
+                   COUNT(*) as laps
+            FROM laps
+            WHERE series_code=? AND event=? AND class=? AND session ILIKE '%race%'
+              AND lap_time>0 {_SC} AND team_name IS NOT NULL
+            GROUP BY driver_id, driver_name, team_name, year
+            HAVING COUNT(*) >= 3
+        ),
+        team_year AS (
+            -- median of ALL drivers on the team that year (for teammate comparison)
+            SELECT team_name, year, MEDIAN(drv_med) as team_med
+            FROM driver_year
+            GROUP BY team_name, year
+        ),
+        margins AS (
+            SELECT d.driver_id, d.driver_name,
+                   -- most recent team for display
+                   LAST(d.team_name ORDER BY d.year) as team_name,
+                   COUNT(*) as appearances,
+                   AVG((f.field_med - d.drv_med) / f.field_med * 100) as vs_field_pct,
+                   AVG((t.team_med  - d.drv_med) / t.team_med  * 100) as vs_team_pct
+            FROM driver_year d
+            JOIN field    f ON d.year = f.year
+            JOIN team_year t ON d.team_name = t.team_name AND d.year = t.year
+            GROUP BY d.driver_id, d.driver_name
+        )
+        SELECT driver_id, driver_name, team_name, appearances,
+               vs_field_pct, vs_team_pct,
+               RANK() OVER (ORDER BY vs_field_pct DESC) as rank
+        FROM margins
+        ORDER BY vs_field_pct DESC
+    """, [series, event, cls, series, event, cls]).fetchall()
+
+    return [
+        {
+            "rank": int(r[6]),
+            "driver_id": r[0],
+            "driver_name": r[1],
+            "team_name": r[2],
+            "appearances": int(r[3]),
+            "vs_field_pct": round(float(r[4]), 2),
+            "vs_team_pct": round(float(r[5]), 2),
+        }
+        for r in rows
+    ]
+
+
 def driver_profile(driver_id: str, cls: str, series: str) -> dict:
     conn = get_conn()
     try:

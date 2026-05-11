@@ -3,7 +3,7 @@ import { NavLink } from 'react-router-dom'
 export default function Navbar() {
   return (
     <nav className="navbar">
-      <span className="navbar-brand">IMSA Intel</span>
+      <span className="navbar-brand">IMSA <span>Intel</span></span>
       <div className="navbar-links">
         <NavLink to="/compare" className={({ isActive }) => isActive ? 'active primary' : 'primary'}>
           ⚡ Compare

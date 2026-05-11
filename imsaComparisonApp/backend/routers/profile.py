@@ -20,3 +20,12 @@ def get_circuit_profile(
     cls: str = Query(alias="class"),
 ) -> dict:
     return queries_profile.circuit_profile(event, cls, series)
+
+
+@router.get("/circuit/field-ranking")
+def get_circuit_field_ranking(
+    event: str,
+    series: str = "imsa",
+    cls: str = Query(alias="class"),
+) -> list[dict]:
+    return queries_profile.circuit_field_ranking(event, cls, series)
