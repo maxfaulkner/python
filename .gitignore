@@ -11,3 +11,15 @@ Python/.DS_Store
 Python/compoundInterestCalculator/__pycache__
 
 .venv/
+
+# Dependencies & build artifacts
+node_modules/
+dist/
+build/
+.vite/
+__pycache__/
+.pytest_cache/
+*.duckdb
+
+# Nested repo (has its own .git — track it separately)
+awesome-claude-plugins/

@@ -1,0 +1,364 @@
+<style>
+  * { box-sizing: border-box; }
+  .wrap { max-width: 960px; margin: 0 auto; }
+  .app-frame { border: 2px solid #e44; border-radius: 12px; overflow: hidden; }
+  .app-nav { background: #0d0d0d; padding: 10px 20px; display: flex; align-items: center; gap: 6px; border-bottom: 1px solid #222; }
+  .app-nav-brand { color: #e44; font-weight: 800; font-size: 15px; margin-right: 16px; }
+  .nav-link { padding: 6px 14px; border-radius: 6px; font-size: 13px; color: #555; cursor: pointer; }
+  .nav-link.active { background: #e44; color: #fff; font-weight: 600; }
+  .nav-link.secondary { color: #444; }
+  .app-body { background: #111; padding: 20px; display: flex; flex-direction: column; gap: 16px; }
+
+  /* Filter strip */
+  .filter-strip { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .filter-chip { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 6px; padding: 6px 12px; font-size: 12px; color: #888; }
+  .filter-chip span { color: #ccc; margin-left: 4px; }
+
+  /* Driver selector */
+  .driver-pills { display: flex; gap: 8px; flex-wrap: wrap; }
+  .driver-pill { display: flex; align-items: center; gap: 8px; border-radius: 20px; padding: 6px 14px; font-size: 13px; font-weight: 600; }
+  .driver-pill.a { background: rgba(228,68,68,0.15); border: 1.5px solid #e44; color: #e44; }
+  .driver-pill.b { background: rgba(91,141,217,0.15); border: 1.5px solid #5b8dd9; color: #5b8dd9; }
+  .driver-pill.add { background: #1a1a1a; border: 1.5px dashed #333; color: #444; }
+
+  /* Section header */
+  .sec { margin-bottom: 4px; }
+  .sec-label { font-size: 10px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #444; margin-bottom: 10px; }
+
+  /* Hero stats */
+  .hero-stats { display: grid; grid-template-columns: 1fr auto 1fr; gap: 0; background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+  .hero-stat-col { padding: 16px 20px; }
+  .hero-stat-col.a { border-right: none; }
+  .hero-stat-col.b { border-left: none; text-align: right; }
+  .vs-divider { display: flex; align-items: center; justify-content: center; padding: 16px 12px; background: #161616; border-left: 1px solid #222; border-right: 1px solid #222; }
+  .vs-text { font-size: 11px; font-weight: 700; color: #333; letter-spacing: 2px; }
+  .stat-item { margin-bottom: 10px; }
+  .stat-item:last-child { margin-bottom: 0; }
+  .stat-name { font-size: 10px; color: #444; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 2px; }
+  .stat-val-big { font-size: 18px; font-family: monospace; font-weight: 700; }
+  .stat-val-big.red { color: #e44; }
+  .stat-val-big.blue { color: #5b8dd9; }
+  .stat-delta { font-size: 11px; color: #555; margin-top: 1px; }
+  .winner-badge { display: inline-block; background: #e44; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 6px; border-radius: 3px; letter-spacing: 1px; margin-left: 6px; vertical-align: middle; }
+
+  /* Chart placeholder */
+  .chart-box { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 14px 16px; }
+  .chart-title { font-size: 12px; font-weight: 600; color: #666; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; }
+  .chart-tag { font-size: 10px; background: #1e1e1e; border: 1px solid #2a2a2a; border-radius: 4px; padding: 2px 7px; color: #555; }
+  .chart-area { height: 100px; display: flex; align-items: flex-end; gap: 1.5px; padding: 0 4px; }
+  .chart-bar { flex: 1; border-radius: 1px 1px 0 0; opacity: 0.85; }
+
+  /* Sector breakdown */
+  .sector-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+  .sector-card { background: #161616; border: 1px solid #222; border-radius: 8px; padding: 14px; }
+  .sector-name { font-size: 10px; font-weight: 700; color: #444; letter-spacing: 2px; text-transform: uppercase; margin-bottom: 10px; }
+  .sector-bar-row { display: flex; flex-direction: column; gap: 5px; }
+  .sbar { display: flex; align-items: center; gap: 8px; }
+  .sbar-label { font-size: 11px; color: #666; width: 14px; }
+  .sbar-track { flex: 1; height: 8px; background: #222; border-radius: 4px; overflow: hidden; }
+  .sbar-fill { height: 100%; border-radius: 4px; }
+  .sbar-val { font-size: 11px; font-family: monospace; color: #aaa; width: 40px; text-align: right; }
+
+  /* Two col */
+  .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  /* Gap chart */
+  .gap-line { display: flex; align-items: center; gap: 2px; height: 60px; }
+  .gap-seg { flex: 1; display: flex; align-items: center; }
+  .gap-dot { width: 4px; height: 4px; border-radius: 50%; }
+
+  /* H2H record */
+  .h2h-row { display: flex; align-items: center; gap: 10px; padding: 7px 0; border-bottom: 1px solid #1e1e1e; font-size: 12px; }
+  .h2h-row:last-child { border: none; }
+  .h2h-event { color: #666; flex: 1; }
+  .h2h-result { font-weight: 600; }
+  .h2h-result.a { color: #e44; }
+  .h2h-result.b { color: #5b8dd9; }
+  .h2h-delta { font-family: monospace; color: #555; font-size: 11px; }
+
+  /* Tire deg */
+  .deg-bars { display: flex; align-items: flex-end; gap: 3px; height: 50px; }
+  .deg-bar { flex: 1; border-radius: 2px 2px 0 0; }
+
+  /* Toggle strip */
+  .toggle-strip { display: flex; gap: 6px; flex-wrap: wrap; margin-top: -6px; }
+  .toggle { background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 4px; padding: 3px 10px; font-size: 11px; color: #555; cursor: pointer; }
+  .toggle.on { border-color: #e44; color: #e44; background: rgba(228,68,68,0.08); }
+
+  .new-badge { background: #e44; color: #fff; font-size: 9px; font-weight: 800; padding: 1px 5px; border-radius: 3px; margin-left: 6px; }
+</style>
+
+<div class="wrap">
+  <h2>Compare — the dominant view</h2>
+  <p class="subtitle">Every feature of the app flows through this page. Driver profiles and circuit pages are supporting views.</p>
+
+  <div class="app-frame">
+    <!-- Nav: Compare is clearly primary -->
+    <div class="app-nav">
+      <span class="app-nav-brand">IMSA Intel</span>
+      <span class="nav-link active">⚡ Compare</span>
+      <span class="nav-link secondary">Drivers</span>
+      <span class="nav-link secondary">Circuits</span>
+    </div>
+
+    <div class="app-body">
+
+      <!-- Filters -->
+      <div class="filter-strip">
+        <div class="filter-chip">Series <span>IMSA WeatherTech</span></div>
+        <div class="filter-chip">Year <span>2024</span></div>
+        <div class="filter-chip">Circuit <span>Watkins Glen</span></div>
+        <div class="filter-chip">Session <span>Race</span></div>
+        <div class="filter-chip">Class <span>GTP</span></div>
+      </div>
+
+      <!-- Driver pills -->
+      <div class="driver-pills">
+        <div class="driver-pill a">● Earl Bamber &nbsp;×</div>
+        <div class="driver-pill b">● Nick Tandy &nbsp;×</div>
+        <div class="driver-pill add">+ Add driver</div>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          <div class="toggle on">FCY laps hidden</div>
+          <div class="toggle on">Out-laps hidden</div>
+          <div class="toggle">Show traffic laps</div>
+        </div>
+      </div>
+
+      <!-- Hero head-to-head stats -->
+      <div>
+        <div class="sec-label">Head-to-Head</div>
+        <div class="hero-stats">
+          <div class="hero-stat-col a">
+            <div class="stat-item">
+              <div class="stat-name">Best Lap</div>
+              <div class="stat-val-big red">1:40.847 <span class="winner-badge">BEST</span></div>
+              <div class="stat-delta">Lap 34 · Stint 2</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-name">Median Race Pace</div>
+              <div class="stat-val-big red">1:41.932</div>
+              <div class="stat-delta">−0.82% vs field</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-name">Consistency σ</div>
+              <div class="stat-val-big red">0.312s <span class="winner-badge">BEST</span></div>
+            </div>
+          </div>
+          <div class="vs-divider"><div class="vs-text">VS</div></div>
+          <div class="hero-stat-col b">
+            <div class="stat-item">
+              <div class="stat-name">Best Lap</div>
+              <div class="stat-val-big blue">1:41.203</div>
+              <div class="stat-delta">Lap 41 · Stint 2</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-name">Median Race Pace</div>
+              <div class="stat-val-big blue">1:42.187</div>
+              <div class="stat-delta">−0.58% vs field</div>
+            </div>
+            <div class="stat-item">
+              <div class="stat-name">Consistency σ</div>
+              <div class="stat-val-big blue">0.441s</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Lap trace chart (big) -->
+      <div class="chart-box">
+        <div class="chart-title">
+          Lap-by-Lap Trace
+          <div style="display:flex;gap:6px">
+            <span class="chart-tag">● Bamber</span>
+            <span class="chart-tag" style="color:#5b8dd9">● Tandy</span>
+            <span class="chart-tag">FCY excluded</span>
+          </div>
+        </div>
+        <div class="chart-area" style="height:120px">
+          <!-- simulated lap trace bars alternating two colors -->
+          <div class="chart-bar" style="height:72%;background:#e44"></div><div class="chart-bar" style="height:68%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:74%;background:#e44"></div><div class="chart-bar" style="height:70%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:76%;background:#e44"></div><div class="chart-bar" style="height:73%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:78%;background:#e44"></div><div class="chart-bar" style="height:75%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:80%;background:#e44"></div><div class="chart-bar" style="height:77%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:82%;background:#e44"></div><div class="chart-bar" style="height:79%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:84%;background:#e44"></div><div class="chart-bar" style="height:82%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:86%;background:#e44"></div><div class="chart-bar" style="height:84%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:88%;background:#e44"></div><div class="chart-bar" style="height:86%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:90%;background:#e44"></div><div class="chart-bar" style="height:88%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:92%;background:#e44"></div><div class="chart-bar" style="height:90%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:94%;background:#e44"></div><div class="chart-bar" style="height:92%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:96%;background:#e44"></div><div class="chart-bar" style="height:94%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:98%;background:#e44"></div><div class="chart-bar" style="height:96%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:100%;background:#e44"></div><div class="chart-bar" style="height:98%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:85%;background:#e44"></div><div class="chart-bar" style="height:90%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:82%;background:#e44"></div><div class="chart-bar" style="height:87%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:80%;background:#e44"></div><div class="chart-bar" style="height:84%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:88%;background:#e44"></div><div class="chart-bar" style="height:92%;background:#5b8dd9"></div>
+          <div class="chart-bar" style="height:91%;background:#e44"></div><div class="chart-bar" style="height:88%;background:#5b8dd9"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:10px;color:#333;margin-top:6px;padding:0 4px">
+          <span>Lap 1</span><span>Lap 20</span><span>Lap 40</span><span>Lap 60</span><span>Lap 80</span>
+        </div>
+      </div>
+
+      <!-- Sector breakdown -->
+      <div>
+        <div class="sec-label">Sector Breakdown · Best Lap</div>
+        <div class="sector-grid">
+          <div class="sector-card">
+            <div class="sector-name">Sector 1</div>
+            <div class="sector-bar-row">
+              <div class="sbar">
+                <span class="sbar-label" style="color:#e44">A</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:88%;background:#e44"></div></div>
+                <span class="sbar-val">32.241</span>
+              </div>
+              <div class="sbar">
+                <span class="sbar-label" style="color:#5b8dd9">B</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:82%;background:#5b8dd9"></div></div>
+                <span class="sbar-val">32.588</span>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#e44;margin-top:8px">Bamber +0.347s faster</div>
+          </div>
+          <div class="sector-card">
+            <div class="sector-name">Sector 2</div>
+            <div class="sector-bar-row">
+              <div class="sbar">
+                <span class="sbar-label" style="color:#e44">A</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:79%;background:#e44"></div></div>
+                <span class="sbar-val">44.812</span>
+              </div>
+              <div class="sbar">
+                <span class="sbar-label" style="color:#5b8dd9">B</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:81%;background:#5b8dd9"></div></div>
+                <span class="sbar-val">44.671</span>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#5b8dd9;margin-top:8px">Tandy +0.141s faster</div>
+          </div>
+          <div class="sector-card">
+            <div class="sector-name">Sector 3</div>
+            <div class="sector-bar-row">
+              <div class="sbar">
+                <span class="sbar-label" style="color:#e44">A</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:91%;background:#e44"></div></div>
+                <span class="sbar-val">23.794</span>
+              </div>
+              <div class="sbar">
+                <span class="sbar-label" style="color:#5b8dd9">B</span>
+                <div class="sbar-track"><div class="sbar-fill" style="width:85%;background:#5b8dd9"></div></div>
+                <span class="sbar-val">23.944</span>
+              </div>
+            </div>
+            <div style="font-size:10px;color:#e44;margin-top:8px">Bamber +0.150s faster</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom row: gap chart + tire deg + H2H record -->
+      <div class="two-col">
+        <div class="chart-box">
+          <div class="chart-title">Tire Deg · Pace vs Stint Lap <span class="new-badge">NEW</span></div>
+          <div class="deg-bars">
+            <div class="deg-bar" style="height:40%;background:#e44;opacity:0.5"></div>
+            <div class="deg-bar" style="height:55%;background:#e44;opacity:0.6"></div>
+            <div class="deg-bar" style="height:68%;background:#e44;opacity:0.7"></div>
+            <div class="deg-bar" style="height:78%;background:#e44;opacity:0.8"></div>
+            <div class="deg-bar" style="height:85%;background:#e44;opacity:0.85"></div>
+            <div class="deg-bar" style="height:90%;background:#e44;opacity:0.9"></div>
+            <div class="deg-bar" style="height:92%;background:#e44"></div>
+            <div class="deg-bar" style="height:88%;background:#e44"></div>
+            <div class="deg-bar" style="height:83%;background:#e44"></div>
+            <div class="deg-bar" style="height:76%;background:#e44"></div>
+          </div>
+          <div class="deg-bars" style="margin-top:4px">
+            <div class="deg-bar" style="height:38%;background:#5b8dd9;opacity:0.5"></div>
+            <div class="deg-bar" style="height:52%;background:#5b8dd9;opacity:0.6"></div>
+            <div class="deg-bar" style="height:65%;background:#5b8dd9;opacity:0.7"></div>
+            <div class="deg-bar" style="height:74%;background:#5b8dd9;opacity:0.75"></div>
+            <div class="deg-bar" style="height:79%;background:#5b8dd9;opacity:0.8"></div>
+            <div class="deg-bar" style="height:81%;background:#5b8dd9;opacity:0.82"></div>
+            <div class="deg-bar" style="height:80%;background:#5b8dd9"></div>
+            <div class="deg-bar" style="height:75%;background:#5b8dd9"></div>
+            <div class="deg-bar" style="height:68%;background:#5b8dd9"></div>
+            <div class="deg-bar" style="height:60%;background:#5b8dd9"></div>
+          </div>
+          <div style="font-size:10px;color:#444;margin-top:8px">Stint lap 1 → 10. Bamber finds pace faster, Tandy drops off sooner.</div>
+        </div>
+
+        <div class="chart-box">
+          <div class="chart-title">H2H Record · This Circuit <span class="new-badge">NEW</span></div>
+          <div class="h2h-row">
+            <span class="h2h-event">Watkins Glen 2024</span>
+            <span class="h2h-result a">Bamber</span>
+            <span class="h2h-delta">+0.356s</span>
+          </div>
+          <div class="h2h-row">
+            <span class="h2h-event">Watkins Glen 2023</span>
+            <span class="h2h-result a">Bamber</span>
+            <span class="h2h-delta">+0.211s</span>
+          </div>
+          <div class="h2h-row">
+            <span class="h2h-event">Watkins Glen 2022</span>
+            <span class="h2h-result b">Tandy</span>
+            <span class="h2h-delta">+0.088s</span>
+          </div>
+          <div class="h2h-row">
+            <span class="h2h-event">Watkins Glen 2021</span>
+            <span class="h2h-result a">Bamber</span>
+            <span class="h2h-delta">+0.553s</span>
+          </div>
+          <div style="margin-top:10px;padding-top:10px;border-top:1px solid #1e1e1e;display:flex;justify-content:space-between;font-size:12px">
+            <span style="color:#e44;font-weight:700">Bamber 3–1</span>
+            <span style="color:#444">at this circuit</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Distribution -->
+      <div class="chart-box">
+        <div class="chart-title">Lap Time Distribution
+          <div style="display:flex;gap:6px">
+            <span class="chart-tag">Box plot</span>
+            <span class="chart-tag">Outliers shown</span>
+          </div>
+        </div>
+        <div style="height:60px;display:flex;align-items:center;gap:40px;padding:0 20px">
+          <div style="flex:1;position:relative">
+            <div style="height:3px;background:#333;width:100%;position:absolute;top:50%"></div>
+            <div style="position:absolute;left:10%;top:25%;width:55%;height:50%;background:rgba(228,68,68,0.2);border:1.5px solid #e44;border-radius:2px"></div>
+            <div style="position:absolute;left:32%;top:0;width:2px;height:100%;background:#e44"></div>
+            <div style="position:absolute;left:3%;top:45%;width:6px;height:6px;border-radius:50%;background:#e44;opacity:0.4"></div>
+            <div style="font-size:10px;color:#e44;position:absolute;bottom:-16px;left:0">Bamber</div>
+          </div>
+          <div style="flex:1;position:relative">
+            <div style="height:3px;background:#333;width:100%;position:absolute;top:50%"></div>
+            <div style="position:absolute;left:5%;top:20%;width:70%;height:60%;background:rgba(91,141,217,0.2);border:1.5px solid #5b8dd9;border-radius:2px"></div>
+            <div style="position:absolute;left:28%;top:0;width:2px;height:100%;background:#5b8dd9"></div>
+            <div style="position:absolute;left:78%;top:42%;width:6px;height:6px;border-radius:50%;background:#5b8dd9;opacity:0.5"></div>
+            <div style="position:absolute;left:82%;top:42%;width:6px;height:6px;border-radius:50%;background:#5b8dd9;opacity:0.4"></div>
+            <div style="font-size:10px;color:#5b8dd9;position:absolute;bottom:-16px;left:0">Tandy</div>
+          </div>
+        </div>
+        <div style="margin-top:28px;font-size:10px;color:#333;text-align:center">Bamber tighter IQR · Tandy has more outlier laps (traffic?)</div>
+      </div>
+
+    </div>
+  </div>
+
+  <div style="margin-top:20px;padding:16px;background:#161616;border:1px solid #2a2a2a;border-radius:8px">
+    <div class="sec-label" style="margin-bottom:10px">Supporting pages (accessible from Compare)</div>
+    <div style="display:flex;gap:12px">
+      <div style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:12px">
+        <div style="font-size:13px;color:#ddd;margin-bottom:4px">👤 Driver Profile</div>
+        <div style="font-size:12px;color:#555">Fingerprint radar · career arc · best circuits · click from Compare driver pills</div>
+      </div>
+      <div style="flex:1;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:6px;padding:12px">
+        <div style="font-size:13px;color:#ddd;margin-bottom:4px">🏁 Circuit Profile</div>
+        <div style="font-size:12px;color:#555">Track specialists · all-time records · manufacturer affinity · click from event filter</div>
+      </div>
+    </div>
+  </div>
+</div>

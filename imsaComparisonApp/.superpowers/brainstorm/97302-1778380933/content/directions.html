@@ -1,0 +1,99 @@
+<style>
+  .direction-cards { display: flex; flex-direction: column; gap: 20px; max-width: 860px; margin: 0 auto; }
+  .dir-card { border: 2px solid #333; border-radius: 12px; padding: 28px 32px; cursor: pointer; transition: border-color 0.15s, background 0.15s; position: relative; }
+  .dir-card:hover { border-color: #888; }
+  .dir-card.selected { border-color: #e44; background: rgba(228,68,68,0.06); }
+  .dir-label { font-size: 11px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: #e44; margin-bottom: 8px; }
+  .dir-title { font-size: 22px; font-weight: 700; margin-bottom: 10px; color: #f0f0f0; }
+  .dir-hook { font-size: 15px; color: #aaa; margin-bottom: 18px; font-style: italic; }
+  .dir-features { display: flex; flex-wrap: wrap; gap: 8px; }
+  .feat { background: #222; border: 1px solid #444; border-radius: 20px; padding: 4px 12px; font-size: 13px; color: #ccc; }
+  .dir-mockup { margin-top: 20px; background: #1a1a1a; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 12px; color: #666; line-height: 1.6; }
+  .mock-accent { color: #e44; }
+  .mock-bright { color: #ccc; }
+  .check { position: absolute; top: 20px; right: 24px; font-size: 22px; opacity: 0; transition: opacity 0.15s; }
+  .dir-card.selected .check { opacity: 1; }
+</style>
+
+<h2>Three visions for V1</h2>
+<p class="subtitle">Click the direction that excites you most — or multiple if they feel complementary</p>
+
+<div class="direction-cards">
+
+  <div class="dir-card" data-choice="story" onclick="toggleSelect(this)">
+    <span class="check">✓</span>
+    <div class="dir-label">Direction A</div>
+    <div class="dir-title">The Race Debrief</div>
+    <div class="dir-hook">"Stop looking at charts. Start reading the race."</div>
+    <p style="color:#999;font-size:14px;margin-bottom:16px;">The app becomes a race analyst. You pick a session and it generates a narrative — automatically identifying the key moments, the pace leaders, the hidden battles. Charts serve the story, not the other way around. It's like a post-race engineer debrief, except the data does the talking.</p>
+    <div class="dir-features">
+      <span class="feat">Auto-generated race narrative</span>
+      <span class="feat">Key moment detection</span>
+      <span class="feat">Stint-by-stint pace story</span>
+      <span class="feat">Battle tracker (cars within 2s)</span>
+      <span class="feat">Shareable race reports</span>
+    </div>
+    <div class="dir-mockup">
+      <span class="mock-accent">◆ DAYTONA 2024 · GTP RACE DEBRIEF</span><br><br>
+      <span class="mock-bright">Lap 1–12 · Dominant opening</span><br>
+      <span style="color:#777">Bamber exits T1 clean, builds 4.2s gap by lap 8. Class median: 1:43.2. His pace: 1:42.1.</span><br><br>
+      <span class="mock-bright">Lap 23 · The undercut window</span><br>
+      <span style="color:#777">Porsche #7 pits 3 laps earlier. Emerges P3, on cold tires. Van der Zande responds lap 26.</span><br><br>
+      <span class="mock-bright">Lap 41–47 · FCY bunches the field</span><br>
+      <span style="color:#777">5-car train within 1.8s. Restarts shuffle the top 4...</span>
+    </div>
+  </div>
+
+  <div class="dir-card" data-choice="fingerprint" onclick="toggleSelect(this)">
+    <span class="check">✓</span>
+    <div class="dir-label">Direction B</div>
+    <div class="dir-title">The Driver Fingerprint</div>
+    <div class="dir-hook">"Every driver has a signature. This is where you find it."</div>
+    <p style="color:#999;font-size:14px;margin-bottom:16px;">Forget single-session comparisons. The app builds a full performance identity for every driver — a radar of their strengths across dimensions: qualifying vs. race pace, wet vs. dry, early-stint vs. late-stint tire management, home circuits vs. away. Then you compare fingerprints. "Who is this driver, and who races like them?"</p>
+    <div class="dir-features">
+      <span class="feat">Radar/spider chart per driver</span>
+      <span class="feat">Wet vs. dry split</span>
+      <span class="feat">Qualifying vs. race pace delta</span>
+      <span class="feat">Tire deg profile</span>
+      <span class="feat">"Similar drivers" engine</span>
+      <span class="feat">Career arc timeline</span>
+    </div>
+    <div class="dir-mockup">
+      <span class="mock-accent">◆ DRIVER DNA · EARL BAMBER vs. NICK TANDY</span><br><br>
+      <span style="color:#777">                Qualifying pace</span><br>
+      <span style="color:#777">    Wet pace ●────────────────● Race pace</span><br>
+      <span style="color:#777">               /     ██████   \</span><br>
+      <span style="color:#777">    Tire mgmt ●    ████████    ● Stint length</span><br>
+      <span style="color:#777">               \              /</span><br>
+      <span style="color:#777">                 Traffic pace</span><br><br>
+      <span class="mock-bright">Bamber: qualifying specialist. Tandy: race-day performer.</span>
+    </div>
+  </div>
+
+  <div class="dir-card" data-choice="circuit" onclick="toggleSelect(this)">
+    <span class="check">✓</span>
+    <div class="dir-label">Direction C</div>
+    <div class="dir-title">The Circuit Book</div>
+    <div class="dir-hook">"Every track has a personality. Some drivers get it. Most don't."</div>
+    <p style="color:#999;font-size:14px;margin-bottom:16px;">Flip the mental model entirely. Start with a circuit, not a driver. The app becomes a living encyclopedia of every track — who dominates here and why, how conditions affect lap times, the all-time lap record progression, which manufacturers suit the circuit's character. Watkins Glen rewards different skills than Daytona. This is where you prove it.</p>
+    <div class="dir-features">
+      <span class="feat">Circuit homepage</span>
+      <span class="feat">All-time lap record timeline</span>
+      <span class="feat">Track specialists ranking</span>
+      <span class="feat">Manufacturer affinity chart</span>
+      <span class="feat">Weather impact analysis</span>
+      <span class="feat">Circuit vs. circuit comparison</span>
+    </div>
+    <div class="dir-mockup">
+      <span class="mock-accent">◆ WATKINS GLEN · CIRCUIT PROFILE</span><br><br>
+      <span class="mock-bright">GTP Track Record</span>  <span style="color:#e44">1:40.847</span>  <span style="color:#666">Bamber · 2024 · Dry · 74°F</span><br>
+      <span style="color:#666">─────────────────────────────────────</span><br>
+      <span class="mock-bright">Track specialists (2020–2024)</span><br>
+      <span style="color:#777">#1 Bamber  avg -0.8% vs field</span><br>
+      <span style="color:#777">#2 Tandy   avg -0.6% vs field</span><br>
+      <span style="color:#777">#3 Vanthoor avg -0.5% vs field</span><br><br>
+      <span class="mock-bright">Manufacturer affinity</span>  <span style="color:#777">Porsche dominates high-speed, BMW struggles S2</span>
+    </div>
+  </div>
+
+</div>
