@@ -11,3 +11,24 @@ Python/.DS_Store
 Python/compoundInterestCalculator/__pycache__
 
 .venv/
+
+# Dependencies & virtual envs
+node_modules/
+venv/
+env/
+
+# Build output
+dist/
+build/
+.vite/
+
+# Python
+__pycache__/
+*.pyc
+
+# Data files (large / regenerable)
+*.duckdb
+*.duckdb.wal
+
+# Nested repo (cloned separately, tracked on its own)
+awesome-claude-plugins/
