@@ -1,0 +1,715 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Barlow+Condensed:wght@500;600;700;800&display=swap');
+
+/* ─── Design tokens ──────────────────────────────────────────── */
+:root {
+  --red:          #e10600;
+  --red-dark:     #b30500;
+  --red-dim:      rgba(225, 6, 0, 0.12);
+  --red-glow:     rgba(225, 6, 0, 0.28);
+  --gold:         #f59e0b;
+  --gold-dim:     rgba(245, 158, 11, 0.15);
+  --silver:       #9ca3af;
+  --green:        #22c55e;
+  --green-dim:    rgba(34, 197, 94, 0.12);
+  --blue:         #3b82f6;
+
+  --bg-root:      #09090b;
+  --bg-base:      #111113;
+  --bg-card:      #18181b;
+  --bg-card-2:    #1e1e22;
+  --bg-elevated:  #27272a;
+
+  --border:       rgba(255, 255, 255, 0.06);
+  --border-2:     rgba(255, 255, 255, 0.10);
+  --border-3:     rgba(255, 255, 255, 0.16);
+
+  --text:         #fafafa;
+  --text-2:       #a1a1aa;
+  --text-3:       #71717a;
+  --text-4:       #52525b;
+
+  --r-sm:   6px;
+  --r:      10px;
+  --r-lg:   14px;
+  --r-xl:   20px;
+
+  --ease:   0.18s ease;
+}
+
+/* ─── Reset ──────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: var(--bg-root);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* subtle grid lines behind everything */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.016) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.016) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+}
+
+a { color: var(--red); text-decoration: none; transition: color var(--ease); }
+a:hover { color: var(--red-dark); }
+button { font-family: inherit; }
+input, select, textarea { font-family: inherit; }
+
+/* ─── Scrollbar ──────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-4); }
+
+/* ─── Spinner ────────────────────────────────────────────────── */
+.spinner {
+  width: 32px; height: 32px;
+  border: 3px solid var(--bg-elevated);
+  border-top-color: var(--red);
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  margin: 48px auto;
+}
+.spinner-sm {
+  width: 13px; height: 13px;
+  border: 2px solid rgba(255,255,255,0.15);
+  border-top-color: currentColor;
+  border-radius: 50%;
+  animation: spin 0.65s linear infinite;
+  display: inline-block;
+  vertical-align: middle;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ─── Animations ─────────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes pulseDot {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--red-glow); }
+  50%       { opacity: 0.7; box-shadow: 0 0 0 4px transparent; }
+}
+@keyframes shimmer {
+  from { background-position: -200% center; }
+  to   { background-position: 200% center; }
+}
+
+.fade-up { animation: fadeUp 0.35s ease forwards; }
+.fade-in { animation: fadeIn 0.25s ease forwards; }
+
+/* ─── Live dot ───────────────────────────────────────────────── */
+.live-dot {
+  width: 7px; height: 7px;
+  background: var(--red);
+  border-radius: 50%;
+  display: inline-block;
+  animation: pulseDot 1.6s ease-in-out infinite;
+}
+
+/* ─── Home layout ────────────────────────────────────────────── */
+.home-layout {
+  display: flex;
+  gap: 28px;
+  align-items: flex-start;
+}
+.home-spacer { flex: 1; }
+.home-leagues { flex: 0 0 580px; }
+.home-results { flex: 0 0 460px; }
+
+@media (max-width: 1280px) {
+  .home-spacer { display: none; }
+  .home-leagues { flex: 0 0 520px; }
+  .home-results { flex: 1; min-width: 0; }
+}
+@media (max-width: 960px) {
+  .home-layout { flex-direction: column; gap: 20px; }
+  .home-leagues, .home-results { flex: none; width: 100%; }
+}
+
+/* ─── Driver grid ────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .driver-grid { grid-template-columns: 1fr !important; }
+}
+
+/* ─── Card base ──────────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 20px;
+}
+.card-sm {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--r);
+  padding: 14px 16px;
+}
+
+/* ─── Button base ────────────────────────────────────────────── */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 16px;
+  border-radius: var(--r);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all var(--ease);
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--red);
+  color: #fff;
+}
+.btn-primary:hover { background: var(--red-dark); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-2);
+  border: 1px solid var(--border-2);
+}
+.btn-ghost:hover { color: var(--text); border-color: var(--border-3); background: var(--bg-card-2); }
+
+/* ─── Input base ─────────────────────────────────────────────── */
+.inp {
+  display: block;
+  width: 100%;
+  padding: 9px 13px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r);
+  color: var(--text);
+  font-size: 14px;
+  transition: border-color var(--ease), box-shadow var(--ease);
+  outline: none;
+}
+.inp:focus {
+  border-color: var(--red);
+  box-shadow: 0 0 0 3px var(--red-dim);
+}
+.inp::placeholder { color: var(--text-4); }
+
+/* ─── Select base ────────────────────────────────────────────── */
+select.inp {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' fill='none'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%2371717a' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+/* ─── Table styles ───────────────────────────────────────────── */
+.data-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.data-table thead tr {
+  background: transparent;
+}
+.data-table th {
+  padding: 10px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-3);
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.data-table td {
+  padding: 12px 14px;
+  font-size: 14px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: middle;
+}
+.data-table tbody tr:last-child td { border-bottom: none; }
+.data-table tbody tr:hover td { background: rgba(255,255,255,0.02); }
+
+/* ─── Badge ──────────────────────────────────────────────────── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+}
+
+/* ─── Section header ─────────────────────────────────────────── */
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-3);
+}
+
+/* ─── Red top-accent card (used on league cards) ─────────────── */
+.card-accent {
+  position: relative;
+  overflow: hidden;
+}
+.card-accent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--red), transparent);
+}
+
+/* ─── Countdown number ───────────────────────────────────────── */
+.countdown-num {
+  font-family: 'Barlow Condensed', sans-serif;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Podium ─────────────────────────────────────────────────── */
+.podium-1 { background: linear-gradient(135deg, rgba(245,158,11,0.15), rgba(245,158,11,0.05)); border-color: rgba(245,158,11,0.25); }
+.podium-2 { background: linear-gradient(135deg, rgba(156,163,175,0.12), rgba(156,163,175,0.04)); border-color: rgba(156,163,175,0.2); }
+.podium-3 { background: linear-gradient(135deg, rgba(180,120,60,0.12), rgba(180,120,60,0.04)); border-color: rgba(180,120,60,0.2); }
+
+/* ─── Chat ─────────────────────────────────────────────────── */
+.chat-message:hover {
+  background: rgba(255,255,255,0.02) !important;
+}
+
+/* ─── Notification bell dropdown ────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Toggle switch ─────────────────────────────────────────── */
+.toggle-track {
+  width: 40px; height: 22px; border-radius: 11px;
+  position: relative; cursor: pointer; transition: background 0.2s;
+}
+.toggle-thumb {
+  width: 16px; height: 16px; border-radius: 50%; background: #fff;
+  position: absolute; top: 3px; transition: left 0.2s;
+}
+
+/* ─── Chip button ───────────────────────────────────────────── */
+.chip-btn:hover {
+  border-color: rgba(251,191,36,0.4) !important;
+  background: rgba(251,191,36,0.08) !important;
+}
+
+/* ─── Stats chart tooltip ───────────────────────────────────── */
+.chart-point:hover circle {
+  r: 5;
+}
+
+/* ─── Profile avatar ring ───────────────────────────────────── */
+.avatar-ring {
+  box-shadow: 0 0 0 3px rgba(225,6,0,0.3), 0 0 20px rgba(225,6,0,0.2);
+}
+
+/* ─── Public leagues filter tab active ──────────────────────── */
+.filter-tab-active {
+  background: var(--red) !important;
+  border-color: var(--red) !important;
+}
+
+/* ─── Input focus ring ──────────────────────────────────────── */
+input:focus, textarea:focus, select:focus {
+  border-color: rgba(225,6,0,0.5) !important;
+  box-shadow: 0 0 0 2px rgba(225,6,0,0.1);
+  outline: none;
+}
+
+/* ─── Scrollbar for chat ────────────────────────────────────── */
+.chat-messages-area::-webkit-scrollbar {
+  width: 4px;
+}
+.chat-messages-area::-webkit-scrollbar-track {
+  background: transparent;
+}
+.chat-messages-area::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.1);
+  border-radius: 2px;
+}
+
+/* ─── Achievement badge hover ───────────────────────────────── */
+.achievement-badge {
+  transition: transform 0.15s, border-color 0.15s;
+}
+.achievement-badge:hover {
+  transform: translateY(-2px);
+  border-color: rgba(225,6,0,0.4) !important;
+}
+
+/* ─── Font display alias ─────────────────────────────────────── */
+:root {
+  --font-display: 'Barlow Condensed', sans-serif;
+}
+
+/* ─── Mobile nav hide labels ─────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav-label { display: none; }
+  .home-layout { padding: 0 4px; }
+}
+
+/* ─── Mobile: Leaderboard buttons wrap ─────────────────────────── */
+@media (max-width: 640px) {
+  .lb-header-actions { flex-wrap: wrap !important; gap: 6px !important; }
+  .lb-header-actions button { font-size: 11px !important; padding: 6px 10px !important; }
+}
+
+/* ─── League card action buttons on mobile ──────────────────── */
+@media (max-width: 520px) {
+  .league-actions { display: grid !important; grid-template-columns: 1fr 1fr 1fr !important; }
+}
+
+/* ─── Chat input area ────────────────────────────────────────── */
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+}
+@media (max-width: 480px) {
+  .chat-input-row { flex-direction: column; }
+}
+
+/* ─── Stats round pills scroll ───────────────────────────────── */
+.round-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+}
+.round-pills::-webkit-scrollbar { height: 3px; }
+.round-pills::-webkit-scrollbar-thumb { background: var(--bg-elevated); border-radius: 2px; }
+
+/* ─── Card hover lift ────────────────────────────────────────── */
+.card-hover {
+  transition: transform 0.15s, box-shadow 0.15s;
+}
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+}
+
+/* ─── Shimmer loading skeleton ───────────────────────────────── */
+.skeleton {
+  background: linear-gradient(90deg, var(--bg-card) 0%, var(--bg-elevated) 50%, var(--bg-card) 100%);
+  background-size: 200% auto;
+  animation: shimmer 1.4s linear infinite;
+  border-radius: var(--r);
+}
+
+/* ─── Tooltip ────────────────────────────────────────────────── */
+[data-tooltip] {
+  position: relative;
+}
+[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-elevated);
+  border: 1px solid var(--border-2);
+  color: var(--text);
+  font-size: 11px;
+  white-space: nowrap;
+  padding: 4px 8px;
+  border-radius: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+[data-tooltip]:hover::after { opacity: 1; }
+
+/* ─── H2H win/loss colors ────────────────────────────────────── */
+.h2h-win { color: #22c55e; }
+.h2h-loss { color: #f87171; }
+.h2h-draw { color: #fbbf24; }
+
+/* ═══════════════════════════════════════════════════════════════
+   POLISH ADDITIONS
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ─── Smooth scroll + selection ──────────────────────────────── */
+html { scroll-behavior: smooth; }
+::selection { background: rgba(225,6,0,0.22); color: var(--text); }
+
+/* ─── Focus visible ──────────────────────────────────────────── */
+:focus-visible {
+  outline: 2px solid rgba(225,6,0,0.45);
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+:focus:not(:focus-visible) { outline: none; }
+
+/* ─── Shadow tokens ──────────────────────────────────────────── */
+:root {
+  --shadow-sm:  0 1px 4px rgba(0,0,0,0.35);
+  --shadow:     0 4px 16px rgba(0,0,0,0.45), 0 1px 4px rgba(0,0,0,0.2);
+  --shadow-lg:  0 16px 48px rgba(0,0,0,0.55), 0 4px 12px rgba(0,0,0,0.25);
+  --shadow-red: 0 4px 20px rgba(225,6,0,0.22);
+}
+
+/* ─── Card shadow upgrade ────────────────────────────────────── */
+.card     { box-shadow: var(--shadow-sm); }
+.card-sm  { box-shadow: var(--shadow-sm); }
+.card-raised {
+  background: var(--bg-card);
+  border: 1px solid var(--border-2);
+  border-radius: var(--r-lg);
+  padding: 20px;
+  box-shadow: var(--shadow);
+}
+.card-glow {
+  box-shadow: var(--shadow), 0 0 30px rgba(225,6,0,0.07), 0 0 0 1px rgba(225,6,0,0.1);
+}
+
+/* ─── Button size variant ────────────────────────────────────── */
+.btn-sm { padding: 5px 12px; font-size: 12px; border-radius: var(--r-sm); }
+
+/* ─── Button success variant ─────────────────────────────────── */
+.btn-success { background: #16a34a; color: #fff; }
+.btn-success:hover { background: #15803d; }
+
+/* ─── Badge color variants ───────────────────────────────────── */
+.badge-red   { background: var(--red-dim);              color: #f87171; }
+.badge-gold  { background: var(--gold-dim);             color: var(--gold); }
+.badge-green { background: var(--green-dim);            color: var(--green); }
+.badge-blue  { background: rgba(59,130,246,0.14);       color: #93c5fd; }
+.badge-muted { background: rgba(255,255,255,0.06);      color: var(--text-3); }
+
+/* ─── Text utilities ─────────────────────────────────────────── */
+.text-red    { color: var(--red); }
+.text-gold   { color: var(--gold); }
+.text-green  { color: var(--green); }
+.text-muted  { color: var(--text-3); }
+.text-dim    { color: var(--text-4); }
+.text-gradient {
+  background: linear-gradient(135deg, var(--red), #ff6b35);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.display-num {
+  font-family: var(--font-display);
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Layout utilities ───────────────────────────────────────── */
+.page-wrap { max-width: 1100px; margin: 0 auto; padding: 28px 24px; }
+
+/* ─── Divider ────────────────────────────────────────────────── */
+.divider { border: none; border-top: 1px solid var(--border); margin: 16px 0; }
+
+/* ─── Empty state ────────────────────────────────────────────── */
+.empty-state {
+  text-align: center;
+  padding: 56px 20px;
+}
+.empty-state-icon { font-size: 38px; display: block; margin-bottom: 12px; opacity: 0.4; }
+.empty-state-title { font-size: 15px; font-weight: 600; color: var(--text-2); margin-bottom: 5px; }
+.empty-state-sub   { font-size: 13px; color: var(--text-3); }
+
+/* ─── Navbar ─────────────────────────────────────────────────── */
+.navbar {
+  background: rgba(9,9,11,0.92);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 32px;
+  height: 58px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+.navbar-brand {
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: inherit;
+}
+.navbar-logo {
+  width: 30px; height: 30px;
+  background: linear-gradient(135deg, #e10600, #ff4444);
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 15px;
+  box-shadow: 0 0 14px rgba(225,6,0,0.45);
+  flex-shrink: 0;
+  transition: box-shadow var(--ease), transform var(--ease);
+}
+.navbar-brand:hover .navbar-logo {
+  box-shadow: 0 0 22px rgba(225,6,0,0.65);
+  transform: scale(1.05);
+}
+.navbar-brand-text { display: flex; flex-direction: column; line-height: 1; }
+.navbar-brand-name {
+  font-family: var(--font-display);
+  font-weight: 800; font-size: 18px;
+  letter-spacing: 0.02em; color: var(--text);
+}
+.navbar-brand-red { color: var(--red); }
+.navbar-brand-sub {
+  font-size: 9px; color: var(--text-4);
+  letter-spacing: 0.12em; font-weight: 500; margin-top: 1px;
+}
+.navbar-right { display: flex; gap: 6px; align-items: center; }
+
+.nav-link {
+  font-size: 13px;
+  color: rgba(255,255,255,0.45);
+  text-decoration: none;
+  padding: 5px 9px;
+  border-radius: 7px;
+  font-weight: 500;
+  transition: color var(--ease), background var(--ease);
+  position: relative;
+}
+.nav-link:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.nav-link.nav-active {
+  color: var(--text);
+  background: rgba(225,6,0,0.07);
+}
+.nav-link.nav-active::after {
+  content: '';
+  position: absolute;
+  bottom: -13px; left: 50%;
+  transform: translateX(-50%);
+  width: 20px; height: 2px;
+  background: var(--red);
+  border-radius: 1px;
+}
+
+.navbar-user {
+  display: flex; align-items: center; gap: 8px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 9px;
+  padding: 5px 12px 5px 6px;
+}
+.navbar-avatar {
+  width: 26px; height: 26px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #e10600, #ff6b35);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 800; color: #fff; flex-shrink: 0;
+}
+.navbar-username { font-size: 13px; color: var(--text-2); font-weight: 500; }
+
+.btn-signout {
+  background: transparent;
+  color: var(--text-3);
+  border: 1px solid var(--border-2);
+  border-radius: 9px;
+  padding: 5px 14px;
+  cursor: pointer;
+  font-size: 13px; font-weight: 500;
+  font-family: inherit;
+  transition: all var(--ease);
+}
+.btn-signout:hover {
+  background: rgba(225,6,0,0.08);
+  color: var(--red);
+  border-color: rgba(225,6,0,0.25);
+}
+
+@media (max-width: 768px) {
+  .navbar { padding: 0 16px; }
+  .navbar-brand-sub { display: none; }
+  .navbar-username { display: none; }
+}
+@media (max-width: 520px) {
+  .nav-link.nav-optional { display: none; }
+}
+
+/* ─── League nav tab ─────────────────────────────────────────── */
+.league-tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-3);
+  padding: 11px 13px;
+  cursor: pointer;
+  font-size: 12px; font-weight: 500;
+  font-family: inherit;
+  transition: color var(--ease), border-color var(--ease);
+  white-space: nowrap;
+  flex-shrink: 0;
+  display: flex; align-items: center; gap: 5px;
+}
+.league-tab:hover { color: var(--text-2); }
+.league-tab.active {
+  color: var(--text);
+  font-weight: 700;
+  border-bottom-color: var(--red);
+}
+
+/* ─── Standings "you" row ────────────────────────────────────── */
+tr.row-you td:first-child {
+  box-shadow: inset 3px 0 0 var(--red);
+}
+
+/* ─── League nav back link ───────────────────────────────────── */
+.league-back {
+  background: none; border: none;
+  color: var(--text-4);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0 0 0 8px;
+  font-family: inherit;
+  white-space: nowrap; flex-shrink: 0;
+  transition: color var(--ease);
+}
+.league-back:hover { color: var(--text-3); }
+
+/* ─── League name breadcrumb ─────────────────────────────────── */
+.league-breadcrumb {
+  background: none; border: none;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  color: var(--red);
+  font-size: 12px; font-weight: 800;
+  cursor: pointer;
+  padding: 0 16px 0 0;
+  margin-right: 8px;
+  white-space: nowrap; flex-shrink: 0;
+  font-family: inherit;
+  letter-spacing: 0.01em;
+  transition: color var(--ease);
+}
+.league-breadcrumb:hover { color: var(--red-dark); }

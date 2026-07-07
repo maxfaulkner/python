@@ -1,0 +1,46 @@
+{
+  "name": "fantasy-f1-league",
+  "version": "3.0.0",
+  "description": "Fantasy F1 League - Weekly driver/team selection with dynamic pricing",
+  "main": "server.js",
+  "scripts": {
+    "start": "npx prisma migrate deploy && node server.js",
+    "build": "npx prisma generate && cd frontend && npm install && npm run build",
+    "dev": "nodemon server.js",
+    "seed": "node scripts/seedDatabase.js",
+    "migrate": "prisma migrate dev",
+    "prisma:generate": "prisma generate",
+    "test": "jest --forceExit",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage --forceExit"
+  },
+  "keywords": [
+    "formula1",
+    "fantasy",
+    "league",
+    "sports"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@prisma/client": "^5.7.1",
+    "bcrypt": "^6.0.0",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-rate-limit": "^8.3.1",
+    "jsonwebtoken": "^9.0.0",
+    "node-cron": "^3.0.2",
+    "node-fetch": "^2.7.0",
+    "node-schedule": "^2.1.1",
+    "nodemailer": "^6.9.7",
+    "prisma": "^5.7.1"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "jest": "^30.3.0",
+    "jest-mock-extended": "^4.0.0",
+    "nodemon": "^3.0.2",
+    "supertest": "^7.2.2"
+  }
+}
